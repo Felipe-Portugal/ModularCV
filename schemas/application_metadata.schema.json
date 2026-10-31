@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/modularcv/application_metadata.schema.json",
+  "title": "ModularCV application metadata",
+  "description": "Traceability record written next to every generated CV. source_commit must be a real commit (never all zeros).",
+  "type": "object",
+  "required": ["schema_version", "job_key", "generated_at", "language", "family", "source_commit",
+               "master_resume", "facts_source", "company", "title", "job_sha256", "decision"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "enum": ["1", "2"]},
+    "job_key": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "minLength": 1},
+    "language": {"type": "string", "enum": ["fr", "en"]},
+    "family": {"type": "string", "minLength": 1},
+    "recommended_length_pages": {"type": ["integer", "null"], "enum": [1, 2, null]},
+    "source_commit": {
+      "type": "string",
+      "pattern": "^(?!0+$)(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "master_resume": {"type": "string", "pattern": "\\.tex$"},
+    "base_resume": {"type": ["string", "null"], "pattern": "\\.tex$"},
+    "facts_source": {"type": "string", "minLength": 1},
+    "strategy_source": {"type": ["string", "null"]},
+    "company": {"type": "string"},
+    "title": {"type": "string"},
+    "location": {"type": "string"},
+    "job_id": {"type": ["string", "integer", "null"]},
+    "source_url": {"type": ["string", "null"]},
+    "job_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "decision": {
+      "type": "object",
+      "required": ["selected_content", "excluded_content", "human_validations_required"],
+      "properties": {
+        "selected_content": {"type": "array", "items": {"type": "string"}},
+        "excluded_content": {"type": "array", "items": {"type": "string"}},
+        "human_validations_required": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

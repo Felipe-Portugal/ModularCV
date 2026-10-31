@@ -1,0 +1,6 @@
+"""ModularCV: a modular, traceable, fact-first workflow for building CVs and cover letters.
+
+The library is persona-independent. Your private data (facts, CVs, applications) lives in
+a separate *workspace* directory that is never committed to this repository.
+"""
+__version__ = "0.1.0"

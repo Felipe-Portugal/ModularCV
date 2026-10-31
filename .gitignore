@@ -1,0 +1,38 @@
+# Private workspace material must never be committed to this public repository.
+/facts.md
+/facts*.md
+!/examples/facts.example.md
+/modularcv.json
+/master/
+/baselines/
+/variants/
+/applications/
+/applications-ready/
+/packages/
+/reviews/
+/private/
+*.local.*
+private-terms*.txt
+
+# Generated documents (rebuildable) and personal exports
+*.pdf
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+.cv-panel/
+.hiring-panel/
+
+# Tooling
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+.claude/
+.codex/
+graphify-out/
