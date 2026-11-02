@@ -14,6 +14,7 @@ REPO = Path(__file__).resolve().parent.parent
 EXAMPLE = REPO / "examples" / "facts.v1.example.md"
 PINNED_EXAMPLE_FINGERPRINT = "ec0ea60ff47ff2227627b308eafc0fd6f389910373692880d17afb35a9a29474"
 
+LF, CRLF = chr(10), chr(13) + chr(10)
 MARKER = "<!-- modularcv: FactBase-v1 -->"
 
 
@@ -348,10 +349,76 @@ def test_attribute_errors(line, code):
     assert codes(check(doc(line)))[0] == code
 
 
-def test_extension_attributes_are_accepted_and_ignored():
-    with_ext = facts.parse_text(doc("- [a.one] CONFIRMED: Text. {x-review: pending; lang: en}"))
-    without = facts.parse_text(doc("- [a.one] CONFIRMED: Text. {lang: en}"))
-    assert with_ext.factbase_sha256 == without.factbase_sha256
+def _fp(attrs, line_ending=LF):
+    text = doc("- [a.one] CONFIRMED: Text. {%s}" % attrs).replace(LF, line_ending)
+    return facts.check_bytes(text.encode("utf-8"))
+
+
+def test_extension_attributes_are_kept_in_the_canonical_model():
+    base = facts.parse_text(doc("- [a.one] CONFIRMED: Text. {x-review: pending; lang: en}"))
+    record = base.to_model()["facts"][0]
+    assert record["extensions"] == {"x-review": "pending"}
+    assert base.facts[0].extensions == (("x-review", "pending"),)
+
+
+def test_files_without_extensions_keep_their_previous_model_and_fingerprint():
+    assert "extensions" not in facts.parse_file(EXAMPLE).to_model()["facts"][0]
+
+
+def test_changing_an_extension_value_or_adding_one_changes_the_fingerprint():
+    a = _fp("x-review: pending; lang: en").factbase.factbase_sha256
+    b = _fp("x-review: done; lang: en").factbase.factbase_sha256
+    c = _fp("lang: en").factbase.factbase_sha256
+    d = _fp("x-other: pending; lang: en").factbase.factbase_sha256
+    assert len({a, b, c, d}) == 4
+
+
+def test_reordering_equivalent_attributes_keeps_the_fingerprint():
+    a = _fp("x-a: 1; x-b: 2; lang: en; technologies: Python, Git")
+    b = _fp("lang: en; technologies: Python, Git; x-b: 2; x-a: 1")
+    assert a.factbase.factbase_sha256 == b.factbase.factbase_sha256
+    assert a.facts_source_sha256 != b.facts_source_sha256
+
+
+def test_extensions_have_the_same_fingerprint_with_lf_and_crlf():
+    lf, crlf = _fp("x-review: pending", LF), _fp("x-review: pending", CRLF)
+    assert lf.factbase.factbase_sha256 == crlf.factbase.factbase_sha256
+    assert lf.facts_source_sha256 == crlf.facts_source_sha256
+
+
+def test_extension_values_are_whitespace_collapsed_and_nfc():
+    a = _fp("x-k:   café   au  lait")
+    b = _fp("x-k: café au lait")
+    assert a.factbase.facts[0].extensions == (("x-k", "caf" + chr(0xe9) + " au lait"),)
+    assert a.factbase.factbase_sha256 == b.factbase.factbase_sha256
+
+
+@pytest.mark.parametrize("attrs,code", [
+    ("x-a: 1; x-a: 2", "FACT_DUPLICATE_ATTRIBUTE"),
+    ("x-a:", "FACT_EMPTY_ATTRIBUTE"),
+    ("x-: 1", "FACT_BAD_ATTRIBUTES"),
+    ("x-Bad: 1", "FACT_BAD_ATTRIBUTES"),
+    ("x-a b: 1", "FACT_BAD_ATTRIBUTES"),
+    ("x-a", "FACT_BAD_ATTRIBUTES"),
+    ("colour: red", "FACT_UNKNOWN_ATTRIBUTE"),
+    ("xreview: 1", "FACT_UNKNOWN_ATTRIBUTE"),
+    ("X-review: 1", "FACT_UNKNOWN_ATTRIBUTE"),
+])
+def test_malformed_extensions_and_unprefixed_unknown_attributes_stay_refused(attrs, code):
+    result = _fp(attrs)
+    assert [e.code for e in result.errors] == [code] and result.factbase is None
+
+
+def test_extensions_never_publish_or_promote_a_fact():
+    text = doc(
+        "- [d.one] DERIVED: Derived. {x-status: CONFIRMED; x-publish: true}",
+        "- [n.one] NOT_CONFIRMED: Not. {x-status: CONFIRMED}",
+        "- [w.one] WITHDRAWN: Withdrawn. {x-confirmed: yes}",
+        "- [c.one] CONFIRMED: Confirmed. {x-status: WITHDRAWN}",
+    )
+    base = facts.parse_text(text)
+    assert [f.status for f in base.facts] == ["DERIVED", "NOT_CONFIRMED", "WITHDRAWN", "CONFIRMED"]
+    assert [f.id for f in base.publishable()] == ["c.one"]
 
 
 def test_braces_inside_the_text_are_kept_when_the_text_does_not_end_with_a_brace():

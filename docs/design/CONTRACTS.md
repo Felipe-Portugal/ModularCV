@@ -18,7 +18,7 @@ fictional identity of `examples/facts.example.md`.
 | Dates | `YYYY-MM-DD`, `YYYY-MM` or `YYYY` (calendar-valid). No time zone. A missing date is `null`: **the engine never invents or back-fills a date**. |
 | Timestamps | Operational only (`generated_at`, `captured_at`): UTC, `YYYY-MM-DDTHH:MM:SSZ`. They never take part in a fingerprint or an identity. |
 | Languages | Lowercase ISO 639-1 codes. The engine ships rules for `fr` and `en`; a workspace may declare others without parity obligations. |
-| Unknown fields | Refused in `FactBase`, `Profile`, `ResumeContent` and `JobOffer` (a typo must not become silence). `x-` prefixed fields are kept and ignored. |
+| Unknown fields | Refused in `FactBase`, `Profile`, `ResumeContent` and `JobOffer` (a typo must not become silence). `x-` prefixed fields are kept (in FactBase: in the model and the fingerprint) and ignored by the engine's logic. |
 | Errors | Stable machine codes (`FACT_DUPLICATE_ID`, ...), a human message, and the file and line when known. Never an empty result. |
 
 ### 0.1 Three kinds of hash
@@ -104,7 +104,11 @@ Choices the contract left open, made in M2:
 - A fact must sit under a `## section` heading (`FACT_OUTSIDE_SECTION`); only `#` and `##` headings exist (`###` is `FACT_UNPARSED_LINE`).
 - A blank line ends a fact; a continuation line after a blank line is `FACT_UNPARSED_LINE`.
 - The attribute block is the last `{...}` of the fact when the text ends with `}`. Attribute values cannot contain `;`; lists are
-  comma-separated. `x-` attributes are accepted and ignored: they are **not** in the canonical model.
+  comma-separated. `x-` attributes (name `x-` then a lowercase identifier) are accepted, **kept** in the canonical model as an
+  `extensions` object `{name: value}` and therefore part of `factbase_sha256`. The object is omitted when a fact has none, so a
+  file without extensions keeps the fingerprint it had before. Values are whitespace-collapsed and NFC like other attributes;
+  attribute order does not matter (keys are sorted); duplicates, empty values and malformed names are errors; unprefixed
+  unknown attributes stay `FACT_UNKNOWN_ATTRIBUTE`. An extension has no effect on status or publication.
 - An empty or whitespace-only file is `FACT_EMPTY_FILE`; a file with only the marker is valid with the warning `FACT_NO_FACTS`.
 - `capabilities` must be lowercase identifiers; their vocabulary is not checked before M6 (no taxonomy yet).
 - `require_confirmation_date` is a parameter of the parser (`--require-confirmation-date` on the CLI); the profile that will

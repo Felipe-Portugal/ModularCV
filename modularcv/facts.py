@@ -25,6 +25,7 @@ STATUSES = (CONFIRMED, DERIVED, NOT_CONFIRMED, WITHDRAWN)
 
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 ID_MAX = 80
+EXTENSION_PATTERN = re.compile(r"^x-[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 LANG_PATTERN = re.compile(r"^[a-z]{2}$")
 DATE_PATTERN = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$", re.ASCII)
 
@@ -47,7 +48,7 @@ class FactError(namedtuple("FactError", "code message line")):
 
 Fact = namedtuple(
     "Fact",
-    "id status text section lang confirmed_on technologies capabilities source supersedes note line",
+    "id status text section lang confirmed_on technologies capabilities source supersedes note extensions line",
 )
 
 
@@ -90,25 +91,25 @@ class FactBase:
 
     def to_model(self):
         """The canonical model of the contract. Line numbers are not part of it."""
-        return {
-            "schema": SCHEMA,
-            "facts": [
-                {
-                    "id": fact.id,
-                    "status": fact.status,
-                    "text": fact.text,
-                    "section": fact.section,
-                    "lang": fact.lang,
-                    "confirmed_on": fact.confirmed_on,
-                    "technologies": list(fact.technologies),
-                    "capabilities": list(fact.capabilities),
-                    "source": fact.source,
-                    "supersedes": fact.supersedes,
-                    "note": fact.note,
-                }
-                for fact in self.facts
-            ],
-        }
+        def model(fact):
+            record = {
+                "id": fact.id,
+                "status": fact.status,
+                "text": fact.text,
+                "section": fact.section,
+                "lang": fact.lang,
+                "confirmed_on": fact.confirmed_on,
+                "technologies": list(fact.technologies),
+                "capabilities": list(fact.capabilities),
+                "source": fact.source,
+                "supersedes": fact.supersedes,
+                "note": fact.note,
+            }
+            if fact.extensions:  # omitted when empty, so files without `x-` keep their fingerprint
+                record["extensions"] = dict(fact.extensions)
+            return record
+
+        return {"schema": SCHEMA, "facts": [model(fact) for fact in self.facts]}
 
     @property
     def factbase_sha256(self):
@@ -174,8 +175,10 @@ def _parse_attribute_block(block, add):
             add("FACT_BAD_ATTRIBUTES", "an attribute must read `name: value`")
             continue
         if key.startswith("x-"):
-            continue  # extension attributes are accepted and ignored (not part of the model)
-        if key not in ATTRIBUTES:
+            if not EXTENSION_PATTERN.match(key):
+                add("FACT_BAD_ATTRIBUTES", "an extension name must read `x-` then a lowercase identifier")
+                continue
+        elif key not in ATTRIBUTES:
             add("FACT_UNKNOWN_ATTRIBUTE", "unknown attribute `%s`" % key)
             continue
         if key in values:
@@ -380,6 +383,7 @@ def _finish_fact(pending, section_of, facts, ids, error, require_confirmation_da
         id=fact_id, status=status, text=text, section=section_of, lang=lang, confirmed_on=confirmed_on,
         technologies=technologies, capabilities=capabilities, source=attributes.get("source"),
         supersedes=supersedes, note=attributes.get("note"), line=line,
+        extensions=tuple(sorted((k, _collapse(v)) for k, v in attributes.items() if k.startswith("x-"))),
     ))
 
 

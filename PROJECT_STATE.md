@@ -7,7 +7,7 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 - Branch: `main`. Baseline: `0a553e1` (initial release `0.1.0`). M1.1 design documents and M2 code are committed locally
   on top of it (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
-- Tests: 197 passed (`python -m pytest`, Python 3.9.13, synthetic data only): 78 existing + 119 added by M2.
+- Tests: see the M2-R1 report (`python -m pytest`, Python 3.9.13, synthetic data only).
 - Privacy scan: `python -m modularcv privacy --root .` reports 0 finding; also 0 with an outside deny list and `--history`.
 - Package: still `dependencies = []`; `modularcv.facts` and `modularcv.canonical` import only the standard library.
 
@@ -38,6 +38,11 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
 - Documentation reserves fixed: hash kinds (`CONTRACTS.md` §0.1, `PROVENANCE_READINESS.md` §5) and the v1/v2/v3 metadata
   compatibility matrix (`CONTRACTS.md` §6). Implementation choices: `CONTRACTS.md` §1.4.1.
 
+## Correction M2-R1
+
+`x-` attributes are now kept in the canonical model (`extensions`, omitted when empty) and contribute to `factbase_sha256`;
+fingerprints of files without `x-` are unchanged. Contract: `CONTRACTS.md` §1.4.1.
+
 ## Known defect (open, mandatory in M3)
 
 `modularcv.readiness` 0.1.0 is **fail-open**: it returns `READY_TO_SEND` when CV metadata is absent, when `source_commit` is
@@ -50,7 +55,7 @@ Details: `docs/design/PROVENANCE_READINESS.md` §1 and §8.
 1. Cover letters deferred beyond M8.
 2. `pdflatex` optional or required for the first release.
 3. One generic taxonomy, or several domain taxonomies.
-4. Whether `###` sub-headings and `x-` attributes in the model should be allowed later (M2 refuses `###` and drops `x-`).
+4. Whether `###` sub-headings should be allowed later (M2 refuses them).
 
 Settled: strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`.
 
