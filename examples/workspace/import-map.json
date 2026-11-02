@@ -1,0 +1,19 @@
+{
+  "schema": "LegacyFactMap-v1",
+  "allow_confirmed": true,
+  "headings": [
+    {"pattern": "Notes of .*", "action": "ignore", "level": 1},
+    {"pattern": "Experience \\(checked\\)", "section": "experience", "title": "Experience", "status": "CONFIRMED", "lang": "en"},
+    {"pattern": "Experience \\(to check\\)", "section": "experience-to-check", "title": "Experience to check", "status": "DERIVED", "lang": "en"},
+    {"pattern": "Tools", "action": "technologies"}
+  ],
+  "status_rules": [
+    {"pattern": "\\[not confirmed\\]", "status": "NOT_CONFIRMED"}
+  ],
+  "date_patterns": [
+    "\\(confirmed (\\d{4}-\\d{2}-\\d{2})\\)"
+  ],
+  "ignore_patterns": [
+    "-{3,}"
+  ]
+}

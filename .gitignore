@@ -3,6 +3,10 @@
 /facts*.md
 !/examples/facts.example.md
 /modularcv.json
+/profile.json
+/import-map*.json
+/import-report*.json
+/legacy*.md
 /master/
 /baselines/
 /variants/

@@ -38,6 +38,12 @@ def normalise_text(text: str, strip_bom: bool = True) -> str:
     return unicodedata.normalize("NFC", normalise_newlines(text))
 
 
+def fold(text: str) -> str:
+    """Matching key for display names: casefolded, accents removed, NFC. Never stored, only compared."""
+    stripped = "".join(ch for ch in unicodedata.normalize("NFD", text.casefold()) if not unicodedata.combining(ch))
+    return unicodedata.normalize("NFC", stripped)
+
+
 def decode_text(data: bytes) -> str:
     """Strict UTF-8 decoding; a leading BOM is dropped. Anything else is `TEXT_NOT_UTF8`."""
     if data.startswith(BOM_BYTES):

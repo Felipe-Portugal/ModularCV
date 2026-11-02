@@ -1,0 +1,39 @@
+{
+  "schema": "Profile-v1",
+  "languages": ["en", "fr"],
+  "default_language": "en",
+  "identity": {
+    "display_name": {"value": "Jordan Example", "visibility": "public"},
+    "headline": {"value": "Software engineering student", "visibility": "public"},
+    "location": {"value": "Exampleville", "visibility": "public"},
+    "email": {"value": "jordan@example.com", "visibility": "public"},
+    "phone": {"value": "+1 555 0100", "visibility": "private"},
+    "links": [
+      {"label": "Portfolio", "value": "https://example.org/jordan", "visibility": "public"},
+      {"label": "Notes", "value": "https://example.org/jordan/notes", "visibility": "private"}
+    ]
+  },
+  "families": {
+    "software": {
+      "label": "Software development",
+      "languages": ["en", "fr"],
+      "core_skills": ["Python", "pytest"],
+      "excluded_blocks": {"volunteering": "not relevant to this family"},
+      "clusters": ["backend", "testing"],
+      "page_target": 1
+    }
+  },
+  "policy": {
+    "never_publish_terms": ["salary expectation"],
+    "omit_by_default_terms": ["hobby project"],
+    "forbidden_words": {"en": ["guru", "ninja"], "fr": ["gourou"]},
+    "require_confirmation_date": false
+  },
+  "availability": [
+    {"id": "internship-2027", "fact_id": "avail.internship-2027", "applies_to": ["INTERNSHIP"]}
+  ],
+  "taxonomy": "builtin:generic-v1",
+  "selection": {"minimum_gain": 1.0},
+  "precedence_rules": [],
+  "guidance": []
+}

@@ -25,6 +25,10 @@ DEFAULTS = {
     "packages_dir": "packages",
     # Tree that holds the CV metadata of applications; a package may not point outside of it.
     "applications_dir": "applications",
+    # Profile-v1 (M4); `content` and `offers_dir` are reserved for M5 and M6 and are only validated here.
+    "profile": "profile.json",
+    "content": "content/resume.json",
+    "offers_dir": "offers",
 }
 
 
@@ -57,7 +61,7 @@ def load(root=None) -> dict:
         config.update(data)
     if not isinstance(config["provenance_files"], list):
         raise ConfigError("provenance_files must be a list of relative paths")
-    for key in ("facts", "staleness_registry", "packages_dir", "applications_dir"):
+    for key in ("facts", "staleness_registry", "packages_dir", "applications_dir", "profile", "content", "offers_dir"):
         if not isinstance(config[key], str) or paths.relative_path_problem(config[key]):
             raise ConfigError("%s must be a safe relative path inside the workspace" % key)
     for name in config["provenance_files"]:
