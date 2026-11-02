@@ -37,6 +37,8 @@ python -m pytest                         # all tests use synthetic data
 cd /path/to/your/private/workspace       # a Git repository with facts.md
 python -m modularcv provenance           # verified source commit, or a clear refusal
 python -m modularcv check-packages packages
+python -m modularcv facts check facts.md        # strict FactBase-v1 validation (see examples/facts.v1.example.md)
+python -m modularcv facts fingerprint facts.md  # source and canonical fingerprints of a valid fact base
 python -m modularcv privacy --root . --deny-file ~/private-terms.txt --history
 ```
 
