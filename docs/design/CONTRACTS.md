@@ -1,0 +1,270 @@
+# Data contracts of the generic engine (M1.1 design)
+
+Status: **design, not implemented**. Nothing here changes the behaviour of `0.1.0`. Every contract is
+persona-independent: no personal rule, wording, date or identifier belongs to the engine. Examples use the
+fictional identity of `examples/facts.example.md`.
+
+## 0. Conventions shared by every contract
+
+| Topic | Rule |
+|---|---|
+| Encoding | UTF-8, no BOM. A BOM is stripped on read. |
+| Line endings | Normalised to LF **before** any hash or comparison (`\r\n` and lone `\r` become `\n`). A Windows checkout with `core.autocrlf=true` must never change a fingerprint. |
+| Unicode | Strings are NFC-normalised before canonicalisation. |
+| Canonical JSON | Keys sorted, separators `,` and `:`, `ensure_ascii=False`, UTF-8, no trailing newline, no `NaN`/`Infinity`. |
+| Hashes | Three kinds, never mixed. See section 0.1. |
+| Versioning | Every document carries `"schema": "<Name>-v<N>"`. An unknown schema or major version is refused, never guessed. |
+| Identifiers | `^[a-z0-9]+(?:[.-][a-z0-9]+)*$`, 1 to 80 characters, unique inside their namespace. Stable: never reused for another fact. |
+| Dates | `YYYY-MM-DD`, `YYYY-MM` or `YYYY` (calendar-valid). No time zone. A missing date is `null`: **the engine never invents or back-fills a date**. |
+| Timestamps | Operational only (`generated_at`, `captured_at`): UTC, `YYYY-MM-DDTHH:MM:SSZ`. They never take part in a fingerprint or an identity. |
+| Languages | Lowercase ISO 639-1 codes. The engine ships rules for `fr` and `en`; a workspace may declare others without parity obligations. |
+| Unknown fields | Refused in `FactBase`, `Profile`, `ResumeContent` and `JobOffer` (a typo must not become silence). `x-` prefixed fields are kept and ignored. |
+| Errors | Stable machine codes (`FACT_DUPLICATE_ID`, ...), a human message, and the file and line when known. Never an empty result. |
+
+### 0.1 Three kinds of hash
+
+| Kind | Computed on | Invariant under | Name | Used for |
+|---|---|---|---|---|
+| **Canonical fingerprint** | the canonical JSON of a *model* (a parsed document), after NFC and LF normalisation of every string | key order, line endings, spacing the parser discards, BOM | `<model>_sha256` (for example `factbase_sha256`) | semantic identity: plans, `tailored_cv_id`, "has the meaning changed?" |
+| **Normalised-source hash** | the bytes of a *text file*: BOM removed, `\r\n` and lone `\r` turned into `\n`; **no NFC, no other change** | checkout line endings and BOM only | `<role>_source_sha256` (for example `facts_source_sha256`) | provenance and snapshots: "is this the file the commit holds?" Any other edit, including whitespace, changes it. |
+| **Exact-bytes hash** | the raw bytes of a *binary file* (PDF, image); no normalisation ever | nothing | `<role>_bytes_sha256` | integrity of artefacts that are not text |
+
+Rules: the text normalisation is **never** applied to a binary file; a file's kind is declared (`text` or `binary`), never guessed.
+Two files with equal canonical fingerprints may have different source hashes, and that is expected (reformatting). Provenance and
+snapshots use the normalised-source hash for text and the exact-bytes hash for binaries; identities use canonical fingerprints.
+
+## 1. FactBase-v1
+
+The only source of professional facts. The authoritative file is **human-edited Markdown** (`facts.md`); the engine
+parses it into a canonical JSON model. Nothing is written in a document that is not a published fact here.
+
+### 1.1 Markdown grammar (strict)
+
+```
+<!-- modularcv: FactBase-v1 -->            first non-blank line; required
+# Free title                               ignored
+## Section title {#section-id}             a section; the id is optional (slug of the title otherwise)
+- [fact.id] STATUS: text of the fact {attr: value; attr: value}
+    continuation lines are indented by 4 spaces and belong to the same fact
+```
+
+Anything that is neither blank, a heading, a comment, a fact line nor a continuation line is **not a fact**. It is
+reported as `FACT_UNPARSED_LINE` and makes `facts check` fail; it is never silently treated as prose that the engine
+may use. Free prose is allowed only inside HTML comments.
+
+### 1.2 Fact record
+
+| Field | Req. | Type | Notes |
+|---|---|---|---|
+| `id` | yes | identifier | Unique in the file. |
+| `status` | yes | enum | `CONFIRMED`, `DERIVED`, `NOT_CONFIRMED`, `WITHDRAWN` (below). |
+| `text` | yes | string | Non-empty after trimming. Language given by `lang`, else the profile's default language. |
+| `section` | derived | identifier | From the enclosing heading. |
+| `lang` | no | `fr`/`en`/... | Language of `text`. |
+| `confirmed_on` | no | date | **Optional.** A fact without a date is valid and carries `null`. |
+| `technologies` | no | list of strings | Display names; normalised for matching by `fold()` (casefold, accents removed). |
+| `capabilities` | no | list of identifiers | Drawn from the taxonomy in use (`generic-v1` by default). |
+| `source` | no | string | Free reference (document, course, confirmation channel). Never a path outside the workspace. |
+| `supersedes` | no | identifier | Id of an earlier fact it replaces; the replaced fact must be `WITHDRAWN`. |
+| `note` | no | string | Reviewer note, never published. |
+
+Attributes use `{technologies: Python, pytest; capabilities: testing; confirmed_on: 2026-01-10; lang: en}`.
+
+### 1.3 Confirmation policy
+
+| Status | May appear in a generated document | Effect |
+|---|---|---|
+| `CONFIRMED` | yes | Publishable. No date is required (`profile.policy.require_confirmation_date`, default `false`, can make it so for a workspace that wants it). |
+| `DERIVED` | **no** | A wording derived from confirmed facts. Reported under `human_validations_required`; becomes publishable only when a human edits it to `CONFIRMED`. The engine never promotes a status. |
+| `NOT_CONFIRMED` | no | A claim that must not be made. Feeds the requirement matrix as `FORBIDDEN_TO_CLAIM` evidence. |
+| `WITHDRAWN` | no | Was claimed once and retracted. Any package built on it is stale (staleness registry). |
+
+Validation errors (all fatal): duplicate id, unknown status, empty text, invalid date, unknown `supersedes`,
+`supersedes` target not `WITHDRAWN`, `CONFIRMED` fact whose `capabilities` are outside the taxonomy, missing marker line.
+
+### 1.4 Canonical model and fingerprints
+
+```json
+{"schema":"FactBase-v1","facts":[{"id":"...","status":"CONFIRMED","text":"...","section":"...",
+  "lang":null,"confirmed_on":null,"technologies":[],"capabilities":[],"source":null,"supersedes":null,"note":null}]}
+```
+
+Facts are ordered by file order; `line` is **not** part of the canonical model (moving a fact must not change the
+semantic identity).
+
+- `facts_source_sha256`: normalised-source hash of `facts.md` (section 0.1). Used by provenance. Changes when the file changes in any way except BOM and line endings.
+- `factbase_sha256`: canonical fingerprint of the model above. Used for plan identity. Unchanged by blank lines, spacing and comments; changed by any change of order, text, status or attribute.
+- A fact's `text` is canonicalised by collapsing every run of whitespace (including the line breaks of continuation lines) into one space and trimming.
+
+### 1.4.1 Implementation status and choices (M2)
+
+Section 1 is **implemented** by `modularcv/facts.py` and `modularcv/canonical.py` (the rest of this document is still design).
+Choices the contract left open, made in M2:
+
+- A fact must sit under a `## section` heading (`FACT_OUTSIDE_SECTION`); only `#` and `##` headings exist (`###` is `FACT_UNPARSED_LINE`).
+- A blank line ends a fact; a continuation line after a blank line is `FACT_UNPARSED_LINE`.
+- The attribute block is the last `{...}` of the fact when the text ends with `}`. Attribute values cannot contain `;`; lists are
+  comma-separated. `x-` attributes are accepted and ignored: they are **not** in the canonical model.
+- An empty or whitespace-only file is `FACT_EMPTY_FILE`; a file with only the marker is valid with the warning `FACT_NO_FACTS`.
+- `capabilities` must be lowercase identifiers; their vocabulary is not checked before M6 (no taxonomy yet).
+- `require_confirmation_date` is a parameter of the parser (`--require-confirmation-date` on the CLI); the profile that will
+  carry it arrives in M4.
+- Error messages never repeat the text of a fact.
+
+Error codes: `FACT_FILE_UNREADABLE`, `FACT_NOT_UTF8`, `FACT_EMPTY_FILE`, `FACT_MARKER_MISSING`, `FACT_UNKNOWN_SCHEMA`,
+`FACT_UNPARSED_LINE`, `FACT_CONTROL_CHARACTER`, `FACT_UNTERMINATED_COMMENT`, `FACT_BAD_SECTION_ID`, `FACT_DUPLICATE_SECTION`,
+`FACT_OUTSIDE_SECTION`, `FACT_INVALID_ID`, `FACT_DUPLICATE_ID`, `FACT_UNKNOWN_STATUS`, `FACT_EMPTY_TEXT`, `FACT_BAD_ATTRIBUTES`,
+`FACT_UNKNOWN_ATTRIBUTE`, `FACT_DUPLICATE_ATTRIBUTE`, `FACT_EMPTY_ATTRIBUTE`, `FACT_INVALID_LANG`, `FACT_INVALID_DATE`,
+`FACT_INVALID_CAPABILITY`, `FACT_BAD_SUPERSEDES`, `FACT_DATE_REQUIRED`; warning `FACT_NO_FACTS`.
+CLI exit codes of `facts check|fingerprint`: 0 valid, 1 invalid content, 2 unreadable file or bad configuration.
+
+### 1.5 Importing historical Markdown facts
+
+The engine contains **no** rule for any particular person's file. Import is driven by a mapping that lives in the
+user's workspace:
+
+```
+python -m modularcv facts import --mapping import-map.json --in legacy.md --out facts.md --report import-report.json
+```
+
+`import-map.json` (`LegacyFactMap-v1`) holds: heading regular expressions with a section id and a default status;
+line regular expressions that set a status (for example "not confirmed" markers); an optional technology list
+section; the id rule. The built-in neutral rule set only knows "every bullet under a heading is a `CONFIRMED` fact
+only if the mapping says so".
+
+- Default id: `<section-slug>.<first 10 hex of sha256(line)>` (stable and content-derived).
+- `confirmed_on` stays `null` unless the legacy text states a valid date in a pattern the mapping declares.
+- Fail-closed: a line the mapping cannot classify becomes `FACT_UNMAPPED` in the report and is **not** written as a fact.
+- The report lists every legacy line with its decision, so the import can be audited line by line. It lives in the
+  workspace, never in the engine repository.
+
+## 2. Profile-v1
+
+The candidate's configuration, as JSON (`profile.json`). Persona data lives here and in the fact base, never in code.
+
+| Field | Req. | Notes |
+|---|---|---|
+| `schema` | yes | `"Profile-v1"`. |
+| `languages` | yes | Non-empty list; `default_language` must belong to it. |
+| `identity` | yes | `display_name` (req.), `headline`, `location`, `email`, `phone`, `links[]` (all optional strings). Each field has `visibility`: `public` or `private`; a public render omits private fields. |
+| `families` | yes | Map `family_id` to `{label, languages, core_skills[], excluded_blocks{block_id: reason}, clusters[], page_target}`. At least one family. |
+| `policy` | no | `never_publish_terms[]`, `omit_by_default_terms[]`, `forbidden_words{lang: []}`, `require_confirmation_date` (bool). |
+| `availability` | no | List of `{id, fact_id, applies_to[]}`: availability statements are **fact ids**, never wording copied into code. `applies_to` uses employment kinds. |
+| `taxonomy` | no | `"builtin:generic-v1"` (default) or a workspace-relative path. |
+| `selection` | no | Overrides of the ranking constants (section 5.3); defaults are the documented ones. |
+| `precedence_rules` | no | Declarative: `{when_direct: requirement_id, keep: block_id, over: block_id}`. Default: none. |
+| `guidance` | no | Per `job_key` presentation rules: `{job_key, rules: [{fact_id, action: "omit"|"soften", text}]}`. |
+
+Relation with the published `modularcv.json`: that file keeps its role (paths and registry); its existing keys are
+unchanged. M4 adds optional keys `profile`, `content` and `offers_dir`. Unknown keys stay refused, as today.
+
+## 3. ResumeContent-v1
+
+The structured, validated resume text: the replacement for parsing LaTeX masters. The engine writes **no new sentence**:
+every printed bullet is a bullet of this file.
+
+```json
+{"schema":"ResumeContent-v1",
+ "sections":[{"id":"experience","kind":"experience","title":{"en":"Experience","fr":"Expérience"}}],
+ "blocks":[{"id":"acme-2025","section":"experience","order":1,"languages":["en","fr"],
+   "heading":{"en":{"title":"...","subtitle":"...","period":"...","place":"..."}},
+   "protected":false,
+   "bullets":[{"id":"acme-2025.01","text":{"en":"...","fr":"..."},
+               "supports":["fact.id"],"technologies":["Python"],"capabilities":["testing"],
+               "follows":null,"condenses":[],"never_publish":false}]}],
+ "skills":[{"id":"languages","title":{"en":"Languages"},"items":[{"id":"python","text":{"en":"Python"},"technologies":["Python"]}]}],
+ "baselines":[{"family":"software","language":"en","items":["acme-2025.01"],"skills":["python"],"focus":"..."}]}
+```
+
+Rules:
+
+- Text is plain Unicode with a minimal inline subset (`**bold**`, `_italic_`). **Raw LaTeX is refused**; the renderer escapes.
+- `supports` lists fact ids. Each must exist and be `CONFIRMED`; otherwise the content is invalid (`CONTENT_UNSUPPORTED_BULLET`).
+  Support is **explicit**, never inferred by shared words.
+- `technologies` and `capabilities` are declared, or derived deterministically from the taxonomy; a declared value must be in it.
+- `baselines` select items by id for one family and language (no text matching).
+- A bullet that `condenses` other bullets and those bullets are mutually exclusive in a selection.
+- `follows` names a bullet that must be printed first ("the same system...").
+
+### 3.1 FR/EN parity: only where both versions exist
+
+Parity is checked **per entity**, by id (not by position):
+
+| Entity | Check |
+|---|---|
+| Block | If it declares both languages, its bullet id sets must be equal, and each bullet must have both texts. |
+| Bullet | A bullet with one language only is valid and is selectable only for that language; it appears in the plan as `LANGUAGE_UNAVAILABLE` for the other. |
+| Skill category | Same rule as a block. |
+| Block order | Compared by `order` between languages for blocks present in both. |
+
+A workspace with a single language has no parity rule. Drift between two declared versions is an error
+(`CONTENT_PARITY_*`), never repaired by guessing.
+
+## 4. JobOffer-v1
+
+The engine's only input about an offer. It is deliberately small and source-agnostic.
+
+| Field | Req. | Notes |
+|---|---|---|
+| `schema` | yes | `"JobOffer-v1"`. |
+| `job_key` | yes | Identifier unique in the workspace. |
+| `title`, `company` | yes | Non-empty. |
+| `description` | yes | Non-empty text (LF-normalised). |
+| `language` | no | `fr`, `en`, `auto` (default). `auto` is decided by the deterministic detector and the decision is recorded. |
+| `employment_type` | no | `INTERNSHIP`, `PERMANENT`, `FIXED_TERM`, `PART_TIME`, `UNSPECIFIED` (default). |
+| `location`, `workplace_type`, `source_url`, `source_system`, `posted_on`, `captured_at` | no | Informational. |
+| `source_ref` | no | Opaque string for the adapter that produced it. |
+| `description_sha256` | computed | Source hash of `description`; a supplied value that differs is refused. |
+
+`offer_sha256` = canonical fingerprint of `{job_key, title, company, location, description, language, employment_type}`.
+It feeds the metadata field `job_sha256`.
+
+**Adapters** turn an external document into a `JobOffer-v1`. They live outside the core, are named explicitly
+(`--adapter`), and are optional. An adapter for a job-scraper export may exist; **no adapter is required to use the engine**,
+and the core never imports one.
+
+## 5. Plan and identity (outputs, for reference)
+
+- `RequirementMatrix-v1` and `TailoringPlan-v1` keep the semantics of the private engine's matrix and plan
+  (DIRECT, ADJACENT, ABSENT, FORBIDDEN_TO_CLAIM; greedy ranking by marginal coverage), with fingerprints over canonical JSON.
+- `tailored_cv_id` = sha256 of canonical `{versions, facts_source_sha256, factbase_sha256, content_sha256, profile_sha256,
+  taxonomy_sha256, offer_sha256, plan_sha256, template_version, language}`. No timestamp participates.
+- Selection constants (defaults): baseline prior `0.25`, minimum gain `1.0`, off-target penalty `0.1` capped at `0.6`,
+  named bonus `0.5`, inferred factor `0.5`; overridable in `profile.selection`.
+
+## 6. Compatibility with the published metadata schema
+
+`schemas/application_metadata.schema.json` (published with `0.1.0`) accepts `schema_version` in `["1","2"]`, requires
+`master_resume` (ending in `.tex`) and the common fields below, allows `base_resume` (`.tex` or `null`), and has
+`additionalProperties: true`. The published template is v2. The schema does not distinguish v1 from v2 beyond the value of
+`schema_version`; that stays true.
+
+**Compatibility matrix.** `schema_version` selects the rule set. Nothing in v1 or v2 changes.
+
+| | v1 | v2 | v3 (new) |
+|---|---|---|---|
+| Common fields: `job_key`, `generated_at`, `language`, `family`, `source_commit`, `facts_source`, `company`, `title`, `job_sha256`, `decision` | required | required | required, identical rules |
+| `source_commit` | real SHA, never all zeros | same | same |
+| `master_resume` (`.tex`) | required | required | **not required**; if present it is validated as before |
+| `base_resume` (`.tex` or `null`) | optional | optional | optional, as before |
+| `resume_content` (path ending `.json`) | not defined | not defined | **required** |
+| `profile` (path ending `.json`) | not defined | not defined | **required** |
+| `engine` = `{name, version, template_version}` | not defined | not defined | **required** |
+| `fingerprints` (hashes of section 5, 64 hex digits each) | not defined | not defined | **required** |
+| Optional fields of v2 (`recommended_length_pages`, `strategy_source`, `location`, `job_id`, `source_url`) | as published | as published | as published |
+| Extra unknown fields | allowed | allowed | allowed |
+
+Rules:
+
+1. Every document that validates against the published schema validates unchanged against the revised one. A test validates the
+   published v2 template and a v1 sample against the revised schema.
+2. A v3 document that lacks a v3-required field is invalid; a v1 or v2 document is never required to carry one.
+3. A reader checks `schema_version` first and refuses an unknown value (`"4"`, `""`) instead of guessing.
+4. Fields present in a v1 or v2 document that the v3 rule set also knows (`facts_source`, `source_commit`, ...) keep one meaning
+   across versions. A v3 field name is never reused with another meaning in an older version.
+5. Readiness treats the three versions alike for its own checks; only the CV-source fields differ.
+6. Publication happens in milestone M7 as a revised schema file; this section is the specification it is tested against.
+
+Mapping: `facts_source` = path of `facts.md`; `job_sha256` = `offer_sha256`; `decision.selected_content` =
+selected bullet ids; `decision.excluded_content` = omitted ids with reasons; `decision.human_validations_required`
+= `DERIVED` facts used as requirements, fact gaps, and the human CV review gate.
