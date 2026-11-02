@@ -14,6 +14,8 @@ English: [README.md](README.md)
 |---|---|
 | `modularcv.provenance` | Un document généré doit citer un **vrai commit Git** contenant les sources exactes utilisées. Un placeholder (des zéros), l'absence de Git, un SHA inconnu ou une source modifiée refusent la génération. |
 | `modularcv.readiness` | Promotion **fail-closed** : un paquet n'est « prêt à envoyer » que si son état déclaré, ses contrôles, le registre de péremption et les métadonnées du CV concordent. Un index secondaire ne peut jamais le promouvoir. |
+| `modularcv.profile` | **Profile-v1** : votre identité (chaque champ `public` ou `private`), langues, familles de CV, politique et disponibilités, gardés dans votre espace de travail. Une disponibilité ne compte que si un fait `CONFIRMED` la soutient. |
+| `modularcv.legacy` | `facts import` : transforme un document Markdown historique en base de faits *proposée*, selon une correspondance que vous écrivez. Une ligne inconnue n'est jamais importée et rien ne devient `CONFIRMED` tout seul (voir [docs/IMPORT.md](docs/IMPORT.md), en anglais). |
 | `modularcv.privacy` | Analyse un répertoire (et l'historique) à la recherche de courriels, téléphones, NAS, chemins d'utilisateur, URL de profil, identifiants et de vos propres termes privés, **avant** publication. |
 | `skills/cv-panel` | Skill Claude Code : sept lecteurs indépendants (ATS, recruteur RH, gestionnaire technique, conseiller en stage ÉTS, candidat concurrent, coéquipier, vérificateur de faits) relisent un CV et sa lettre. **Relecture seulement : il ne réécrit rien et n'ajoute aucun fait.** |
 
@@ -31,6 +33,8 @@ volontairement.
 ```bash
 python -m pip install -e ".[dev]"     # Python 3.9+
 python -m pytest                      # tous les tests utilisent des données synthétiques
+python -m modularcv profile check     # depuis votre espace de travail (exemple : examples/workspace/)
+python -m modularcv facts import --mapping import-map.json --in ancien.md --dry-run   # simulation, aucune écriture
 ```
 
 Pour le skill : copiez `skills/cv-panel/` dans `~/.claude/skills/`, puis `/cv-panel cv.pdf lettre.pdf <offre>`.

@@ -1,7 +1,7 @@
 # Data contracts of the generic engine (M1.1 design)
 
-Status: **design, not implemented**. Nothing here changes the behaviour of `0.1.0`. Every contract is
-persona-independent: no personal rule, wording, date or identifier belongs to the engine. Examples use the
+Status: sections 0 and 1 are implemented (M2), the legacy import of section 1.5 and section 2 are implemented (M4, see 1.5.1
+and 2.1); sections 3 to 6 are still **design, not implemented**. Every contract is persona-independent: no personal rule, wording, date or identifier belongs to the engine. Examples use the
 fictional identity of `examples/facts.example.md`.
 
 ## 0. Conventions shared by every contract
@@ -142,6 +142,51 @@ only if the mapping says so".
 - The report lists every legacy line with its decision, so the import can be audited line by line. It lives in the
   workspace, never in the engine repository.
 
+### 1.5.1 Implementation status and choices (M4)
+
+Section 1.5 is **implemented** by `modularcv/legacy.py` (`facts import`); the user guide is `docs/IMPORT.md`. Choices the
+contract left open, made in M4:
+
+- **Nothing becomes `CONFIRMED` implicitly.** A heading rule must state its `status`. `CONFIRMED` is refused unless the mapping
+  also carries `"allow_confirmed": true` (`LEGACY_MAP_CONFIRMED_NOT_ALLOWED`): a mapping that says it twice is the only way to
+  create a publishable fact. A line rule (`status_rules`) can only **lower** the status its heading gave; a rule that would
+  raise it rejects the line (`LEGACY_PROMOTION_REFUSED`). A `status_rules` entry can never name `CONFIRMED`.
+- **Decisions.** Every non-blank line of the document appears in the report with one decision: `ACCEPTED` (written as a fact),
+  `DUPLICATE` (same text and status as an earlier line, not written twice), `IGNORED` (an explicit `ignore` heading or
+  `ignore_patterns`), `TECHNOLOGY` (an entry of the technology list), `UNCLASSIFIED` (`FACT_UNMAPPED`: no rule applies),
+  `AMBIGUOUS` (two rules disagree: two headings, two status rules, two dates, one text under two statuses) and `REJECTED`
+  (classified but unusable: invalid date, text ending in `}`, control character, empty or over-long text, id collision,
+  promotion). `UNCLASSIFIED`, `AMBIGUOUS` and `REJECTED` are *problems*: the import is then incomplete.
+- **Document grammar.** Headings are `#` to `######`. A bullet is `-`, `*`, `+`, `1.` or `1)`, with its text on the same line;
+  following lines indented by two spaces or a tab continue it. Everything else (prose, tables, rules, front matter) is
+  `UNCLASSIFIED` unless an `ignore_patterns` entry matches the whole line. A heading no rule matches closes the previous section:
+  its bullets are `UNCLASSIFIED`; an `inherit` rule keeps the parent context instead.
+- **Rules.** A heading rule has `pattern` (matched against the whole heading text), an `action` (`map` by default, `ignore`,
+  `inherit`, `technologies`) and, for `map`, `section`, `status`, optional `title`, `lang`. `level` (1 to 6) restricts a rule to
+  one heading level. Patterns are Python regular expressions of at most 300 characters. A `date_patterns` entry needs exactly one
+  capturing group; its match must be a valid date, and a date is applied only to a `CONFIRMED` fact.
+- **Technology list.** Entries under a `technologies` heading are a vocabulary, never facts. A term is attached to an accepted
+  fact, as `technologies`, only when it appears there as a whole word (casefolded, accents removed).
+- **Ids.** `<section>.<ten hex digits of the sha256 of the NFC, whitespace-collapsed text>`: stable when a line moves or is respaced.
+- **Origin.** Each fact carries `source: legacy-import:<first 12 hex of the legacy document's source hash>:L<line>`.
+- **Partial results.** Exit `0` only when every line is classified and at least one fact is accepted. Otherwise exit `1`, the
+  report is written, and the facts file is written only with `--allow-partial` (the exit code stays `1`).
+- **Boundaries.** The mapping, `--out` and `--report` must be inside the workspace; the legacy document may be anywhere and is only
+  read. An output that already exists is never overwritten. `--dry-run` classifies and prints the report and writes nothing.
+- **Privacy.** The report holds line numbers, decisions, rule indexes and a hash per line, never the text of a line.
+
+Error codes of the mapping (exit `2`): `LEGACY_MAP_FILE_UNREADABLE`, `LEGACY_MAP_NOT_UTF8`, `LEGACY_MAP_NOT_JSON`,
+`LEGACY_MAP_DUPLICATE_KEY`, `LEGACY_MAP_UNKNOWN_SCHEMA`, `LEGACY_MAP_UNKNOWN_FIELD`, `LEGACY_MAP_MISSING_FIELD`,
+`LEGACY_MAP_BAD_TYPE`, `LEGACY_MAP_BAD_PATTERN`, `LEGACY_MAP_BAD_EXTENSION`, `LEGACY_MAP_INVALID_ID`, `LEGACY_MAP_INVALID_VALUE`,
+`LEGACY_MAP_INVALID_LANGUAGE`, `LEGACY_MAP_INVALID_RULE`, `LEGACY_MAP_OUT_OF_RANGE`, `LEGACY_MAP_EMPTY_VALUE`,
+`LEGACY_MAP_CONTROL_CHARACTER`, `LEGACY_MAP_CONFIRMED_NOT_ALLOWED`. Codes of the report (per line): `FACT_UNMAPPED`,
+`LEGACY_AMBIGUOUS_HEADING`, `LEGACY_CONFLICTING_STATUS_RULES`, `LEGACY_CONFLICTING_DATES`, `LEGACY_CONFLICTING_DUPLICATES`,
+`LEGACY_DUPLICATE_TEXT`, `LEGACY_IGNORED_BY_RULE`, `LEGACY_IGNORED_BY_PATTERN`, `LEGACY_PROMOTION_REFUSED`, `LEGACY_INVALID_DATE`,
+`LEGACY_TEXT_UNSAFE`, `LEGACY_TECHNOLOGY_UNSAFE`, `LEGACY_CONTROL_CHARACTER`, `LEGACY_EMPTY_TEXT`, `LEGACY_LINE_TOO_LONG`,
+`LEGACY_ID_COLLISION`. Refusals of the command (exit `2`): `CONFIG_ERROR`, `MAPPING_INVALID`, `LEGACY_FILE_UNREADABLE`,
+`LEGACY_NOT_UTF8`, `LEGACY_OUTPUT_INVALID`, `IMPORT_OUTPUT_REQUIRED`, `IMPORT_MAPPING_OUTSIDE_WORKSPACE`,
+`IMPORT_OUTPUT_OUTSIDE_WORKSPACE`, `IMPORT_OUTPUT_EXISTS`, `IMPORT_PATH_CONFLICT`, `IMPORT_WRITE_FAILED`.
+
 ## 2. Profile-v1
 
 The candidate's configuration, as JSON (`profile.json`). Persona data lives here and in the fact base, never in code.
@@ -161,6 +206,57 @@ The candidate's configuration, as JSON (`profile.json`). Persona data lives here
 
 Relation with the published `modularcv.json`: that file keeps its role (paths and registry); its existing keys are
 unchanged. M4 adds optional keys `profile`, `content` and `offers_dir`. Unknown keys stay refused, as today.
+
+### 2.1 Implementation status and choices (M4)
+
+Section 2 is **implemented** by `modularcv/profile.py` (with the shared reader `modularcv/docvalidate.py`); the commands are
+`profile check` and `profile fingerprint`. Of the three configuration keys announced above, M4 adds `profile` (default
+`profile.json`); `content` and `offers_dir` arrive with the milestones that read those files (M5, M6). Choices made in M4:
+
+- **Three kinds of content, never mixed.** *Private*: identity fields marked `private` and every `x-` field. *Public*: identity
+  fields marked `public`; `Profile.public_view()` returns only these, and a renderer must use nothing else. *Generation
+  preferences*: families, policy, availability, taxonomy, selection, precedence, guidance (`internal_preferences()`); they steer
+  the engine and are never printed in a document. Nothing is public by default.
+- **Identity.** Each of `display_name`, `headline`, `location`, `email`, `phone` is `{"value": ..., "visibility": "public"|"private"}`;
+  `visibility` is required, so a field is never public by omission. `links` is a list of `{"label"?, "value", "visibility"}`.
+  Values are single-line strings (NFC, whitespace collapsed, no control character). The engine checks no e-mail or phone format.
+  A private `display_name` is a warning (`PROFILE_DISPLAY_NAME_PRIVATE`).
+- **Languages.** `languages` is a non-empty set of two-letter codes. `default_language` is required when there are several and
+  implied when there is one; it must belong to `languages`. A family's `languages` and the keys of `policy.forbidden_words`
+  must belong to the profile languages.
+- **Families.** `label` and `languages` are required. `core_skills` are display names, unique once folded, and none may equal a
+  `never_publish_terms` entry (`PROFILE_SKILL_FORBIDDEN`). `excluded_blocks` maps block ids to a non-empty reason. `clusters` is a
+  list of identifiers whose vocabulary is defined by the taxonomy (M6). `page_target` is an integer from 1 to 5, or absent.
+- **Policy.** Terms are unique once folded and stored sorted; a term in both `never_publish_terms` and `omit_by_default_terms`
+  is `PROFILE_POLICY_CONFLICT`. Technologies are forbidden the same way: through `never_publish_terms` and `omit_by_default_terms`.
+  `require_confirmation_date` is read by `facts check --use-profile`.
+- **Availability and proof.** An entry is `{id, fact_id, applies_to}` with `applies_to` drawn from `INTERNSHIP`, `PERMANENT`,
+  `FIXED_TERM`, `PART_TIME`, `UNSPECIFIED`. With a fact base, the fact must exist (`PROFILE_FACT_UNKNOWN`) and be `CONFIRMED`
+  (`PROFILE_FACT_NOT_CONFIRMED`), and dated when the policy requires it (`PROFILE_FACT_DATE_REQUIRED`). Without a fact base the
+  entry is reported `UNVERIFIED` with the warning `PROFILE_FACTS_NOT_CHECKED`. `Profile.confirmed_availability(factbase)` is the
+  only way to get availabilities a document may state; the declaration alone proves nothing.
+- **Selection.** Keys `baseline_prior` (0.25), `minimum_gain` (1.0), `off_target_penalty` (0.1), `off_target_penalty_cap` (0.6),
+  `named_bonus` (0.5), `inferred_factor` (0.5). Numbers from 0 to 1,000,000, `inferred_factor` at most 1, the cap at least the
+  penalty. The canonical model always holds the effective values, as floats, so an explicit default and an omitted one give the
+  same fingerprint.
+- **Precedence and guidance.** A precedence rule needs three identifiers and `keep` different from `over`; rules of one requirement
+  that form a cycle are `PROFILE_PRECEDENCE_CONFLICT`. A guidance rule `omit` takes no text and may name any existing fact; `soften`
+  needs a replacement `text` and a `CONFIRMED` fact; one fact appears once per job.
+- **Taxonomy.** `builtin:generic-v1` or a safe workspace-relative path ending in `.json`; the file is not resolved before M6.
+- **Fingerprints.** `profile_source_sha256` is the normalised-source hash of the file; `profile_sha256` is the canonical
+  fingerprint of the model (defaults filled in; `languages`, terms, `applies_to`, family `languages` sorted; `core_skills`,
+  `clusters`, links, availability, precedence and guidance keep their order). `x-` fields are kept in the model and the
+  fingerprint and ignored by the engine.
+- **Errors never repeat a value.** An error is a code, a fixed message and a path of field names (`families.software.languages[1]`).
+  A key the user chose (a family id) appears only when it is a valid identifier; any other key is shown as `<key>`.
+
+Error codes (`PROFILE_` prefix): `FILE_UNREADABLE`, `NOT_UTF8`, `NOT_JSON`, `DUPLICATE_KEY`, `UNKNOWN_SCHEMA`, `UNKNOWN_FIELD`,
+`MISSING_FIELD`, `BAD_TYPE`, `BAD_EXTENSION`, `EMPTY_VALUE`, `CONTROL_CHARACTER`, `OUT_OF_RANGE`, `INVALID_ID`, `INVALID_VALUE`,
+`INVALID_LANGUAGE`, `UNKNOWN_LANGUAGE`, `DEFAULT_LANGUAGE`, `DUPLICATE_VALUE`, `NO_FAMILY`, `POLICY_CONFLICT`, `SKILL_FORBIDDEN`,
+`INVALID_TAXONOMY`, `PRECEDENCE_INVALID`, `PRECEDENCE_CONFLICT`, `GUIDANCE_INVALID`, `FACT_UNKNOWN`, `FACT_NOT_CONFIRMED`,
+`FACT_DATE_REQUIRED`, `FACTS_INVALID`; warnings `FACTS_NOT_CHECKED`, `DISPLAY_NAME_PRIVATE`. CLI exit codes of `profile check`:
+`0` valid, `1` invalid (or fact references that cannot be verified), `2` unreadable profile, unreadable fact base or bad
+configuration.
 
 ## 3. ResumeContent-v1
 
