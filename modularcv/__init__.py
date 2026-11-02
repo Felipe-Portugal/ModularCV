@@ -3,4 +3,4 @@
 The library is persona-independent. Your private data (facts, CVs, applications) lives in
 a separate *workspace* directory that is never committed to this repository.
 """
-__version__ = "0.1.0"
+__version__ = "0.2.0"

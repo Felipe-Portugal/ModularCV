@@ -9,6 +9,8 @@ import json
 import os
 from pathlib import Path
 
+from . import paths
+
 ROOT_ENV = "MODULARCV_ROOT"
 CONFIG_NAME = "modularcv.json"
 
@@ -21,6 +23,8 @@ DEFAULTS = {
     "staleness_registry": "packages/package-staleness.json",
     # Directory holding the secondary index of packages.
     "packages_dir": "packages",
+    # Tree that holds the CV metadata of applications; a package may not point outside of it.
+    "applications_dir": "applications",
 }
 
 
@@ -45,12 +49,20 @@ def load(root=None) -> dict:
             data = json.loads(path.read_text(encoding="utf-8"))
         except ValueError as error:
             raise ConfigError("%s is not valid JSON: %s" % (path, error))
+        if not isinstance(data, dict):
+            raise ConfigError("%s must hold a JSON object" % path)
         unknown = sorted(set(data) - set(DEFAULTS))
         if unknown:
             raise ConfigError("Unknown keys in %s: %s" % (path, ", ".join(unknown)))
         config.update(data)
     if not isinstance(config["provenance_files"], list):
         raise ConfigError("provenance_files must be a list of relative paths")
+    for key in ("facts", "staleness_registry", "packages_dir", "applications_dir"):
+        if not isinstance(config[key], str) or paths.relative_path_problem(config[key]):
+            raise ConfigError("%s must be a safe relative path inside the workspace" % key)
+    for name in config["provenance_files"]:
+        if paths.relative_path_problem(name):
+            raise ConfigError("provenance_files holds an unsafe path: %r" % (name,))
     config["root"] = root
     return config
 

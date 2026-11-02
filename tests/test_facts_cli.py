@@ -133,6 +133,7 @@ def test_module_entry_point_in_a_real_process():
     assert bad.returncode == 1 and "FACT_MARKER_MISSING" in bad.stderr
 
 
-def test_existing_commands_are_unchanged(capsys):
-    code, out, _ = run(capsys, "check-packages", str(REPO / "tests"))
-    assert code in (0, 1) and "contradictions" in json.loads(out)
+def test_check_packages_refuses_an_incomplete_audit(capsys):
+    # 0.2.0: a directory without any package is an incomplete audit (exit 2), no longer an empty success.
+    code, out, err = run(capsys, "check-packages", str(REPO / "tests"))
+    assert code == 2 and out == "" and json.loads(err)["status"] == "NO_PACKAGES"
