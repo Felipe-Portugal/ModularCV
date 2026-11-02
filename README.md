@@ -47,7 +47,7 @@ To use the skill, copy `skills/cv-panel/` into `~/.claude/skills/` and run
 
 ## Status
 
-`0.1.0`: the persona-independent core. The CV generation engine from the original private project is
+`0.2.0`: the persona-independent core, with fail-closed provenance and readiness (incompatible changes since `0.1.0`: `docs/design/PROVENANCE_READINESS.md` section 9). The CV generation engine from the original private project is
 not included here because it still embeds one person's content; porting it behind a configurable
 fact base is future work.
 

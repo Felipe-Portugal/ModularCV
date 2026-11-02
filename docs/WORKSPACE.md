@@ -20,7 +20,8 @@ my-cv-workspace/            private repository
   "facts": "facts.md",
   "provenance_files": ["master/resume.tex", "baselines/software.tex"],
   "staleness_registry": "packages/package-staleness.json",
-  "packages_dir": "packages"
+  "packages_dir": "packages",
+  "applications_dir": "applications"
 }
 ```
 
@@ -28,8 +29,13 @@ Run commands from the workspace, or set `MODULARCV_ROOT`:
 
 ```bash
 python -m modularcv provenance            # verified source commit, or a clear refusal
-python -m modularcv check-packages packages
+python -m modularcv check-packages packages   # exit 0 clean, 1 contradiction, 2 incomplete audit
+python -m modularcv snapshot verify packages/<folder>/provenance/source-snapshot.json
 ```
+
+A package is `READY_TO_SEND` only with evidence in the workspace: its `provenance/source-snapshot.json`, the CV metadata and
+plan it names under `applications/`, a `source_commit` that is a commit of this repository, and a `cv-quality-review.json`
+written by you that approves the exact CV. See `docs/design/PROVENANCE_READINESS.md` section 9.
 
 ## Before you publish anything
 

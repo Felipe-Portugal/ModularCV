@@ -7,7 +7,7 @@ passes the privacy scan, and ends without a push, tag or release unless explicit
 | ID | Title | Scope | PASS when |
 |---|---|---|---|
 | M2 | Canonicalisation and FactBase-v1 | `canonical.py`, `facts.py`, `facts check` / `facts fingerprint` commands, strict example | acceptance criteria below |
-| M3 | Provenance and readiness hardening (`0.2.0`) | `verify_recorded_commit`, snapshot, metadata resolution, new reasons, `--check`; closes the fail-open behaviour | every reason of `PROVENANCE_READINESS.md` §6 has a test; old fail-open cases now refuse |
+| M3 | Provenance and readiness hardening (`0.2.0`), implemented, awaiting validation | `verify_recorded_commit`, snapshot, metadata resolution, new reasons, `--check`; closes the fail-open behaviour | every reason of `PROVENANCE_READINESS.md` §6 has a test; old fail-open cases now refuse |
 | M4 | Profile-v1 and legacy fact import | `profile.py`, `LegacyFactMap-v1`, `facts import` with audit report, config keys | import of a synthetic legacy file is line-by-line auditable; unmapped lines never become facts |
 | M5 | ResumeContent-v1 and reservoir | content parser, per-entity FR/EN parity, explicit support, baselines, reservoir | parity only where both versions exist; unsupported bullet refused |
 | M6 | JobOffer-v1, taxonomy, matrix and plan | offer parser, `generic-v1` taxonomy, requirement matrix, greedy ranking, plan fingerprints | same inputs give same plan fingerprint; unconfirmed claim never selected |
