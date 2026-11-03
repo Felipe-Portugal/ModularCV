@@ -169,6 +169,12 @@ contract left open, made in M4:
   fact, as `technologies`, only when it appears there as a whole word (casefolded, accents removed).
 - **Ids.** `<section>.<ten hex digits of the sha256 of the NFC, whitespace-collapsed text>`: stable when a line moves or is respaced.
 - **Origin.** Each fact carries `source: legacy-import:<first 12 hex of the legacy document's source hash>:L<line>`.
+- **Mapping authorisation is not human verification.** `allow_confirmed` plus a `CONFIRMED` heading rule is the *user's
+  authorisation of a class of lines* ("everything under this heading was checked"). It is stated once, in the mapping, and the
+  engine checks that it is present; it cannot check that each fact was individually verified. That verification stays a human
+  act: the output is a **proposal** (`facts.proposed.md`), the engine never edits `facts.md`, and a fact becomes part of the
+  fact base only when the user copies it there. Every `CONFIRMED` line of a proposal can be traced in the report to the heading
+  rule (`rule`) that authorised it. Ambiguity never confirms: two rules that disagree leave the line `AMBIGUOUS` and unwritten.
 - **Partial results.** Exit `0` only when every line is classified and at least one fact is accepted. Otherwise exit `1`, the
   report is written, and the facts file is written only with `--allow-partial` (the exit code stays `1`).
 - **Boundaries.** The mapping, `--out` and `--report` must be inside the workspace; the legacy document may be anywhere and is only
@@ -255,8 +261,11 @@ Error codes (`PROFILE_` prefix): `FILE_UNREADABLE`, `NOT_UTF8`, `NOT_JSON`, `DUP
 `INVALID_LANGUAGE`, `UNKNOWN_LANGUAGE`, `DEFAULT_LANGUAGE`, `DUPLICATE_VALUE`, `NO_FAMILY`, `POLICY_CONFLICT`, `SKILL_FORBIDDEN`,
 `INVALID_TAXONOMY`, `PRECEDENCE_INVALID`, `PRECEDENCE_CONFLICT`, `GUIDANCE_INVALID`, `FACT_UNKNOWN`, `FACT_NOT_CONFIRMED`,
 `FACT_DATE_REQUIRED`, `FACTS_INVALID`; warnings `FACTS_NOT_CHECKED`, `DISPLAY_NAME_PRIVATE`. CLI exit codes of `profile check`:
-`0` valid, `1` invalid (or fact references that cannot be verified), `2` unreadable profile, unreadable fact base or bad
-configuration.
+`0` valid **and** every fact reference verified (or none to verify), `1` invalid (or fact references that cannot be verified
+because the fact base is invalid), `2` unreadable profile, unreadable fact base or bad configuration, `3` (M4-R1) structurally
+valid but fact references left `UNVERIFIED`, which is what `--no-facts` yields whenever the profile has availability or guidance
+references. `--no-facts` is a structure-only check: its status is `UNVERIFIED`, never `OK`, so a script cannot read it as a
+complete validation. `profile fingerprint` is structural by nature and says nothing about fact references.
 
 ## 3. ResumeContent-v1
 

@@ -567,13 +567,78 @@ def test_references_need_a_readable_valid_fact_base(workspace, capsys):
     assert code == 1 and json.loads(out)["errors"][0]["code"] == "PROFILE_FACTS_INVALID"
 
 
-def test_no_facts_skips_the_references_and_says_so(workspace, capsys):
+def test_no_facts_is_structure_only_and_never_a_clean_success(workspace, capsys):
+    """M4-R1: unverified fact references must not give an exit code that reads as a complete validation."""
     (workspace / "facts.md").unlink()
-    code, out, _ = run(capsys, "profile", "check", "--root", str(workspace), "--no-facts")
+    code, out, err = run(capsys, "profile", "check", "--root", str(workspace), "--no-facts")
     report = json.loads(out)
-    assert code == 0 and report["facts_checked"] is False
+    assert code == 3 and report["status"] == "UNVERIFIED" and report["facts_checked"] is False
+    assert report["errors"] == [] and report["profile_sha256"]
     assert report["availability"] == [{"id": "internship-2027", "state": "UNVERIFIED"}]
     assert [w["code"] for w in report["warnings"]] == ["PROFILE_FACTS_NOT_CHECKED"]
+    assert "PROFILE_FACTS_NOT_CHECKED" in err  # a human sees it too
+
+
+def test_the_full_check_is_the_only_one_that_exits_0_with_references(workspace, capsys):
+    code, out, err = run(capsys, "profile", "check", "--root", str(workspace))
+    report = json.loads(out)
+    assert code == 0 and report["status"] == "OK" and report["facts_checked"] is True and err == ""
+    assert report["availability"] == [{"id": "internship-2027", "state": "VERIFIED"}]
+    code_nf, out_nf, _ = run(capsys, "profile", "check", "--root", str(workspace), "--no-facts")
+    assert code_nf != code and json.loads(out_nf)["status"] != report["status"]
+
+
+def test_no_facts_with_guidance_references_only_is_also_unverified(tmp_path, capsys):
+    document = build(guidance=[{"job_key": "job-1", "rules": [{"fact_id": "avail.one", "action": "omit"}]}])
+    (tmp_path / "profile.json").write_text(json.dumps(document), encoding="utf-8")
+    code, out, _ = run(capsys, "profile", "check", "--root", str(tmp_path), "--no-facts")
+    assert code == 3 and json.loads(out)["status"] == "UNVERIFIED"
+
+
+def test_no_facts_without_references_has_nothing_to_leave_unverified(tmp_path, capsys):
+    (tmp_path / "profile.json").write_text(json.dumps(MINIMAL), encoding="utf-8")
+    code, out, err = run(capsys, "profile", "check", "--root", str(tmp_path), "--no-facts")
+    assert code == 0 and json.loads(out)["status"] == "OK" and err == ""
+
+
+def test_no_facts_does_not_hide_structural_errors(workspace, capsys):
+    document = json.loads((workspace / "profile.json").read_text(encoding="utf-8"))
+    document["surprise"] = 1
+    (workspace / "profile.json").write_text(json.dumps(document), encoding="utf-8")
+    code, out, _ = run(capsys, "profile", "check", "--root", str(workspace), "--no-facts")
+    assert code == 1 and json.loads(out)["status"] == "INVALID"
+
+
+def test_no_facts_does_not_hide_an_unreadable_profile(tmp_path, capsys):
+    code, out, err = run(capsys, "profile", "check", "--root", str(tmp_path), "--no-facts")
+    assert code == 2 and out == "" and "PROFILE_FILE_UNREADABLE" in err
+
+
+def test_a_verified_reference_to_a_non_confirmed_fact_still_fails_with_facts(workspace, capsys):
+    (workspace / "facts.md").write_text(FACTS, encoding="utf-8")
+    document = json.loads((workspace / "profile.json").read_text(encoding="utf-8"))
+    document["availability"][0]["fact_id"] = "avail.derived"
+    (workspace / "profile.json").write_text(json.dumps(document), encoding="utf-8")
+    code, out, _ = run(capsys, "profile", "check", "--root", str(workspace))
+    report = json.loads(out)
+    assert code == 1 and report["status"] == "INVALID"
+    assert report["availability"] == [{"id": "internship-2027", "state": "REFUSED"}]
+    code, out, _ = run(capsys, "profile", "check", "--root", str(workspace), "--no-facts")
+    assert code == 3 and json.loads(out)["status"] == "UNVERIFIED"  # structure only: it cannot know
+
+
+def test_the_unverified_report_never_prints_a_value(tmp_path, capsys):
+    document = secret_profile()
+    document["availability"] = [{"id": "av-1", "fact_id": "avail.one", "applies_to": ["INTERNSHIP"]}]
+    (tmp_path / "profile.json").write_text(json.dumps(document), encoding="utf-8")
+    code, out, err = run(capsys, "profile", "check", "--root", str(tmp_path), "--no-facts")
+    assert code == 3 and SECRET not in out + err
+
+
+def test_the_exit_codes_of_profile_check_are_documented():
+    text = (REPO / "docs" / "design" / "CONTRACTS.md").read_text(encoding="utf-8")
+    assert "`3`" in text and "UNVERIFIED" in text
+    assert "exit 3" in (REPO / "modularcv" / "__main__.py").read_text(encoding="utf-8")
 
 
 def test_a_profile_without_references_needs_no_fact_base(tmp_path, capsys):

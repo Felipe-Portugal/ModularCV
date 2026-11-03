@@ -43,8 +43,8 @@ configured. It keeps three kinds of content apart: **private** identity fields, 
 nothing is public by default. An availability names a fact id and counts only if that fact is `CONFIRMED` in your `facts.md`.
 
 ```bash
-python -m modularcv profile check          # exit 0 valid, 1 invalid, 2 unreadable; prints field names, never values
-python -m modularcv profile check --no-facts   # skip fact references (they are then reported UNVERIFIED)
+python -m modularcv profile check          # exit 0 valid and verified, 1 invalid, 2 unreadable; prints field names, never values
+python -m modularcv profile check --no-facts   # structure only: references stay UNVERIFIED, exit 3 (never 0)
 python -m modularcv profile fingerprint --only profile
 ```
 

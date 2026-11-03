@@ -8,7 +8,8 @@ your private workspace. The contract is in `docs/design/CONTRACTS.md` section 1.
 What the import never does:
 
 - it never imports a line that no rule classifies, and never silently;
-- it never makes a fact `CONFIRMED` on its own: that needs your mapping to say so twice;
+- it never makes a fact `CONFIRMED` on its own: that needs your mapping to say so twice (and see below: that is an
+  authorisation, not a check);
 - it never invents a date;
 - it never modifies your document, and never overwrites an existing file;
 - it never writes outside your workspace, and uses no network or model.
@@ -35,6 +36,15 @@ What the import never does:
 
 Relative paths are resolved against the workspace (`--root`, `MODULARCV_ROOT` or the current directory). The mapping, `--out`
 and `--report` must be inside the workspace and `--out`/`--report` must not exist yet. The legacy document may be anywhere.
+
+## Authorisation is not verification
+
+Two different things protect the word `CONFIRMED`:
+
+1. **Your authorisation, in the mapping.** `"allow_confirmed": true` plus a heading rule with `"status": "CONFIRMED"` says: "every bullet under this heading was checked by me". The engine verifies that this authorisation is written down, and nothing more. A line rule can only lower a status; an ambiguous rule confirms nothing; the default mapping never produces a `CONFIRMED` fact.
+2. **Your verification, fact by fact.** The engine cannot know whether each bullet is true. The output is only a proposal (it never writes your `facts.md`), and **you** decide which facts to copy there. Read the `CONFIRMED` ones first: the report gives their line numbers and the rule that authorised them. If you are not sure, map the heading to `DERIVED` instead; a `DERIVED` fact is never published until you edit it to `CONFIRMED` yourself.
+
+Do not point `--out` at your real fact base. It is not forbidden, but it would turn a proposal into your source of truth without the review step.
 
 ## Exit codes
 

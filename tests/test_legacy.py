@@ -769,3 +769,145 @@ def test_random_documents_never_crash_and_always_yield_a_valid_proposal():
             assert report["counts"]["ACCEPTED"] == 0
         again = legacy.run(mapping, text.encode("utf-8"))
         assert again.facts_text == result.facts_text and again.report == report
+
+
+# --- M4-R1: the CONFIRMED policy, proven rather than assumed --------------------------------------------
+
+ALL_STATUSES = ("CONFIRMED", "DERIVED", "NOT_CONFIRMED", "WITHDRAWN")
+SAFE_STATUSES = ("DERIVED", "NOT_CONFIRMED", "WITHDRAWN")
+RANKS = {"CONFIRMED": 3, "DERIVED": 2, "NOT_CONFIRMED": 1, "WITHDRAWN": 1}
+
+
+@pytest.mark.parametrize("flag", [None, False, "true", "yes", 1, 0, [], {}])
+def test_a_confirmed_rule_is_invalid_unless_allow_confirmed_is_exactly_true(flag):
+    document = mapping_with(headings=[{"pattern": "Experience", "section": "e", "status": "CONFIRMED"}])
+    if flag is not None:
+        document["allow_confirmed"] = flag
+    result = legacy.check_mapping_data(document)
+    assert result.mapping is None
+    assert "LEGACY_MAP_CONFIRMED_NOT_ALLOWED" in [e.code for e in result.errors]
+
+
+def test_allow_confirmed_alone_confirms_nothing():
+    document = mapping_with(allow_confirmed=True)  # the heading rule still says DERIVED
+    result = run_import(doc("## Experience", "- Plainly stated.", "- CONFIRMED verified true"), document)
+    assert result.report["facts_by_status"]["CONFIRMED"] == 0
+    assert all(f.status == "DERIVED" for f in parsed(result).facts)
+
+
+def test_text_that_says_it_is_confirmed_is_never_trusted():
+    words = ["CONFIRMED", "confirmed", "verified", "Status: CONFIRMED", "[x] confirmed", "(confirmed 2026-01-01)"]
+    result = run_import(doc("## Experience", *["- Did a thing, %s." % word for word in words]))
+    assert result.report["facts_by_status"]["CONFIRMED"] == 0 and parsed(result).publishable() == ()
+
+
+@pytest.mark.parametrize("heading", ALL_STATUSES)
+@pytest.mark.parametrize("rule", SAFE_STATUSES)
+def test_a_line_rule_never_raises_the_status_its_heading_gave(heading, rule):
+    mapping = mapping_with(
+        allow_confirmed=True,
+        headings=[{"pattern": "H", "section": "h", "status": heading}],
+        status_rules=[{"pattern": "marker", "status": rule}])
+    result = run_import(doc("## H", "- Plain line.", "- Line with marker."), mapping)
+    entries = {e["line"]: e for e in result.report["lines"]}
+    assert entries[2]["status"] == heading  # an unmarked line keeps the heading status
+    if RANKS[rule] <= RANKS[heading]:
+        assert entries[3]["decision"] == "ACCEPTED" and entries[3]["status"] == rule
+    else:
+        assert entries[3]["decision"] == "REJECTED" and entries[3]["code"] == "LEGACY_PROMOTION_REFUSED"
+        assert "marker" not in result.facts_text
+    for fact in parsed(result).facts:
+        assert RANKS[fact.status] <= RANKS[heading]
+
+
+def test_a_line_rule_naming_confirmed_is_refused_even_with_allow_confirmed():
+    document = mapping_with(allow_confirmed=True, status_rules=[{"pattern": "x", "status": "CONFIRMED"}])
+    assert "LEGACY_MAP_CONFIRMED_NOT_ALLOWED" in mapping_codes(document)
+
+
+def test_two_heading_rules_that_disagree_on_confirmation_confirm_nothing():
+    mapping = mapping_with(allow_confirmed=True, headings=[
+        {"pattern": "Experience", "section": "e", "status": "CONFIRMED"},
+        {"pattern": "Exp.*", "section": "e", "status": "DERIVED"}])
+    result = run_import(doc("## Experience", "- A claim.", "- Another."), mapping)
+    assert result.facts_text is None and result.report["counts"]["AMBIGUOUS"] == 2
+    assert result.report["facts_by_status"]["CONFIRMED"] == 0 and not result.complete
+
+
+def test_the_same_text_under_a_confirmed_and_a_derived_heading_is_confirmed_nowhere():
+    mapping = mapping_with(allow_confirmed=True, headings=[
+        {"pattern": "Checked", "section": "checked", "status": "CONFIRMED"},
+        {"pattern": "Unchecked", "section": "unchecked", "status": "DERIVED"}])
+    result = run_import(doc("## Checked", "- Shared claim.", "## Unchecked", "- Shared claim.", "- Own claim."), mapping)
+    assert [(f.text, f.status) for f in parsed(result).facts] == [("Own claim.", "DERIVED")]
+    assert result.report["counts"]["AMBIGUOUS"] == 2
+
+
+def test_conflicting_status_rules_cannot_be_used_to_settle_a_status():
+    mapping = mapping_with(allow_confirmed=True,
+                           headings=[{"pattern": "H", "section": "h", "status": "CONFIRMED"}],
+                           status_rules=[{"pattern": "a", "status": "DERIVED"}, {"pattern": "b", "status": "NOT_CONFIRMED"}])
+    result = run_import(doc("## H", "- a and b."), mapping)
+    assert result.facts_text is None and result.report["counts"]["AMBIGUOUS"] == 1
+
+
+def test_an_inherited_context_never_raises_a_status():
+    mapping = mapping_with(allow_confirmed=True, headings=[
+        {"pattern": "Parent", "section": "p", "status": "DERIVED"},
+        {"pattern": "Child", "action": "inherit"}])
+    result = run_import(doc("## Parent", "- One.", "### Child", "- Two."), mapping)
+    assert {f.status for f in parsed(result).facts} == {"DERIVED"}
+
+
+def test_a_date_pattern_cannot_confirm_a_fact():
+    mapping = mapping_with(date_patterns=[r"\((\d{4}-\d{2}-\d{2})\)"])
+    result = run_import(doc("## Experience", "- Did it (2026-01-10)."), mapping)
+    fact = parsed(result).facts[0]
+    assert fact.status == "DERIVED" and fact.confirmed_on is None
+
+
+def test_every_confirmed_fact_is_traceable_to_the_rule_that_authorised_it():
+    mapping_document = legacy.check_mapping_file(EXAMPLE_DIR / "import-map.json").mapping.to_model()
+    result = legacy.run(compiled(mapping_document), (EXAMPLE_DIR / "legacy-notes.md").read_bytes())
+    confirmed = [e for e in result.report["lines"] if e["decision"] == "ACCEPTED" and e["status"] == "CONFIRMED"]
+    assert len(confirmed) == 2
+    for entry in confirmed:
+        authorising = mapping_document["headings"][entry["rule"]]
+        assert authorising["status"] == "CONFIRMED" and mapping_document["allow_confirmed"] is True
+
+
+def test_random_documents_and_mappings_never_confirm_without_authorisation():
+    import random
+    rng = random.Random(4242)
+    words = ["confirmed", "verified", "CONFIRMED", "marker", "alpha", "beta", "(on 2026-01-02)", "[ok]"]
+    for _ in range(200):
+        headings = [{"pattern": "H%d" % n, "section": "s%d" % n, "status": rng.choice(SAFE_STATUSES)} for n in range(3)]
+        if rng.random() < 0.3:
+            headings.append({"pattern": "H.", "section": "any", "status": rng.choice(SAFE_STATUSES)})
+        rules = [{"pattern": rng.choice(words[:5]), "status": rng.choice(SAFE_STATUSES)} for _ in range(rng.randint(0, 3))]
+        document = mapping_with(allow_confirmed=rng.random() < 0.5, headings=headings, status_rules=rules,
+                                date_patterns=[r"\(on (\d{4}-\d{2}-\d{2})\)"] if rng.random() < 0.5 else [])
+        mapping = compiled(document)
+        lines = []
+        for _ in range(rng.randint(1, 20)):
+            lines.append(rng.choice(["## H%d" % rng.randint(0, 3), "### Sub", "- " + " ".join(rng.sample(words, 3)), "prose"]))
+        result = legacy.run(mapping, ("\n".join(lines) + "\n").encode("utf-8"))
+        assert result.report["facts_by_status"]["CONFIRMED"] == 0
+        assert result.facts_text is None or all(f.status != "CONFIRMED" for f in parsed(result).facts)
+
+
+def test_the_documentation_separates_authorisation_from_verification():
+    guide = (REPO / "docs" / "IMPORT.md").read_text(encoding="utf-8")
+    contract = (REPO / "docs" / "design" / "CONTRACTS.md").read_text(encoding="utf-8")
+    assert "## Authorisation is not verification" in guide
+    assert "allow_confirmed" in guide and "fact by fact" in guide
+    assert "Mapping authorisation is not human verification" in contract
+
+
+def test_the_cli_refuses_a_confirmed_rule_the_mapping_did_not_authorise(workspace, capsys):
+    document = json.loads((workspace / "import-map.json").read_text(encoding="utf-8"))
+    document["allow_confirmed"] = False
+    (workspace / "import-map.json").write_text(json.dumps(document), encoding="utf-8")
+    before = tree_hash(workspace)
+    code, out, err = run(capsys, *import_args(workspace))
+    assert code == 2 and "LEGACY_MAP_CONFIRMED_NOT_ALLOWED" in err and tree_hash(workspace) == before

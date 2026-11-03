@@ -9,7 +9,8 @@
     facts fingerprint [FILE]   print the source and canonical fingerprints of a valid fact base
     facts import --mapping MAP --in LEGACY [--out F --report R] [--dry-run] [--allow-partial]
                           controlled import of a historical document (exit 0 complete, 1 incomplete, 2 refused)
-    profile check [FILE]  validate a Profile-v1 and its fact references (exit 0 valid, 1 invalid, 2 unreadable)
+    profile check [FILE]  validate a Profile-v1 and its fact references (exit 0 valid and verified, 1 invalid,
+                          2 unreadable, 3 structurally valid but fact references left UNVERIFIED)
     profile fingerprint [FILE]   print the source and canonical fingerprints of a valid profile
     privacy ...           scan a tree for personal data before publishing
 """
@@ -86,13 +87,23 @@ def _print_problems(name, problems):
         print("%s: %s (%s): %s" % (name, problem.code, problem.path or "document", problem.message), file=sys.stderr)
 
 
+PROFILE_UNVERIFIED_EXIT = 3
+
+
+def _profile_unverified(result):
+    """True when the profile is structurally valid but some fact reference was not checked against a fact base."""
+    return not result.errors and any(w.code == "PROFILE_FACTS_NOT_CHECKED" for w in result.warnings)
+
+
 def _profile_report(name, result, no_facts):
-    """Machine-readable result of `profile check`. Holds field names and counts, never a value."""
+    """Machine-readable result of `profile check`. Holds field names and counts, never a value.
+
+    `status` is `OK` only when nothing is left unchecked; a structure-only success is `UNVERIFIED`."""
     found = result.profile
     model = found.to_model() if found else None
     unchecked = any(w.code == "PROFILE_FACTS_NOT_CHECKED" for w in result.warnings)
     return {
-        "status": "OK" if not result.errors else "INVALID",
+        "status": "INVALID" if result.errors else ("UNVERIFIED" if unchecked else "OK"),
         "file": name,
         "profile_source_sha256": result.profile_source_sha256,
         "profile_sha256": found.profile_sha256 if found else None,
@@ -145,7 +156,11 @@ def _profile_main(args) -> int:
                               "profile_sha256": result.profile.profile_sha256}, indent=2, ensure_ascii=False))
         return 0
     print(json.dumps(_profile_report(str(name), result, no_facts), indent=2, ensure_ascii=False))
-    return 1 if result.errors else 0
+    if result.errors:
+        return 1
+    if _profile_unverified(result):
+        _print_problems(str(name), result.warnings)
+    return PROFILE_UNVERIFIED_EXIT if _profile_unverified(result) else 0
 
 
 def _inside(root, value):
@@ -311,7 +326,8 @@ def main(argv=None) -> int:
         p.add_argument("file", nargs="?", default=None, help="default: the `profile` file of the workspace")
         p.add_argument("--root", default=None)
     pc.add_argument("--facts", default=None, help="fact base used to verify references (default: the workspace one)")
-    pc.add_argument("--no-facts", action="store_true", help="skip fact references (they are then reported UNVERIFIED)")
+    pc.add_argument("--no-facts", action="store_true",
+                    help="structure only: fact references are not verified, reported UNVERIFIED, exit 3")
     pf.add_argument("--only", choices=("source", "profile"), default=None, help="print only this hash")
     sub.add_parser("privacy", help="scan for personal data (see: modularcv privacy --help)")
     args = parser.parse_args(argv)
