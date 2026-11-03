@@ -12,6 +12,9 @@
     profile check [FILE]  validate a Profile-v1 and its fact references (exit 0 valid and verified, 1 invalid,
                           2 unreadable, 3 structurally valid but fact references left UNVERIFIED)
     profile fingerprint [FILE]   print the source and canonical fingerprints of a valid profile
+    content check [FILE]  validate a ResumeContent-v1 and verify its fact references (exit 0 valid and verified,
+                          1 invalid, 2 unreadable, 3 structurally valid but fact references left UNVERIFIED)
+    content fingerprint [FILE]   print the source and canonical fingerprints of a valid content file
     privacy ...           scan a tree for personal data before publishing
 """
 from argparse import ArgumentParser
@@ -20,7 +23,7 @@ import os
 import sys
 from pathlib import Path
 
-from . import config, docvalidate, facts, legacy, privacy, profile, provenance, readiness, snapshot
+from . import config, content, docvalidate, facts, legacy, privacy, profile, provenance, readiness, snapshot
 
 
 def _facts_report(name, result):
@@ -161,6 +164,115 @@ def _profile_main(args) -> int:
     if _profile_unverified(result):
         _print_problems(str(name), result.warnings)
     return PROFILE_UNVERIFIED_EXIT if _profile_unverified(result) else 0
+
+
+CONTENT_UNVERIFIED_EXIT = 3
+
+
+def _content_unverified(result):
+    """True when the content is structurally valid but its fact references were not checked against a fact base."""
+    return not result.errors and any(w.code == "CONTENT_FACTS_NOT_CHECKED" for w in result.warnings)
+
+
+def _content_outline(found, states):
+    """Structure without any text: identifiers, languages, order and the state of each reference."""
+    model = found.to_model()
+    blocks = [{"id": block["id"], "section": block["section"], "order": block["order"],
+               "languages": block["languages"], "protected": block["protected"],
+               "bullets": [{"id": bullet["id"], "state": states.get(("bullet", bullet["id"]))}
+                           for bullet in block["bullets"]]} for block in model["blocks"]]
+    skills = [{"id": category["id"], "languages": sorted(category["title"]),
+               "items": [{"id": item["id"], "state": states.get(("skill", item["id"]))} for item in category["items"]]}
+              for category in model["skills"]]
+    return {"sections": [section["id"] for section in model["sections"]], "blocks": blocks, "skills": skills,
+            "baselines": [{"family": b["family"], "language": b["language"], "items": len(b["items"])}
+                          for b in model["baselines"]]}
+
+
+def _content_report(name, result, no_facts, profile_checked, outline):
+    """Machine-readable result of `content check`. Holds identifiers and counts, never a text.
+
+    `status` is `OK` only when nothing is left unchecked; a structure-only success is `UNVERIFIED`. Two things are
+    never checked and are stated as such: the meaning of a text against its facts, and the FR/EN equivalence."""
+    found = result.content
+    unchecked = any(w.code == "CONTENT_FACTS_NOT_CHECKED" for w in result.warnings)
+    states = {(kind, entity_id): state for kind, entity_id, state in result.references}
+    tally = {"bullets": {}, "skills": {}}
+    for kind, _entity_id, state in result.references:
+        bucket = tally["bullets" if kind == "bullet" else "skills"]
+        bucket[state] = bucket.get(state, 0) + 1
+    report = {
+        "status": "INVALID" if result.errors else ("UNVERIFIED" if unchecked else "OK"),
+        "file": name,
+        "content_source_sha256": result.content_source_sha256,
+        "content_sha256": found.content_sha256 if found else None,
+        "languages": list(found.languages) if found else None,
+        "counts": found.counts() if found else None,
+        "facts_checked": not no_facts and not unchecked,
+        "profile_checked": profile_checked,
+        "references": tally if found else None,
+        "parity": "by entity id, structure only",
+        "semantic_equivalence_checked": False,
+        "errors": [error.as_dict() for error in result.errors],
+        "warnings": [warning.as_dict() for warning in result.warnings],
+    }
+    if outline and found:
+        report["outline"] = _content_outline(found, states)
+    return report
+
+
+def _content_main(args) -> int:
+    try:
+        settings = config.load(args.root)
+        root = config.workspace_root(args.root)
+        name = args.file if args.file is not None else settings["content"]
+        path = args.file if args.file is not None else root / settings["content"]
+        facts_path = getattr(args, "facts", None) or root / settings["facts"]
+    except config.ConfigError as error:
+        print(json.dumps({"status": "CONFIG_ERROR", "detail": str(error)}), file=sys.stderr)
+        return 2
+    chosen_profile = None
+    if getattr(args, "profile", None):
+        loaded_profile = profile.check_file(args.profile)
+        if loaded_profile.errors:
+            _print_problems("profile", loaded_profile.errors)
+            return 2
+        chosen_profile = loaded_profile.profile
+    no_facts = getattr(args, "no_facts", False)
+    result = content.check_file(path, None, chosen_profile)
+    if any(e.code == "CONTENT_FILE_UNREADABLE" for e in result.errors):
+        _print_problems(str(name), result.errors)
+        return 2
+    if (not result.errors and args.content_command == "check" and not no_facts
+            and any(w.code == "CONTENT_FACTS_NOT_CHECKED" for w in result.warnings)):
+        loaded = facts.check_file(facts_path)
+        if any(e.code == "FACT_FILE_UNREADABLE" for e in loaded.errors):
+            print(json.dumps({"status": "FACTS_UNREADABLE", "detail": "the fact base cannot be read"}), file=sys.stderr)
+            return 2
+        if loaded.errors:
+            result = result._replace(content=None, errors=(docvalidate.Problem(
+                "CONTENT_FACTS_INVALID", "the fact base is invalid, so fact references cannot be verified", ""),))
+        else:
+            result = content.check_file(path, loaded.factbase, chosen_profile)
+    _print_problems(str(name), result.errors)
+    if args.content_command == "fingerprint":
+        if result.errors:
+            return 1
+        if args.only:
+            print(result.content_source_sha256 if args.only == "source" else result.content.content_sha256)
+        else:
+            print(json.dumps({"status": "OK", "file": str(name),
+                              "content_source_sha256": result.content_source_sha256,
+                              "content_sha256": result.content.content_sha256}, indent=2, ensure_ascii=False))
+        return 0
+    print(json.dumps(_content_report(str(name), result, no_facts, chosen_profile is not None, args.outline),
+                     indent=2, ensure_ascii=False))
+    if result.errors:
+        return 1
+    if _content_unverified(result):
+        _print_problems(str(name), result.warnings)
+        return CONTENT_UNVERIFIED_EXIT
+    return 0
 
 
 def _inside(root, value):
@@ -360,6 +472,19 @@ def main(argv=None) -> int:
     pc.add_argument("--no-facts", action="store_true",
                     help="structure only: fact references are not verified, reported UNVERIFIED, exit 3")
     pf.add_argument("--only", choices=("source", "profile"), default=None, help="print only this hash")
+    ct = sub.add_parser("content", help="validate and fingerprint a ResumeContent-v1 file")
+    ctsub = ct.add_subparsers(dest="content_command", required=True)
+    cc = ctsub.add_parser("check", help="validate the content and verify its fact references (exit 1 when invalid)")
+    cf = ctsub.add_parser("fingerprint", help="print the fingerprints of a valid content file")
+    for p in (cc, cf):
+        p.add_argument("file", nargs="?", default=None, help="default: the `content` file of the workspace")
+        p.add_argument("--root", default=None)
+    cc.add_argument("--facts", default=None, help="fact base used to verify references (default: the workspace one)")
+    cc.add_argument("--no-facts", action="store_true",
+                    help="structure only: fact references are not verified, reported UNVERIFIED, exit 3")
+    cc.add_argument("--profile", default=None, help="also check baseline families and the confirmation-date policy")
+    cc.add_argument("--outline", action="store_true", help="add the structure (identifiers and states, no text)")
+    cf.add_argument("--only", choices=("source", "content"), default=None, help="print only this hash")
     sub.add_parser("privacy", help="scan for personal data (see: modularcv privacy --help)")
     args = parser.parse_args(argv)
     if args.command == "provenance":
@@ -390,6 +515,8 @@ def main(argv=None) -> int:
         return _facts_main(args)
     if args.command == "profile":
         return _profile_main(args)
+    if args.command == "content":
+        return _content_main(args)
     return 0
 
 

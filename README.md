@@ -14,6 +14,7 @@ Français : [README.fr.md](README.fr.md)
 | `modularcv.provenance` | A generated document must name a **real Git commit** that holds the exact sources it was built from. Placeholders (all zeros), a missing Git, an unknown SHA or a modified source all refuse the generation. |
 | `modularcv.readiness` | **Fail-closed** promotion: a package is "ready to send" only if its declared state, gates, staleness registry and CV metadata all agree. A secondary index can never promote it. |
 | `modularcv.profile` | **Profile-v1**: your identity (each field `public` or `private`), languages, CV families, policy and availability, kept in your workspace. An availability counts only if a `CONFIRMED` fact backs it. |
+| `modularcv.content` | **ResumeContent-v1**: your resume text as validated data (sections, blocks, bullets, skills, baselines), in French, English or both. Each bullet names the facts that back it; it can be printed only if they are all `CONFIRMED`. Raw LaTeX is refused, and the check proves existence and status of the facts, never the meaning of a text. See [docs/CONTENT.md](docs/CONTENT.md). |
 | `modularcv.legacy` | `facts import`: turns a historical Markdown document into a *proposed* fact base under a mapping you write. Unknown lines are never imported, nothing becomes `CONFIRMED` by itself. See [docs/IMPORT.md](docs/IMPORT.md). |
 | `modularcv.privacy` | Scans a tree (and optionally commit history) for e-mails, phones, SINs, user paths, profile URLs, credentials and your own private terms, **before** you publish. |
 | `modularcv.config`, `external` | A workspace configuration and clear diagnostics when an external input directory is missing. |
@@ -42,6 +43,7 @@ python -m modularcv check-packages packages
 python -m modularcv facts check facts.md        # strict FactBase-v1 validation (see examples/facts.v1.example.md)
 python -m modularcv facts fingerprint facts.md  # source and canonical fingerprints of a valid fact base
 python -m modularcv profile check                # Profile-v1 and its fact references (see examples/workspace/)
+python -m modularcv content check                # ResumeContent-v1 and its fact references (see examples/workspace/content/)
 python -m modularcv facts import --mapping import-map.json --in legacy.md --dry-run   # classify, write nothing
 python -m modularcv privacy --root . --deny-file ~/private-terms.txt --history
 ```

@@ -1,0 +1,20 @@
+{
+  "schema": "ResumeContent-v1",
+  "sections": [{"id": "experience", "kind": "experience", "title": {"en": "Experience"}}],
+  "blocks": [
+    {
+      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["en"],
+      "heading": {"en": {"title": "Junior developer"}},
+      "bullets": [
+        {"id": "junior-dev.01", "text": {"en": "Improved the response time of the endpoints."},
+         "supports": ["exp.junior-dev.speed"]},
+        {"id": "junior-dev.02", "text": {"en": "Led a team of three developers."},
+         "supports": ["exp.junior-dev.lead"]},
+        {"id": "junior-dev.03", "text": {"en": "Coordinated work with two other developers."},
+         "supports": ["exp.junior-dev.lead-v2"]},
+        {"id": "junior-dev.04", "text": {"en": "Cites a fact that does not exist."},
+         "supports": ["exp.does-not-exist"]}
+      ]
+    }
+  ]
+}

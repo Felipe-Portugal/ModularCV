@@ -1,0 +1,18 @@
+{
+  "schema": "ResumeContent-v1",
+  "sections": [
+    {"id": "experience", "kind": "experience", "title": {"en": "Experience"}}
+  ],
+  "blocks": [
+    {
+      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["en"],
+      "heading": {"en": {"title": "Junior developer", "subtitle": "Example Company (fictional)", "period": "2025 – 2026"}},
+      "bullets": [
+        {"id": "junior-dev.01", "text": {"en": "Built REST endpoints in Python for an internal tool."},
+         "supports": ["exp.junior-dev.api"], "technologies": ["Python"]},
+        {"id": "junior-dev.02", "text": {"en": "Took part in code reviews and sprint ceremonies."},
+         "supports": ["exp.junior-dev.review"]}
+      ]
+    }
+  ]
+}

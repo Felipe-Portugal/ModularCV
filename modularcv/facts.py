@@ -126,7 +126,7 @@ def _collapse(text):
 
 
 def valid_id(value):
-    return bool(value) and len(value) <= ID_MAX and ID_PATTERN.match(value) is not None
+    return bool(value) and len(value) <= ID_MAX and ID_PATTERN.fullmatch(value) is not None
 
 
 def valid_date(value):

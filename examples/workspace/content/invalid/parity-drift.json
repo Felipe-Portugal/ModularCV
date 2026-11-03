@@ -1,0 +1,16 @@
+{
+  "schema": "ResumeContent-v1",
+  "sections": [{"id": "experience", "kind": "experience", "title": {"en": "Experience", "fr": "Expérience"}}],
+  "blocks": [
+    {
+      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["en", "fr"],
+      "heading": {"en": {"title": "Junior developer"}, "fr": {"title": "Développeur junior"}},
+      "bullets": [
+        {"id": "junior-dev.01", "text": {"en": "Built REST endpoints in Python.", "fr": "Développement de points d'accès REST."},
+         "supports": ["exp.junior-dev.api"]},
+        {"id": "junior-dev.02", "text": {"en": "Took part in code reviews."},
+         "supports": ["exp.junior-dev.review"]}
+      ]
+    }
+  ]
+}

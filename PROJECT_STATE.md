@@ -4,12 +4,12 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 
 ## Repository
 
-- Branch: `main`. Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
+- Branch: `main`. M5 is committed locally on top of `5585c42` (M4 final closure; see `git log`). Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: `py -3.9 -m pytest` gives 670 passed and 1 skipped (a symlink test that only runs off Windows), 671 collected; synthetic
-  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671. Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
+- Tests: `py -3.9 -m pytest` gives 918 passed and 1 skipped (a symlink test that only runs off Windows), 919 collected; synthetic
+  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
   Python 3.10 (see the M4-R1 report).
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -22,8 +22,8 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M1.1 | Finalise the data and provenance contracts | PASS |
 | M2 | Canonicalisation and FactBase-v1 | PASS (with M2-R1) |
 | M3 | Provenance and readiness hardening (`0.2.0`) | PASS (validated) |
-| M4 | Profile-v1 and legacy fact import | M4-R1 PASS; final operational closure done, awaiting validation |
-| M5 | ResumeContent-v1 and reservoir | Planned, **not authorised** |
+| M4 | Profile-v1 and legacy fact import | PASS (M4-R1 and final closure validated) |
+| M5 | ResumeContent-v1 and reservoir | Implemented, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Planned, not authorised |
 | M7 | Rendering, optional PDF, metadata v3, package | Planned, not authorised |
 | M8 | Public release preparation | Planned, not authorised |
@@ -56,6 +56,25 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
   removed promotion guard makes them fail. `IMPORT.md` and `CONTRACTS.md` §1.5.1 now separate the mapping's authorisation from
   the user's fact-by-fact verification.
 - Foreign file investigated read-only (below). Nothing moved, ignored or committed.
+
+## Last work (M5)
+
+- `modularcv/content.py`: ResumeContent-v1 (sections, blocks, bullets, skills, baselines; FR, EN or bilingual). Validation by the
+  shared reader: strict fields and types, `x-` extensions kept, value-free errors with stable `CONTENT_*` codes. Each publishable
+  bullet and each skill must name its supporting facts; with a fact base every one must exist and be `CONFIRMED`
+  (`CONTENT_FACT_UNKNOWN`, `CONTENT_FACT_NOT_CONFIRMED`, `CONTENT_UNSUPPORTED_BULLET`, `CONTENT_UNSUPPORTED_SKILL`); without one the
+  references are `UNVERIFIED` and `content check` exits `3`. FR/EN parity is by entity id (bullet, heading, section title, skill),
+  never by position and never imposed on a one-language block. Raw LaTeX (a backslash) is refused; `%`, `&`, `$`, `#`, `_`, `{`,
+  `}` stay ordinary. `ResumeContent.selectable(factbase, language)` is the reservoir filter (confirmed support, language, not
+  `never_publish`); there is no selection algorithm.
+- Fingerprints `content_source_sha256` (normalised source) and `content_sha256` (canonical model; blocks in print order, sets
+  sorted, defaults filled). CLI: `content check [--facts F | --no-facts] [--profile F] [--outline]`, `content fingerprint`.
+- Examples (fictional): `examples/workspace/content/` (`resume.json` bilingual, `resume.fr.json`, `resume.en.json`, `invalid/`).
+  Docs: `docs/CONTENT.md`, `CONTRACTS.md` section 3.2, `WORKSPACE.md`, READMEs.
+- Fix in earlier modules: `facts.valid_id`, the language and extension checks of `docvalidate` accepted a trailing newline
+  (`$` matches before `\n`); they now use `fullmatch`. No valid identifier changed, historical fingerprints are pinned by a test.
+- Not run: pytest on Linux (not installed in WSL). A stdlib smoke test of `content check` and `content fingerprint` passed on
+  Python 3.10.12 with the same fingerprints as on Windows.
 
 ## Last work (M4 final closure)
 
@@ -91,6 +110,13 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
 5. Whether a signed or otherwise authenticated approval is wanted instead of the plain `cv-quality-review.json`.
 6. Whether the first release tags `0.2.0` or `0.3.0` now that `Profile-v1` and the import are in (M4 changed no version).
 7. Final fate of the quarantined `legacy_import.py` (keep outside the repository, delete, or restore); isolated, not deleted.
+9. Headings (`title`, `subtitle`, `period`, `place`) carry no fact link in the contract, so employers, dates and places are not
+   verified. Add an optional `supports` on blocks, or keep them as free text?
+10. M5 made `supports` required on skill items (the contract had none). Confirm, or relax to optional.
+11. Parity applies to any declared language code, not only `fr` and `en` (the contract said others have no parity obligation).
+    Confirm, or restrict it to the two shipped languages.
+12. `capabilities` are identifiers without a vocabulary until the taxonomy (M6); `technologies` are display names compared with the
+    technologies of the supporting facts (warning only).
 
 Settled: strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`; the
 import never confirms by itself (M4).
@@ -101,5 +127,6 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of the M4 final closure and decision 7 above. Do not start M5 or any later milestone
+Wait for the maintainer's validation of M5 and decisions 7 and 9 to 12 above. Do not start M6 (JobOffer-v1, taxonomy, matrix,
+plan) before. Do not start M5 or any later milestone
 before.

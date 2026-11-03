@@ -7,6 +7,7 @@ This repository is public. **Your data must never be in it.** Keep a separate, p
 my-cv-workspace/            private repository
 ├─ facts.md                 your fact base (the single source of truth)
 ├─ profile.json             your Profile-v1: identity, languages, CV families, policy, availability
+├─ content/resume.json      your ResumeContent-v1: the text of your CVs, each line tied to confirmed facts
 ├─ modularcv.json           optional configuration
 ├─ master/ baselines/       validated documents
 ├─ applications/            one folder per offer
@@ -23,7 +24,8 @@ my-cv-workspace/            private repository
   "staleness_registry": "packages/package-staleness.json",
   "packages_dir": "packages",
   "applications_dir": "applications",
-  "profile": "profile.json"
+  "profile": "profile.json",
+  "content": "content/resume.json"
 }
 ```
 
@@ -47,6 +49,21 @@ python -m modularcv profile check          # exit 0 valid and verified, 1 invali
 python -m modularcv profile check --no-facts   # structure only: references stay UNVERIFIED, exit 3 (never 0)
 python -m modularcv profile fingerprint --only profile
 ```
+
+### Your resume content
+
+`content/resume.json` (`ResumeContent-v1`, example: `examples/workspace/content/`, guide: [CONTENT.md](CONTENT.md)) holds the text
+your CVs will be built from. Each bullet and skill lists the fact ids that support it, and counts as printable only if every one
+of those facts is `CONFIRMED` in your `facts.md`. French-only, English-only and bilingual content are all valid.
+
+```bash
+python -m modularcv content check            # exit 0 valid and references verified, 1 invalid, 2 unreadable
+python -m modularcv content check --no-facts # structure only: references stay UNVERIFIED, exit 3 (never 0)
+python -m modularcv content fingerprint --only content
+```
+
+The check proves that each referenced fact exists and is confirmed. It does not prove that a sentence says what its facts say,
+nor that a French line and its English line are equivalent: those stay human decisions.
 
 ### Importing an old document
 

@@ -1,0 +1,81 @@
+{
+  "schema": "ResumeContent-v1",
+  "sections": [
+    {"id": "experience", "kind": "experience", "title": {"en": "Experience", "fr": "Expérience"}},
+    {"id": "projects", "kind": "project", "title": {"en": "Projects", "fr": "Projets"}},
+    {"id": "education", "kind": "education", "title": {"en": "Education", "fr": "Formation"}}
+  ],
+  "blocks": [
+    {
+      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["en", "fr"], "protected": false,
+      "heading": {
+        "en": {"title": "Junior developer", "subtitle": "Example Company (fictional)", "period": "2025 – 2026", "place": "Exampleville"},
+        "fr": {"title": "Développeur junior", "subtitle": "Example Company (fictive)", "period": "2025 – 2026", "place": "Exampleville"}
+      },
+      "bullets": [
+        {"id": "junior-dev.01",
+         "text": {"en": "Built REST endpoints in **Python** for an internal tool.",
+                  "fr": "Développement de points d'accès REST en **Python** pour un outil interne."},
+         "supports": ["exp.junior-dev.api"], "technologies": ["Python"], "capabilities": ["backend"]},
+        {"id": "junior-dev.02",
+         "text": {"en": "Wrote automated tests with pytest.",
+                  "fr": "Rédaction de tests automatisés avec pytest."},
+         "supports": ["exp.junior-dev.api"], "technologies": ["pytest"], "capabilities": ["testing"],
+         "follows": "junior-dev.01"},
+        {"id": "junior-dev.03",
+         "text": {"en": "Took part in code reviews and sprint ceremonies.",
+                  "fr": "Participation aux revues de code et aux cérémonies de sprint."},
+         "supports": ["exp.junior-dev.review"], "capabilities": ["collaboration"]},
+        {"id": "junior-dev.04",
+         "text": {"en": "Built and tested REST endpoints in Python with pytest.",
+                  "fr": "Développement et test de points d'accès REST en Python avec pytest."},
+         "supports": ["exp.junior-dev.api"], "technologies": ["Python", "pytest"],
+         "condenses": ["junior-dev.01", "junior-dev.02"]},
+        {"id": "junior-dev.05",
+         "text": {"en": "Improved the response time of the endpoints.",
+                  "fr": "Amélioration du temps de réponse des points d'accès."},
+         "supports": ["exp.junior-dev.speed"], "never_publish": true}
+      ]
+    },
+    {
+      "id": "internal-tool", "section": "projects", "order": 1, "languages": ["en", "fr"],
+      "heading": {
+        "en": {"title": "Internal REST tool", "period": "2025"},
+        "fr": {"title": "Outil interne REST", "period": "2025"}
+      },
+      "bullets": [
+        {"id": "internal-tool.01",
+         "text": {"en": "Delivered the endpoints with a pytest suite.", "fr": "Livraison des points d'accès avec une suite pytest."},
+         "supports": ["exp.junior-dev.api"], "technologies": ["pytest"]}
+      ]
+    },
+    {
+      "id": "beng", "section": "education", "order": 1, "languages": ["en", "fr"],
+      "heading": {
+        "en": {"title": "B.Eng. in software engineering", "subtitle": "Example University (fictional)", "period": "2024 – 2028 (expected)"},
+        "fr": {"title": "Diplôme d'ingénieur en génie logiciel", "subtitle": "Example University (fictive)", "period": "2024 – 2028 (prévu)"}
+      },
+      "bullets": [
+        {"id": "beng.01",
+         "text": {"en": "Software engineering degree programme, expected in 2028.",
+                  "fr": "Programme de génie logiciel, diplôme prévu en 2028."},
+         "supports": ["edu.beng"]}
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "programming", "title": {"en": "Programming", "fr": "Programmation"},
+      "items": [
+        {"id": "python", "text": {"en": "Python", "fr": "Python"}, "supports": ["skill.python"], "technologies": ["Python"]},
+        {"id": "git", "text": {"en": "Git", "fr": "Git"}, "supports": ["skill.git"], "technologies": ["Git"]}
+      ]
+    }
+  ],
+  "baselines": [
+    {"family": "software", "language": "en", "items": ["junior-dev.04", "junior-dev.03", "beng.01"],
+     "skills": ["python", "git"], "focus": "Backend and testing"},
+    {"family": "software", "language": "fr", "items": ["junior-dev.04", "junior-dev.03", "beng.01"],
+     "skills": ["python", "git"], "focus": "Développement et tests"}
+  ]
+}

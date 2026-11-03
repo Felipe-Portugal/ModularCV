@@ -1,7 +1,7 @@
 # Data contracts of the generic engine (M1.1 design)
 
 Status: sections 0 and 1 are implemented (M2), the legacy import of section 1.5 and section 2 are implemented (M4, see 1.5.1
-and 2.1); sections 3 to 6 are still **design, not implemented**. Every contract is persona-independent: no personal rule, wording, date or identifier belongs to the engine. Examples use the
+and 2.1), section 3 is implemented (M5, see 3.2); sections 4 to 6 are still **design, not implemented**. Every contract is persona-independent: no personal rule, wording, date or identifier belongs to the engine. Examples use the
 fictional identity of `examples/facts.example.md`.
 
 ## 0. Conventions shared by every contract
@@ -284,7 +284,7 @@ every printed bullet is a bullet of this file.
    "bullets":[{"id":"acme-2025.01","text":{"en":"...","fr":"..."},
                "supports":["fact.id"],"technologies":["Python"],"capabilities":["testing"],
                "follows":null,"condenses":[],"never_publish":false}]}],
- "skills":[{"id":"languages","title":{"en":"Languages"},"items":[{"id":"python","text":{"en":"Python"},"technologies":["Python"]}]}],
+ "skills":[{"id":"languages","title":{"en":"Languages"},"items":[{"id":"python","text":{"en":"Python"},"supports":["fact.id"],"technologies":["Python"]}]}],
  "baselines":[{"family":"software","language":"en","items":["acme-2025.01"],"skills":["python"],"focus":"..."}]}
 ```
 
@@ -311,6 +311,80 @@ Parity is checked **per entity**, by id (not by position):
 
 A workspace with a single language has no parity rule. Drift between two declared versions is an error
 (`CONTENT_PARITY_*`), never repaired by guessing.
+
+### 3.2 Implementation status and choices (M5)
+
+Section 3 is **implemented** by `modularcv/content.py` (the shared reader is `modularcv/docvalidate.py`); the commands are
+`content check` and `content fingerprint`, the user guide is `docs/CONTENT.md`, the examples are in
+`examples/workspace/content/`. The default file is the `content` key of `modularcv.json` (`content/resume.json`). Choices the
+contract left open, made in M5, always the smallest compatible one:
+
+- **Two levels of validation, never confused.** *Structure* is always checked. *References to the fact base* are checked only
+  when a fact base is given; they prove the **existence and status** of each fact (it exists and is `CONFIRMED`), and nothing
+  more. The check is **not semantic**: the engine does not read a bullet against its facts, and does not compare the French and the
+  English text of an entity. Support is explicit and made by a human. Without a fact base the result is the warning
+  `CONTENT_FACTS_NOT_CHECKED`, every reference is reported `UNVERIFIED`, and `content check` exits `3`, never `0`.
+- **Nothing is confirmed by the content.** The file has no status field (an unknown field is refused). A bullet may be printed only
+  because every fact in its `supports` is `CONFIRMED` in the fact base (`ResumeContent.selectable`); `DERIVED`, `NOT_CONFIRMED`
+  and `WITHDRAWN` facts never allow it. A `never_publish` bullet is a reminder: it needs no support, may cite a fact of any status,
+  but a fact id it names must still exist.
+- **Support is required, and also for skills.** A publishable bullet with an empty or missing `supports` is
+  `CONTENT_UNSUPPORTED_BULLET`. The contract's skill items had no `supports`; M5 adds the field and makes it required (an item is a
+  professional claim too), error `CONTENT_UNSUPPORTED_SKILL`. A reference that fails adds `CONTENT_FACT_UNKNOWN`,
+  `CONTENT_FACT_NOT_CONFIRMED` or, when a profile requires a date, `CONTENT_FACT_DATE_REQUIRED` at the reference itself.
+  Headings (`title`, `subtitle`, `period`, `place`) are plain text with no fact link in this contract: they are not verified.
+- **Technologies and capabilities are declared, never derived.** The taxonomy arrives in M6, so `capabilities` are identifiers whose
+  vocabulary is not checked yet, and `technologies` are display names. When a fact base is given, a declared technology that no
+  supporting fact lists is the warning `CONTENT_TECHNOLOGY_NOT_IN_SUPPORT` (compared with `fold`, not by words of the text).
+- **Section kinds** are `experience`, `project`, `education` and `other`. A section title and a block heading are plain text in
+  every language the blocks declare.
+- **Identifiers.** Sections, blocks, bullets, skill categories and skill items each have a namespace; bullets are unique across
+  all blocks and skill items across all categories, because baselines and links name them by id alone. No `block.bullet` prefix is
+  enforced.
+- **Order.** `order` is an integer from 1 to 9999, unique within a section (`CONTENT_DUPLICATE_ORDER`). The canonical model lists
+  blocks in print order (section position, then `order`), so moving a block in the file changes nothing; sections, bullets,
+  `technologies`, baseline `items` and baseline `skills` keep the order written. `supports`, `capabilities` and `condenses` are
+  sets, stored sorted. The block order is single (one `order` for all languages), so "compared between languages" holds by construction.
+- **Parity (by id, structure only).** A block declares `languages`. Its heading, its section's title and every bullet must exist in
+  **exactly** those languages (`CONTENT_PARITY_HEADING`, `CONTENT_PARITY_TITLE`, `CONTENT_PARITY_BULLET`); a skill category
+  declares its languages through its `title`, and its items must match (`CONTENT_PARITY_ITEM`). The rule is the same for any
+  language code. A block with one language has no parity rule; a bullet that exists in one language only lives in a one-language
+  block and is not selectable for the other (`selectable` leaves it out). Drift is an error, never repaired.
+- **Links.** `follows` and `condenses` name other bullets of the **same block** (`CONTENT_UNKNOWN_BULLET`,
+  `CONTENT_INVALID_REFERENCE` for itself, `CONTENT_REFERENCE_CYCLE` for a loop). `protected` (default `false`) is metadata for the
+  future selection engine and has no effect today.
+- **Baselines.** `family` and `language` are unique together (`CONTENT_DUPLICATE_BASELINE`); `items` are bullets and `skills` are
+  skill items, each existing and written in the baseline language (`CONTENT_UNKNOWN_BULLET`, `CONTENT_UNKNOWN_SKILL`,
+  `CONTENT_BASELINE_LANGUAGE`), never a `never_publish` bullet (`CONTENT_BASELINE_NEVER_PUBLISH`), never a bullet together with a
+  bullet it condenses (`CONTENT_BASELINE_EXCLUSIVE`), and a bullet that `follows` another needs it earlier in the list
+  (`CONTENT_BASELINE_FOLLOWS`). With a profile (`--profile`), the family must exist and use the language
+  (`CONTENT_BASELINE_FAMILY_UNKNOWN`, `CONTENT_BASELINE_FAMILY_LANGUAGE`) and `policy.require_confirmation_date` applies to
+  supporting facts. `focus` is an optional note and is never printed.
+- **Text.** A text is one line, NFC, whitespace collapsed, 1 to 1000 characters (headings and titles up to 200). A **backslash**
+  is TeX's escape and is refused everywhere (`CONTENT_RAW_LATEX`): raw LaTeX is not a content format and the renderer escapes. The
+  other characters that LaTeX treats specially (`%`, `&`, `$`, `#`, `_`, `{`, `}`, `~`, `^`) are ordinary text here. In a bullet or
+  a skill item, `**bold**` and `_italic_` must be balanced, not empty and not crossed (`CONTENT_INLINE_MARKUP`); an underscore
+  inside a word (`snake_case`) is ordinary, one that opens a word is read as italics.
+- **Extensions.** `x-` fields are accepted at every level, kept in the canonical model and therefore in `content_sha256`, and
+  ignored by the engine.
+- **Fingerprints.** `content_source_sha256` is the normalised-source hash of the file; `content_sha256` is the canonical
+  fingerprint of the model (defaults filled in). Neither changes with line endings or a BOM; the logical one also ignores key
+  order, layout, the Unicode form and whitespace inside a text, and an explicit default. They are the `content_sha256` of section 5.
+- **Errors never repeat a value.** A problem is a code, a fixed message and a path of field names and positions
+  (`blocks[0].bullets[2].supports[1]`); a fact id, an identifier or a text is never echoed.
+
+Error codes (`CONTENT_` prefix): `FILE_UNREADABLE`, `NOT_UTF8`, `NOT_JSON`, `DUPLICATE_KEY`, `UNKNOWN_SCHEMA`, `UNKNOWN_FIELD`,
+`MISSING_FIELD`, `BAD_TYPE`, `BAD_EXTENSION`, `EMPTY_VALUE`, `CONTROL_CHARACTER`, `TOO_LONG`, `OUT_OF_RANGE`, `INVALID_ID`,
+`INVALID_VALUE`, `INVALID_LANGUAGE`, `DUPLICATE_ID`, `DUPLICATE_VALUE`, `DUPLICATE_ORDER`, `DUPLICATE_BASELINE`, `UNKNOWN_SECTION`,
+`UNKNOWN_BULLET`, `UNKNOWN_SKILL`, `INVALID_REFERENCE`, `REFERENCE_CYCLE`, `RAW_LATEX`, `INLINE_MARKUP`, `PARITY_HEADING`,
+`PARITY_TITLE`, `PARITY_BULLET`, `PARITY_ITEM`, `UNSUPPORTED_BULLET`, `UNSUPPORTED_SKILL`, `FACT_UNKNOWN`, `FACT_NOT_CONFIRMED`,
+`FACT_DATE_REQUIRED`, `FACTS_INVALID`, `BASELINE_NEVER_PUBLISH`, `BASELINE_LANGUAGE`, `BASELINE_EXCLUSIVE`, `BASELINE_FOLLOWS`,
+`BASELINE_FAMILY_UNKNOWN`, `BASELINE_FAMILY_LANGUAGE`; warnings `FACTS_NOT_CHECKED`, `TECHNOLOGY_NOT_IN_SUPPORT`. CLI exit codes of
+`content check`: `0` valid **and** every reference verified (or none to verify), `1` invalid (or a fact base that is invalid), `2`
+unreadable content, unreadable fact base, bad profile or bad configuration, `3` structurally valid but references left
+`UNVERIFIED` (what `--no-facts` yields whenever there is a reference to verify). `content fingerprint` is structural and says nothing
+about fact references. M5 also made identifier, language and extension patterns reject a trailing newline (`fullmatch`), a
+defect of M2 that Profile-v1 shared; no valid identifier changed, so no earlier fingerprint moved.
 
 ## 4. JobOffer-v1
 

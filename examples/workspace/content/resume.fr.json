@@ -1,0 +1,18 @@
+{
+  "schema": "ResumeContent-v1",
+  "sections": [
+    {"id": "experience", "kind": "experience", "title": {"fr": "Expérience"}}
+  ],
+  "blocks": [
+    {
+      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["fr"],
+      "heading": {"fr": {"title": "Développeur junior", "subtitle": "Example Company (fictive)", "period": "2025 – 2026"}},
+      "bullets": [
+        {"id": "junior-dev.01", "text": {"fr": "Développement de points d'accès REST en Python pour un outil interne."},
+         "supports": ["exp.junior-dev.api"], "technologies": ["Python"]},
+        {"id": "junior-dev.02", "text": {"fr": "Participation aux revues de code et aux cérémonies de sprint."},
+         "supports": ["exp.junior-dev.review"]}
+      ]
+    }
+  ]
+}

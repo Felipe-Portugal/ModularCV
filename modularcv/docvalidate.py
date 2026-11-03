@@ -101,7 +101,7 @@ class Reader:
             if key in known:
                 continue
             if isinstance(key, str) and key.startswith("x-"):
-                if not facts.EXTENSION_PATTERN.match(key):
+                if not facts.EXTENSION_PATTERN.fullmatch(key):
                     self.error("BAD_EXTENSION", join(path, key), "an extension name must read `x-` then a lowercase identifier")
                     continue
                 try:
@@ -147,7 +147,7 @@ class Reader:
         return value
 
     def lang(self, value, path):
-        if not isinstance(value, str) or not facts.LANG_PATTERN.match(value):
+        if not isinstance(value, str) or not facts.LANG_PATTERN.fullmatch(value):
             self.error("INVALID_LANGUAGE", path, "must be a two-letter lowercase language code")
             return None
         return value
