@@ -8,8 +8,8 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: `py -3.9 -m pytest` gives 946 passed and 1 skipped (a symlink test that only runs off Windows), 947 collected; synthetic
-  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
+- Tests: `py -3.9 -m pytest` gives 1111 passed and 1 skipped (a symlink test that only runs off Windows), 1112 collected; synthetic
+  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
   Python 3.10 (see the M4-R1 report).
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -24,11 +24,34 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M3 | Provenance and readiness hardening (`0.2.0`) | PASS (validated) |
 | M4 | Profile-v1 and legacy fact import | PASS (M4-R1 and final closure validated) |
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
-| M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Planned, not authorised |
+| M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | Planned, not authorised |
 | M8 | Public release preparation | Planned, not authorised |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
+
+## Last work (M6)
+
+- **Offers.** `modularcv/joboffer.py`: JobOffer-v1 (strict, value-free `OFFER_*` errors, `description_sha256` verified,
+  `offer_sha256`, optional explicit `requirements`, deterministic en/fr language detector with a recorded method). No LLM, no network.
+- **Taxonomy.** `modularcv/taxonomy.py`: Taxonomy-v1 (terms, aliases per language, zones, directed single-hop adjacencies),
+  `builtin:generic-v1` plus `examples/taxonomy.generic-v1.json`; ambiguous aliases, duplicate ids and bad adjacencies refused.
+  Resolves decision 12: declared capabilities and technologies are checked against it.
+- **Matrix and plan.** `modularcv/matrix.py`, `modularcv/plan.py`: four states (`FORBIDDEN_TO_CLAIM` > `DIRECT` > `ADJACENT` >
+  `ABSENT`), corroboration by a `CONFIRMED` fact, pool limited to proven content, greedy deterministic ranking, `TailoringPlan-v1`
+  with `plan_sha256` (`PLAN_ONLY`, not reviewed, no `tailored_cv_id`). Unsatisfied required requirements stay explicit; adjacent is
+  never shown as satisfied.
+- **CLI.** `offer check|fingerprint`, `taxonomy check|fingerprint`, `matrix`, `plan` (stage-named refusals; `--out` creates a new file
+  inside the workspace and never overwrites an input). Examples: `examples/workspace/offers/`; `resume.json` gained a `pytest` skill.
+- **Docs.** `docs/PLAN.md`, `CONTRACTS.md` §3.3, §4.1, §5.1.
+- **Tests.** 165 new (`test_taxonomy.py` 41, `test_offer.py` 66, `test_plan.py` 58), including a seeded random campaign of provenance
+  invariants. Mutation checks (throw-away harness, not committed): removing corroboration, the profile prohibition, the fact
+  prohibition, the forbidden-over-direct order, the proof in `selectable`/`selectable_skills`/`plan._proven`, the heading proof or
+  `never_publish` each make the tests fail; promoting `ADJACENT` to `DIRECT` also fails. One mutant survives by construction:
+  letting a `DERIVED` fact corroborate is unreachable, because every pool item already has only `CONFIRMED` supports (defence in depth).
+- Fix found while testing: the CLI printed fact-base errors with a missing attribute (`FactError` has `line`, not `path`); fixed.
+- Not run: pytest on Linux (not installed in WSL); stdlib smoke only. Not done: rendering, `tailored_cv_id`, page-target enforcement,
+  `soften` guidance (reported as `GUIDANCE_SOFTEN_PENDING`).
 
 ## Last work (M4)
 
@@ -133,7 +156,7 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
 Settled: strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`; the
 import never confirms by itself (M4); decision 9, factual headings are tied to the fact base through `supports` (M5-R1);
 decision 10, `supports` is required on skills; decision 11, parity binds the `en`/`fr` pair only, other languages carry no
-obligation; decision 12, the capability vocabulary and taxonomy belong to M6.
+obligation; decision 12, the capability vocabulary and taxonomy belong to M6 (done: Taxonomy-v1, `vocabulary_problems`).
 
 ## Blockers
 
@@ -141,6 +164,4 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M5-R1 and decision 7 above. Do not start M6 (JobOffer-v1, taxonomy, matrix,
-plan) before. Do not start M5 or any later milestone
-before.
+Wait for the maintainer's validation of M6 and decision 7 above. Do not start M7 (rendering, metadata v3, package) before.

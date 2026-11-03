@@ -1,0 +1,415 @@
+{
+  "schema": "Taxonomy-v1",
+  "id": "generic-v1",
+  "default_zone": "context",
+  "priority_weights": {
+    "REQUIRED": 4,
+    "PREFERRED": 2
+  },
+  "zones": [
+    {
+      "id": "requirement",
+      "priority": "REQUIRED",
+      "weight": 4,
+      "headings": {
+        "en": [
+          "requirements",
+          "qualifications",
+          "must have",
+          "what you bring",
+          "what we are looking for",
+          "required skills"
+        ],
+        "fr": [
+          "exigences",
+          "qualifications",
+          "profil recherche",
+          "competences requises",
+          "ce que vous apportez"
+        ]
+      }
+    },
+    {
+      "id": "responsibility",
+      "priority": "REQUIRED",
+      "weight": 3,
+      "headings": {
+        "en": [
+          "responsibilities",
+          "what you will do",
+          "your role",
+          "duties"
+        ],
+        "fr": [
+          "responsabilites",
+          "vos missions",
+          "mandat",
+          "ce que vous ferez",
+          "taches"
+        ]
+      }
+    },
+    {
+      "id": "preferred",
+      "priority": "PREFERRED",
+      "weight": 2,
+      "headings": {
+        "en": [
+          "nice to have",
+          "preferred",
+          "bonus",
+          "assets",
+          "preferred qualifications"
+        ],
+        "fr": [
+          "atouts",
+          "un plus",
+          "souhaite",
+          "qualifications souhaitees"
+        ]
+      }
+    },
+    {
+      "id": "context",
+      "priority": "PREFERRED",
+      "weight": 1,
+      "headings": {
+        "en": [
+          "about us",
+          "about the role",
+          "about the team",
+          "who we are",
+          "benefits"
+        ],
+        "fr": [
+          "a propos",
+          "a propos du poste",
+          "qui sommes-nous",
+          "avantages"
+        ]
+      }
+    }
+  ],
+  "terms": [
+    {
+      "id": "backend",
+      "kind": "capability",
+      "name": "Backend development",
+      "aliases": {
+        "en": [
+          "backend",
+          "back-end",
+          "back end",
+          "server-side"
+        ],
+        "fr": [
+          "developpement backend",
+          "back-end"
+        ]
+      }
+    },
+    {
+      "id": "frontend",
+      "kind": "capability",
+      "name": "Frontend development",
+      "aliases": {
+        "en": [
+          "frontend",
+          "front-end",
+          "front end"
+        ],
+        "fr": [
+          "developpement frontend",
+          "front-end"
+        ]
+      }
+    },
+    {
+      "id": "api-design",
+      "kind": "capability",
+      "name": "API design",
+      "aliases": {
+        "en": [
+          "rest api",
+          "rest apis",
+          "api design",
+          "restful"
+        ],
+        "fr": [
+          "api rest",
+          "conception d'api"
+        ]
+      }
+    },
+    {
+      "id": "testing",
+      "kind": "capability",
+      "name": "Software testing",
+      "aliases": {
+        "en": [
+          "testing",
+          "unit testing",
+          "test automation",
+          "automated tests"
+        ],
+        "fr": [
+          "tests",
+          "tests unitaires",
+          "tests automatises",
+          "automatisation des tests"
+        ]
+      }
+    },
+    {
+      "id": "devops",
+      "kind": "capability",
+      "name": "DevOps",
+      "aliases": {
+        "any": [
+          "ci/cd"
+        ],
+        "en": [
+          "continuous integration",
+          "continuous delivery"
+        ],
+        "fr": [
+          "integration continue",
+          "livraison continue"
+        ]
+      }
+    },
+    {
+      "id": "databases",
+      "kind": "capability",
+      "name": "Databases",
+      "aliases": {
+        "en": [
+          "database",
+          "databases",
+          "data modeling"
+        ],
+        "fr": [
+          "base de donnees",
+          "bases de donnees"
+        ]
+      }
+    },
+    {
+      "id": "data-analysis",
+      "kind": "capability",
+      "name": "Data analysis",
+      "aliases": {
+        "en": [
+          "data analysis",
+          "analytics"
+        ],
+        "fr": [
+          "analyse de donnees",
+          "analytique"
+        ]
+      }
+    },
+    {
+      "id": "security",
+      "kind": "capability",
+      "name": "Security",
+      "aliases": {
+        "en": [
+          "security",
+          "cybersecurity"
+        ],
+        "fr": [
+          "securite",
+          "cybersecurite"
+        ]
+      }
+    },
+    {
+      "id": "cloud",
+      "kind": "capability",
+      "name": "Cloud computing",
+      "aliases": {
+        "en": [
+          "cloud",
+          "cloud computing"
+        ],
+        "fr": [
+          "infonuagique",
+          "informatique en nuage"
+        ]
+      }
+    },
+    {
+      "id": "automation",
+      "kind": "capability",
+      "name": "Automation",
+      "aliases": {
+        "en": [
+          "automation",
+          "scripting"
+        ],
+        "fr": [
+          "automatisation",
+          "scripts"
+        ]
+      }
+    },
+    {
+      "id": "collaboration",
+      "kind": "capability",
+      "name": "Collaboration",
+      "aliases": {
+        "en": [
+          "teamwork",
+          "collaboration",
+          "code review",
+          "code reviews"
+        ],
+        "fr": [
+          "travail d'equipe",
+          "collaboration",
+          "revue de code",
+          "revues de code"
+        ]
+      }
+    },
+    {
+      "id": "project-management",
+      "kind": "capability",
+      "name": "Project management",
+      "aliases": {
+        "en": [
+          "project management",
+          "agile",
+          "scrum"
+        ],
+        "fr": [
+          "gestion de projet",
+          "agile",
+          "scrum"
+        ]
+      }
+    },
+    {
+      "id": "communication",
+      "kind": "capability",
+      "name": "Communication",
+      "aliases": {
+        "en": [
+          "communication",
+          "documentation"
+        ],
+        "fr": [
+          "communication",
+          "documentation"
+        ]
+      }
+    },
+    {
+      "id": "python",
+      "kind": "technology",
+      "name": "Python"
+    },
+    {
+      "id": "java",
+      "kind": "technology",
+      "name": "Java"
+    },
+    {
+      "id": "javascript",
+      "kind": "technology",
+      "name": "JavaScript",
+      "aliases": {
+        "any": [
+          "js"
+        ]
+      }
+    },
+    {
+      "id": "typescript",
+      "kind": "technology",
+      "name": "TypeScript",
+      "aliases": {
+        "any": [
+          "ts"
+        ]
+      }
+    },
+    {
+      "id": "sql",
+      "kind": "technology",
+      "name": "SQL"
+    },
+    {
+      "id": "git",
+      "kind": "technology",
+      "name": "Git"
+    },
+    {
+      "id": "docker",
+      "kind": "technology",
+      "name": "Docker"
+    },
+    {
+      "id": "kubernetes",
+      "kind": "technology",
+      "name": "Kubernetes",
+      "aliases": {
+        "any": [
+          "k8s"
+        ]
+      }
+    },
+    {
+      "id": "linux",
+      "kind": "technology",
+      "name": "Linux"
+    },
+    {
+      "id": "pytest",
+      "kind": "technology",
+      "name": "pytest"
+    },
+    {
+      "id": "csharp",
+      "kind": "technology",
+      "name": "C#",
+      "aliases": {
+        "any": [
+          "c sharp"
+        ]
+      }
+    },
+    {
+      "id": "cpp",
+      "kind": "technology",
+      "name": "C++"
+    }
+  ],
+  "adjacencies": [
+    {
+      "from": "javascript",
+      "to": "typescript"
+    },
+    {
+      "from": "typescript",
+      "to": "javascript"
+    },
+    {
+      "from": "docker",
+      "to": "kubernetes"
+    },
+    {
+      "from": "docker",
+      "to": "devops"
+    },
+    {
+      "from": "git",
+      "to": "devops"
+    },
+    {
+      "from": "sql",
+      "to": "databases"
+    }
+  ]
+}

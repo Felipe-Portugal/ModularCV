@@ -130,7 +130,7 @@ def test_the_complete_example_is_valid_with_the_fact_base_and_the_profile():
     assert not result.errors and not result.warnings
     counts = result.content.counts()
     assert counts["blocks"] == 3 and counts["bilingual_blocks"] == 3 and counts["baselines"] == 2
-    assert counts["never_publish_bullets"] == 1 and counts["skill_items"] == 2
+    assert counts["never_publish_bullets"] == 1 and counts["skill_items"] == 3
     states = {entity_id: state for _kind, entity_id, state in result.references}
     assert states["junior-dev.05"] == "NEVER_PUBLISH" and states["junior-dev.01"] == "VERIFIED"
     assert states["python"] == "VERIFIED"

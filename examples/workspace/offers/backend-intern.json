@@ -1,0 +1,16 @@
+{
+  "schema": "JobOffer-v1",
+  "job_key": "example-backend-intern",
+  "title": "Backend developer intern",
+  "company": "Example Software Inc. (fictional)",
+  "language": "en",
+  "employment_type": "INTERNSHIP",
+  "location": "Exampleville",
+  "workplace_type": "Hybrid",
+  "source_system": "hand-written example",
+  "posted_on": "2026-03-01",
+  "description": "Example Software Inc. is a fictional company. It is hiring a backend developer intern.\n\nRequirements:\n- Python and automated testing with pytest\n- Experience building REST APIs\n- Teamwork and code review\n- CI/CD pipelines\n\nNice to have:\n- Git\n- Docker\n- Kubernetes\n\nAbout us:\nWe ship small services every week.",
+  "requirements": [
+    {"id": "must-cobol", "term": "COBOL", "priority": "REQUIRED"}
+  ]
+}

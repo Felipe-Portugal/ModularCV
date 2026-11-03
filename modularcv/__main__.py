@@ -15,6 +15,10 @@
     content check [FILE]  validate a ResumeContent-v1 and verify its fact references (exit 0 valid and verified,
                           1 invalid, 2 unreadable, 3 structurally valid but fact references left UNVERIFIED)
     content fingerprint [FILE]   print the source and canonical fingerprints of a valid content file
+    offer check|fingerprint FILE   validate a JobOffer-v1 and list the requirements found in it (exit 0, 1 invalid, 2 unreadable)
+    taxonomy check|fingerprint [SPEC]   validate a Taxonomy-v1 (default builtin:generic-v1)
+    matrix --offer FILE [--family F] [--language L] [--out F]   the RequirementMatrix-v1 of an offer (exit 0, 1 refused, 2 unreadable)
+    plan --offer FILE [--family F] [--language L] [--out F]     the TailoringPlan-v1 (a plan, never a ready CV)
     privacy ...           scan a tree for personal data before publishing
 """
 from argparse import ArgumentParser
@@ -23,7 +27,8 @@ import os
 import sys
 from pathlib import Path
 
-from . import config, content, docvalidate, facts, legacy, privacy, profile, provenance, readiness, snapshot
+from . import (config, content, docvalidate, facts, joboffer, legacy, plan, privacy, profile, provenance, readiness,
+               snapshot, taxonomy)
 
 
 def _facts_report(name, result):
@@ -87,7 +92,10 @@ def _facts_main(args) -> int:
 
 def _print_problems(name, problems):
     for problem in problems:
-        print("%s: %s (%s): %s" % (name, problem.code, problem.path or "document", problem.message), file=sys.stderr)
+        where = getattr(problem, "path", None)
+        if where is None and getattr(problem, "line", None) is not None:
+            where = "line %d" % problem.line
+        print("%s: %s (%s): %s" % (name, problem.code, where or "document", problem.message), file=sys.stderr)
 
 
 PROFILE_UNVERIFIED_EXIT = 3
@@ -273,6 +281,161 @@ def _content_main(args) -> int:
     if _content_unverified(result):
         _print_problems(str(name), result.warnings)
         return CONTENT_UNVERIFIED_EXIT
+    return 0
+
+
+def _stage_failed(stage, problems):
+    _print_problems(stage, problems)
+    unreadable = any(p.code.endswith("FILE_UNREADABLE") or p.code == "FACT_FILE_UNREADABLE" for p in problems)
+    return 2 if unreadable else 1
+
+
+def _load_engine_inputs(args):
+    """Load and strictly validate every input of the engine. Returns a dict, or an exit code (1 invalid, 2 unreadable).
+
+    Nothing is trusted: the fact base is validated, the profile's fact references are verified against it, the content is
+    checked against both, the taxonomy is the one the profile names. An invalid stage stops the run and is named."""
+    try:
+        settings = config.load(args.root)
+        root = config.workspace_root(args.root)
+    except config.ConfigError as error:
+        print(json.dumps({"status": "CONFIG_ERROR", "detail": str(error)}), file=sys.stderr)
+        return 2
+    loaded_facts = facts.check_file(root / settings["facts"])
+    if loaded_facts.errors:
+        return _stage_failed("facts", loaded_facts.errors)
+    loaded_profile = profile.check_file(root / settings["profile"], loaded_facts.factbase)
+    if loaded_profile.errors:
+        return _stage_failed("profile", loaded_profile.errors)
+    found_profile = loaded_profile.profile
+    loaded_taxonomy = taxonomy.load(found_profile.internal_preferences()["taxonomy"], root)
+    if loaded_taxonomy.errors:
+        return _stage_failed("taxonomy", loaded_taxonomy.errors)
+    loaded_content = content.check_file(root / settings["content"], loaded_facts.factbase, found_profile)
+    if loaded_content.errors:
+        return _stage_failed("content", loaded_content.errors)
+    loaded_offer = joboffer.check_file(args.offer)
+    if loaded_offer.errors:
+        return _stage_failed("offer", loaded_offer.errors)
+    return {"root": root, "settings": settings, "factbase": loaded_facts.factbase, "profile": found_profile,
+            "taxonomy": loaded_taxonomy.taxonomy, "content": loaded_content.content, "offer": loaded_offer.offer,
+            "inputs": [root / settings[key] for key in ("facts", "profile", "content")] + [Path(args.offer)]}
+
+
+def _write_new_output(root, value, protected):
+    """Create `value` (inside the workspace, never over an existing file or one of the inputs). Returns the path or an exit code."""
+    resolved, inside = _inside(root, value)
+    if not inside or ".git" in resolved.relative_to(root.resolve()).parts:
+        return _import_refusal("OUTPUT_OUTSIDE_WORKSPACE", "--out must be inside the workspace (and not in .git)")
+    if any(_reaches_target(resolved, Path(item).resolve()) for item in protected):
+        return _import_refusal("OUTPUT_IS_AN_INPUT", "--out designates one of the inputs of the engine")
+    if os.path.lexists(str(resolved)):
+        return _import_refusal("OUTPUT_EXISTS", "--out already exists; the engine never overwrites a file")
+    return resolved
+
+
+def _engine_main(args) -> int:
+    loaded = _load_engine_inputs(args)
+    if isinstance(loaded, int):
+        return loaded
+    try:
+        result, matrix = plan.build_plan(loaded["offer"], loaded["taxonomy"], loaded["profile"], loaded["factbase"],
+                                         loaded["content"], args.family, args.language)
+    except plan.PlanError as error:
+        _print_problems("plan", error.errors)
+        return 1
+    if args.command == "matrix":
+        document = {"matrix": matrix, "matrix_sha256": result["inputs"]["matrix_sha256"]}
+    else:
+        document = result
+    rendered = json.dumps(document, indent=2, ensure_ascii=False, sort_keys=True)
+    if args.out is None:
+        print(rendered)
+        return 0
+    target = _write_new_output(loaded["root"], args.out, loaded["inputs"])
+    if isinstance(target, int):
+        return target
+    try:
+        with open(str(target), "xb") as handle:
+            handle.write((rendered + "\n").encode("utf-8"))
+    except OSError as error:
+        return _import_refusal("OUTPUT_WRITE_FAILED", "cannot write the output: %s" % error.strerror)
+    print(json.dumps({"status": "WRITTEN", "out": args.out,
+                      "sha256_key": "matrix_sha256" if args.command == "matrix" else "plan_sha256",
+                      "sha256": document.get("matrix_sha256") or document["plan_sha256"]}, indent=2))
+    return 0
+
+
+def _offer_main(args) -> int:
+    result = joboffer.check_file(args.file)
+    if result.errors:
+        return _stage_failed(str(args.file), result.errors)
+    found = result.offer
+    if args.offer_command == "fingerprint":
+        if args.only:
+            print(result.offer_source_sha256 if args.only == "source" else found.offer_sha256)
+        else:
+            print(json.dumps({"status": "OK", "offer_source_sha256": result.offer_source_sha256,
+                              "offer_sha256": found.offer_sha256, "description_sha256": found.description_sha256},
+                             indent=2))
+        return 0
+    try:
+        root = config.workspace_root(args.root)
+    except config.ConfigError as error:
+        print(json.dumps({"status": "CONFIG_ERROR", "detail": str(error)}), file=sys.stderr)
+        return 2
+    loaded_taxonomy = taxonomy.load(args.taxonomy, root)
+    if loaded_taxonomy.errors:
+        return _stage_failed("taxonomy", loaded_taxonomy.errors)
+    language, method = found.resolve_language(None)
+    detected = []
+    problems = []
+    if language is not None:
+        detected, problems = joboffer.extract_requirements(found, loaded_taxonomy.taxonomy, language)
+    if problems:
+        return _stage_failed("offer", problems)
+    report = {
+        "status": "OK" if language is not None else "LANGUAGE_UNDECIDED",
+        "offer_source_sha256": result.offer_source_sha256, "offer_sha256": found.offer_sha256,
+        "description_sha256": found.description_sha256, "job_key": found.job_key,
+        "declared_language": found.declared_language, "language": language, "language_method": method,
+        "employment_type": found.employment_type, "explicit_requirements": len(found.explicit_requirements),
+        "requirements": [{"id": r["id"], "term_id": r["term_id"], "priority": r["priority"], "weight": r["weight"],
+                          "sources": r["sources"]} for r in detected],
+        "unknown_terms": sum(1 for r in detected if r["term_id"] is None),
+        "taxonomy_sha256": loaded_taxonomy.taxonomy.taxonomy_sha256,
+        "semantic_understanding": False,
+    }
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    return 0 if language is not None else 1
+
+
+def _taxonomy_main(args) -> int:
+    try:
+        root = config.workspace_root(args.root)
+    except config.ConfigError as error:
+        print(json.dumps({"status": "CONFIG_ERROR", "detail": str(error)}), file=sys.stderr)
+        return 2
+    if args.spec.endswith(".json") and not args.spec.startswith("builtin:"):
+        result = taxonomy.check_file(args.spec)
+    else:
+        result = taxonomy.load(args.spec, root)
+    if result.errors:
+        return _stage_failed("taxonomy", result.errors)
+    found = result.taxonomy
+    model = found.to_model()
+    if args.taxonomy_command == "fingerprint":
+        if args.only:
+            print(found.taxonomy_sha256)
+        else:
+            print(json.dumps({"status": "OK", "id": found.id, "taxonomy_sha256": found.taxonomy_sha256}, indent=2))
+        return 0
+    print(json.dumps({
+        "status": "OK", "id": found.id, "taxonomy_sha256": found.taxonomy_sha256,
+        "taxonomy_source_sha256": result.taxonomy_source_sha256,
+        "counts": {"capabilities": len(found.terms("capability")), "technologies": len(found.terms("technology")),
+                   "zones": len(model["zones"]), "adjacencies": len(model["adjacencies"])},
+    }, indent=2))
     return 0
 
 
@@ -486,6 +649,30 @@ def main(argv=None) -> int:
     cc.add_argument("--profile", default=None, help="also check baseline families and the confirmation-date policy")
     cc.add_argument("--outline", action="store_true", help="add the structure (identifiers and states, no text)")
     cf.add_argument("--only", choices=("source", "content"), default=None, help="print only this hash")
+    of = sub.add_parser("offer", help="validate and fingerprint a JobOffer-v1 file")
+    ofsub = of.add_subparsers(dest="offer_command", required=True)
+    oc = ofsub.add_parser("check", help="validate the offer and list the requirements found in it")
+    ofp = ofsub.add_parser("fingerprint", help="print the fingerprints of a valid offer")
+    for p in (oc, ofp):
+        p.add_argument("file")
+        p.add_argument("--root", default=None)
+    oc.add_argument("--taxonomy", default=taxonomy.BUILTIN, help="taxonomy used to find requirements (default: builtin)")
+    ofp.add_argument("--only", choices=("source", "offer"), default=None, help="print only this hash")
+    tx = sub.add_parser("taxonomy", help="validate and fingerprint a Taxonomy-v1")
+    txsub = tx.add_subparsers(dest="taxonomy_command", required=True)
+    tc = txsub.add_parser("check", help="validate a taxonomy")
+    tf = txsub.add_parser("fingerprint", help="print the fingerprint of a valid taxonomy")
+    for p in (tc, tf):
+        p.add_argument("spec", nargs="?", default=taxonomy.BUILTIN, help="builtin:generic-v1 or a .json file")
+        p.add_argument("--root", default=None)
+    tf.add_argument("--only", action="store_true", help="print the hash alone")
+    for name, text in (("matrix", "build the requirement matrix of an offer"), ("plan", "build the tailoring plan of an offer")):
+        e = sub.add_parser(name, help=text)
+        e.add_argument("--offer", required=True, help="the JobOffer-v1 file")
+        e.add_argument("--family", default=None, help="the profile family (required when the profile has several)")
+        e.add_argument("--language", default=None, choices=("fr", "en"), help="override the language of the offer")
+        e.add_argument("--out", default=None, help="write the result to a new file inside the workspace (never overwritten)")
+        e.add_argument("--root", default=None)
     sub.add_parser("privacy", help="scan for personal data (see: modularcv privacy --help)")
     args = parser.parse_args(argv)
     if args.command == "provenance":
@@ -518,6 +705,12 @@ def main(argv=None) -> int:
         return _profile_main(args)
     if args.command == "content":
         return _content_main(args)
+    if args.command == "offer":
+        return _offer_main(args)
+    if args.command == "taxonomy":
+        return _taxonomy_main(args)
+    if args.command in ("matrix", "plan"):
+        return _engine_main(args)
     return 0
 
 

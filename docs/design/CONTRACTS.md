@@ -404,6 +404,25 @@ unreadable content, unreadable fact base, bad profile or bad configuration, `3` 
 about fact references. M5 also made identifier, language and extension patterns reject a trailing newline (`fullmatch`), a
 defect of M2 that Profile-v1 shared; no valid identifier changed, so no earlier fingerprint moved.
 
+### 3.3 Taxonomy-v1 (M6)
+
+A small JSON document, candidate-independent, named by the profile (`"taxonomy": "builtin:generic-v1"` or a safe relative
+`.json` path). It resolves M5 decision 12: capabilities and technologies a content item or a fact declares are checked against it.
+
+| Field | Notes |
+|---|---|
+| `schema` | `"Taxonomy-v1"`. |
+| `id` | Identifier of the taxonomy. |
+| `terms` | `[{id, kind: capability\|technology, name, aliases}]`; `name` and each alias are a string (language `any`) or a map language → string(s). |
+| `zones` | `[{id, priority: REQUIRED\|PREFERRED, weight, headings}]`: where in a posting a term is found. `default_zone` names one. |
+| `priority_weights` | weight per priority. |
+| `adjacencies` | `[{from, to}]`: directed, single hop. `docker → kubernetes` does not give the reverse. |
+
+Matching folds case and accents and requires a whole word. Fingerprint `taxonomy_sha256` is the canonical fingerprint of the
+model (the built-in one has no source hash). Error codes (`TAXONOMY_` + ): the shared codes of `docvalidate` and `ALIAS_AMBIGUOUS`
+(one spelling, two terms, same language), `DUPLICATE_ID`, `ADJACENCY_INVALID`, `HEADING_AMBIGUOUS`, `FILE_UNREADABLE`.
+`vocabulary_problems(taxonomy, content, factbase)` reports content or fact declarations outside the vocabulary.
+
 ## 4. JobOffer-v1
 
 The engine's only input about an offer. It is deliberately small and source-agnostic.
@@ -427,6 +446,20 @@ It feeds the metadata field `job_sha256`.
 (`--adapter`), and are optional. An adapter for a job-scraper export may exist; **no adapter is required to use the engine**,
 and the core never imports one.
 
+### 4.1 Implementation status and choices (M6)
+
+`modularcv/joboffer.py`. The contract above had no structured requirements; M6 adds, minimally:
+
+- optional `requirements: [{id, term, priority: REQUIRED|PREFERRED}]` (explicit entries), and detection of every taxonomy spelling
+  found as a whole word in `description`, with its priority taken from the taxonomy zone of the surrounding heading.
+  `offer_sha256` includes `requirements` only when the list is non-empty, so offers without it keep the fingerprint defined above.
+- `language: auto` is decided by a deterministic French/English function-word count; the result and its method (`declared`,
+  `detected`, `default`) are recorded; a tie falls back to the profile's default language (`LANGUAGE_UNDECIDED` otherwise).
+- No LLM extraction, no network, no adapter. The description is untrusted data: it is never executed or interpreted as an instruction.
+- Error codes (`OFFER_` + ): the shared `docvalidate` codes, `DESCRIPTION_HASH_MISMATCH`, `REQUIREMENT_CONFLICT`,
+  `REQUIREMENT_DUPLICATE_TERM`, `REQUIREMENT_ID_COLLISION`, `FILE_UNREADABLE`. Messages are fixed and carry a JSON path, never a value.
+- CLI: `offer check|fingerprint` (exit 0 valid, 1 invalid or `LANGUAGE_UNDECIDED`, 2 unreadable).
+
 ## 5. Plan and identity (outputs, for reference)
 
 - `RequirementMatrix-v1` and `TailoringPlan-v1` keep the semantics of the private engine's matrix and plan
@@ -435,6 +468,31 @@ and the core never imports one.
   taxonomy_sha256, offer_sha256, plan_sha256, template_version, language}`. No timestamp participates.
 - Selection constants (defaults): baseline prior `0.25`, minimum gain `1.0`, off-target penalty `0.1` capped at `0.6`,
   named bonus `0.5`, inferred factor `0.5`; overridable in `profile.selection`.
+
+### 5.1 Implementation status and choices (M6)
+
+`modularcv/matrix.py`, `modularcv/plan.py`; user guide: [PLAN.md](../PLAN.md).
+
+- **States** are evaluated `FORBIDDEN_TO_CLAIM` > `DIRECT` > `ADJACENT` > `ABSENT`. Forbidden: a profile `never_publish_terms`
+  spelling, or any `NOT_CONFIRMED`/`WITHDRAWN` fact declaring the term. Direct: a pool item declares the term **and** a `CONFIRMED`
+  fact backing that item declares it (corroboration; a content declaration alone is not proof). Adjacent: one directed hop from
+  a `DIRECT`, non-forbidden term. Absent reasons: `UNKNOWN_TERM`, `UNCORROBORATED`, `NO_PUBLISHABLE_CONTENT`, `NO_EVIDENCE`.
+- **Pool**: only content proven by `ResumeContent.selectable()`/`selectable_skills()` (bullet, skill and block heading all
+  `CONFIRMED`), in the plan language, not `never_publish`, passing the family exclusions, forbidden words and terms, per-job
+  guidance and `omit_by_default_terms` (a baseline can rescue the latter only).
+- **Ranking**: greedy, marginal gain `weight × factor / (1 + n)` (`factor` 1 for direct, `inferred_factor` for adjacent), plus
+  `named_bonus`, plus `baseline_prior`, minus `min(off_target_penalty × k, cap)`; selection needs gain ≥ `minimum_gain`; ties
+  by print position then id; gains rounded to 9 decimals.
+- **Plan**: `plan_status` `PLAN_ONLY`, `review` `NOT_REVIEWED`, `tailored_cv_id` `null`, `plan_sha256` over the canonical plan
+  (including every input fingerprint and the matrix fingerprint). No timestamp participates.
+- Error codes (`PLAN_` + ): `FACTBASE_REQUIRED`, `FAMILY_REQUIRED`, `FAMILY_UNKNOWN`, `LANGUAGE_UNDECIDED`, `LANGUAGE_UNAVAILABLE`,
+  `CAPABILITY_UNKNOWN`, `CLUSTER_UNKNOWN`. Warnings are listed in PLAN.md.
+- CLI: `matrix` and `plan` (`--offer` required; `--family`, `--language`, `--out`); exit 0 produced, 1 refused (the failing stage is
+  named), 2 unreadable input, bad configuration or refused output path.
+- Limits (also recorded in every plan): requirements are explicit entries plus exact taxonomy spellings; a reference check
+  proves existence and status of facts, never that a text means what they say (nor FR/EN equivalence); `ADJACENT` is declared
+  neighbourhood, not a level; the page target is recorded, not enforced.
+- Deferred to M7: any rendering, `tailored_cv_id`, the review gate.
 
 ## 6. Compatibility with the published metadata schema
 

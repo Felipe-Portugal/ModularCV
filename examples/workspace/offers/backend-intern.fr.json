@@ -1,0 +1,9 @@
+{
+  "schema": "JobOffer-v1",
+  "job_key": "example-backend-intern-fr",
+  "title": "Stagiaire en développement backend",
+  "company": "Example Logiciels inc. (fictive)",
+  "language": "auto",
+  "employment_type": "INTERNSHIP",
+  "description": "Example Logiciels est une entreprise fictive. Elle recherche un stagiaire pour le développement backend.\n\nExigences :\n- Python et tests automatisés\n- Conception d'API REST\n- Travail d'équipe et revue de code\n\nAtouts :\n- Git\n- Docker"
+}

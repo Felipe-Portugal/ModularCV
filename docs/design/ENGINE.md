@@ -1,6 +1,7 @@
 # Generation architecture (M1.1 design)
 
-Status: **design, not implemented**. This document fixes the boundaries and says how each part of the generation chain is
+Status: **design**; sections 2.2 and 2.3 (matrix and ranking) are implemented by M6 as `modularcv/matrix.py` and `modularcv/plan.py`,
+see `CONTRACTS.md` §5.1 and `docs/PLAN.md`; the rest is not implemented yet. This document fixes the boundaries and says how each part of the generation chain is
 adapted from the private engine it is ported from. The private code is not copied: each component is re-implemented against the
 contracts of `CONTRACTS.md` and `PROVENANCE_READINESS.md`, and no personal fact, wording or identifier crosses over.
 

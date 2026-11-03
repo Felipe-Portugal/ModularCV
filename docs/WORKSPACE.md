@@ -65,6 +65,20 @@ python -m modularcv content fingerprint --only content
 The check proves that each referenced fact exists and is confirmed. It does not prove that a sentence says what its facts say,
 nor that a French line and its English line are equivalent: those stay human decisions.
 
+### Offers, matrix and plan
+
+`offers/*.json` holds `JobOffer-v1` files (examples: `examples/workspace/offers/`). The profile's `taxonomy` key names the vocabulary
+(`builtin:generic-v1` by default). With your facts, profile and content:
+
+```bash
+python -m modularcv offer check offers/backend-intern.json
+python -m modularcv matrix --offer offers/backend-intern.json     # one of four states per requirement
+python -m modularcv plan --offer offers/backend-intern.json --out plans/backend-intern.json   # new file, never overwritten
+```
+
+Both commands write nothing unless `--out` is given. The plan says what would be shown and why; it is not a CV and not reviewed.
+Guide: [PLAN.md](PLAN.md).
+
 ### Importing an old document
 
 `python -m modularcv facts import --mapping import-map.json --in old-notes.md --dry-run` classifies a historical Markdown
