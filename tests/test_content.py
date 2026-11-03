@@ -33,7 +33,7 @@ def minimal():
         "schema": "ResumeContent-v1",
         "sections": [{"id": "experience", "kind": "experience", "title": {"en": "Experience"}}],
         "blocks": [{
-            "id": "job", "section": "experience", "order": 1, "languages": ["en"],
+            "id": "job", "section": "experience", "order": 1, "languages": ["en"], "supports": ["fact.one"],
             "heading": {"en": {"title": "Developer"}},
             "bullets": [{"id": "job.01", "text": {"en": "Built a thing."}, "supports": ["fact.one"]}],
         }],
@@ -114,6 +114,7 @@ def test_a_minimal_document_is_valid_and_its_defaults_are_filled_in():
     model = result.content.to_model()
     block = model["blocks"][0]
     bullet = block["bullets"][0]
+    assert block["supports"] == ["fact.one"]
     assert block["protected"] is False and block["heading"]["en"] == {
         "title": "Developer", "subtitle": None, "period": None, "place": None}
     assert bullet == {"id": "job.01", "text": {"en": "Built a thing."}, "supports": ["fact.one"], "technologies": [],
@@ -153,7 +154,7 @@ def test_no_second_language_is_ever_required():
     assert valid(other).content.languages == ("fr",)
 
 
-def test_other_languages_are_accepted_and_follow_the_same_rules():
+def test_a_one_language_block_in_another_language_is_valid():
     document = minimal()
     document["sections"][0]["title"] = {"de": "Erfahrung"}
     document["blocks"][0].update(languages=["de"], heading={"de": {"title": "Entwickler"}})
@@ -347,10 +348,12 @@ def test_without_a_fact_base_references_are_never_presented_as_verified():
     assert not verified.warnings and {state for _k, _e, state in verified.references} == {"VERIFIED"}
 
 
-def test_content_with_nothing_to_verify_is_not_left_unverified():
+def test_a_heading_reference_is_always_left_to_verify_even_when_no_bullet_is_publishable():
     document = minimal()
     document["blocks"][0]["bullets"] = [{"id": "job.01", "text": {"en": "Reminder."}, "never_publish": True}]
-    assert not check(document, with_facts=False).warnings
+    result = check(document, with_facts=False)
+    assert [w.code for w in result.warnings] == ["CONTENT_FACTS_NOT_CHECKED"]
+    assert {(k, s) for k, _e, s in result.references} == {("heading", "UNVERIFIED"), ("bullet", "NEVER_PUBLISH")}
 
 
 def test_the_confirmation_date_policy_of_a_profile_applies_to_supporting_facts():
@@ -437,7 +440,7 @@ def test_drift_between_the_declared_languages_of_an_entity_is_an_error_never_rep
 def test_parity_binds_only_where_an_entity_declares_both_languages():
     document = bilingual()
     document["blocks"].append({"id": "side", "section": "experience", "order": 2, "languages": ["fr"],
-                               "heading": {"fr": {"title": "Seulement"}},
+                               "supports": ["fact.two"], "heading": {"fr": {"title": "Seulement"}},
                                "bullets": [{"id": "side.01", "text": {"fr": "Français seulement."},
                                             "supports": ["fact.two"]}]})
     result = valid(document).content
@@ -716,6 +719,9 @@ def test_no_error_repeats_a_value_of_the_document(workspace, capsys):
     document["blocks"][0]["bullets"][0]["text"]["en"] = SECRET + " \\cmd"
     document["blocks"][0]["heading"]["en"]["subtitle"] = SECRET + " \\cmd"
     document["blocks"][0]["bullets"][0]["supports"] = ["zxq-private-9931", SECRET]
+    document["blocks"][0]["supports"] = ["zxq-private-9931", SECRET]
+    document["blocks"][0]["heading"]["en"]["title"] = SECRET + " title"
+    document["blocks"][0]["heading"]["en"]["period"] = SECRET + " period"
     document["blocks"][0]["bullets"][0]["technologies"] = [SECRET + "\\x"]
     document["blocks"][0]["bullets"][0][SECRET] = SECRET
     document["blocks"][0]["heading"][SECRET] = {"title": SECRET}
@@ -813,7 +819,7 @@ def test_whitespace_and_explicit_defaults_do_not_change_the_logical_fingerprint(
     ("blocks.0.bullets.0.technologies", ["Python"]), ("blocks.0.bullets.0.capabilities", ["backend"]),
     ("blocks.0.bullets.0.never_publish", True), ("blocks.0.heading.en.title", "Engineer"),
     ("blocks.0.heading.en.period", "2025"), ("blocks.0.protected", True), ("blocks.0.order", 2),
-    ("sections.0.title.en", "Work"), ("sections.0.kind", "project"), ("blocks.0.languages", ["en", "fr"]),
+    ("blocks.0.supports", ["fact.two"]), ("sections.0.title.en", "Work"), ("sections.0.kind", "project"), ("blocks.0.languages", ["en", "fr"]),
     ("schema", "ResumeContent-v1"),
 ])
 def test_every_real_change_moves_the_fingerprint_except_a_no_op(where, value):
@@ -883,7 +889,7 @@ def test_a_structure_only_success_is_never_exit_zero_when_there_is_something_to_
     document["blocks"][0]["bullets"] = [{"id": "job.01", "text": {"en": "Reminder."}, "never_publish": True}]
     path.write_text(json.dumps(document), encoding="utf-8")
     code, out, _ = run(capsys, "content", "check", str(path), "--root", str(workspace), "--no-facts")
-    assert code == 0 and json.loads(out)["status"] == "OK"  # nothing was left unverified
+    assert code == 3 and json.loads(out)["status"] == "UNVERIFIED"  # the heading's references are still unverified
 
 
 def test_missing_or_broken_inputs_exit_two_or_one(workspace, capsys):
@@ -1046,4 +1052,245 @@ def test_the_documentation_states_the_limits_of_the_checks():
         assert phrase in section, phrase
     guide = (REPO / "docs" / "CONTENT.md").read_text(encoding="utf-8")
     for phrase in ("never checks", "equivalence", "--no-facts"):
+        assert phrase in guide, phrase
+
+
+# --- M5-R1: the factual heading of a block is tied to the fact base ----------------------------------------------
+
+def test_a_heading_without_supporting_facts_is_refused_with_no_fact_base_needed():
+    for change in (lambda d: set_at(d, "blocks.0.supports", []), lambda d: drop_at(d, "blocks.0.supports")):
+        result = check(change(minimal()), with_facts=False)
+        assert codes(result) == ["CONTENT_UNSUPPORTED_HEADING"] and result.content is None
+        assert result.errors[0].path == "blocks[0]"
+
+
+def test_a_heading_backed_by_a_confirmed_fact_is_valid_and_verified():
+    result = valid(minimal())
+    assert ("heading", "job", "VERIFIED") in result.references
+    assert result.content.to_model()["blocks"][0]["supports"] == ["fact.one"]
+    assert result.content.fact_ids() == ("fact.one",)
+
+
+def test_a_heading_backed_by_a_fact_that_does_not_exist_is_refused():
+    result = check(set_at(minimal(), "blocks.0.supports", ["fact.missing"]))
+    assert sorted(codes(result)) == ["CONTENT_FACT_UNKNOWN", "CONTENT_UNSUPPORTED_HEADING"]
+    assert {e.path for e in result.errors} == {"blocks[0]", "blocks[0].supports[0]"}
+    assert ("heading", "job", "REFUSED") in result.references
+
+
+@pytest.mark.parametrize("fact_id,status", [("fact.derived", "DERIVED"), ("fact.unsure", "NOT_CONFIRMED"),
+                                            ("fact.gone", "WITHDRAWN")])
+def test_a_heading_backed_by_a_fact_that_is_not_confirmed_is_refused(fact_id, status):
+    result = check(set_at(minimal(), "blocks.0.supports", [fact_id]))
+    assert sorted(codes(result)) == ["CONTENT_FACT_NOT_CONFIRMED", "CONTENT_UNSUPPORTED_HEADING"]
+    assert any(status in e.message for e in result.errors) and result.content is None
+
+
+def test_one_invalid_reference_among_valid_ones_refuses_the_heading():
+    for bad in ("fact.missing", "fact.unsure", "fact.derived", "fact.gone"):
+        result = check(set_at(minimal(), "blocks.0.supports", ["fact.one", bad, "fact.two"]))
+        assert "CONTENT_UNSUPPORTED_HEADING" in codes(result) and result.content is None, bad
+
+
+def test_organisational_titles_need_no_proof():
+    document = minimal()
+    document["skills"] = [{"id": "cat", "title": {"en": "Tools"},
+                           "items": [{"id": "py", "text": {"en": "Python"}, "supports": ["fact.one"]}]}]
+    assert "supports" not in document["sections"][0] and "supports" not in document["skills"][0]
+    result = valid(document)
+    assert {kind for kind, _e, _s in result.references} == {"heading", "bullet", "skill"}  # no entry for a title
+
+
+def test_regression_a_confirmed_bullet_cannot_carry_an_unproven_job_title():
+    """The M5 gap: a title, employer or period with no proof was accepted next to a perfectly supported bullet."""
+    document = minimal()
+    document["blocks"][0]["heading"]["en"] = {"title": "Chief executive", "subtitle": "A company", "period": "1999"}
+    set_at(document, "blocks.0.supports", ["fact.unsure"])          # not confirmed: the title is a claim nobody confirmed
+    assert document["blocks"][0]["bullets"][0]["supports"] == ["fact.one"]  # the bullet itself is fully proven
+    result = check(document)
+    assert result.content is None and "CONTENT_UNSUPPORTED_HEADING" in codes(result)
+    assert "CONTENT_UNSUPPORTED_BULLET" not in codes(result)
+    structural = content.check_data(document).content  # parsed without a fact base: nothing is verified, nothing printable
+    assert structural.selectable(factbase(), "en") == ()
+    assert structural.selectable_skills(factbase(), "en") == ()
+
+
+def test_selectable_needs_both_the_bullet_and_its_heading_proven():
+    document = minimal()
+    document["blocks"][0]["bullets"].append({"id": "job.02", "text": {"en": "Second."}, "supports": ["fact.derived"]})
+    parsed = content.check_data(document).content
+    assert [e.bullet_id for e in parsed.selectable(factbase(), "en")] == ["job.01"]  # proven bullet, proven heading
+    withdrawn = FACTS.replace("[fact.one] CONFIRMED", "[fact.one] WITHDRAWN")
+    for heading_fact, text in (("fact.derived", FACTS), ("fact.one", withdrawn), ("fact.absent", FACTS)):
+        other = copy.deepcopy(document)
+        set_at(other, "blocks.0.supports", [heading_fact])
+        assert content.check_data(other).content.selectable(factbase(text), "en") == (), heading_fact
+    mixed = copy.deepcopy(document)
+    set_at(mixed, "blocks.0.supports", ["fact.one", "fact.unsure"])
+    assert content.check_data(mixed).content.selectable(factbase(), "en") == ()  # every supporting fact must be confirmed
+
+
+def test_selectable_skills_follows_the_fact_base_and_the_language():
+    document = bilingual()
+    document["skills"] = [{"id": "cat", "title": {"en": "Tools", "fr": "Outils"}, "items": [
+        {"id": "py", "text": {"en": "Python", "fr": "Python"}, "supports": ["fact.one"]},
+        {"id": "git", "text": {"en": "Git", "fr": "Git"}, "supports": ["fact.derived"]}]}]
+    parsed = content.check_data(document).content
+    assert parsed.selectable_skills(factbase(), "fr") == (("cat", "py"),)
+    assert parsed.selectable_skills(factbase(), "de") == ()
+    promoted = FACTS.replace("DERIVED: A derived", "CONFIRMED: A derived")
+    assert parsed.selectable_skills(factbase(promoted), "en") == (("cat", "py"), ("cat", "git"))
+
+
+def test_without_a_fact_base_a_heading_is_unverified_and_the_command_cannot_exit_zero(workspace, capsys):
+    result = check(minimal(), with_facts=False)
+    assert ("heading", "job", "UNVERIFIED") in result.references
+    code, out, err = run(capsys, "content", "check", "--root", str(workspace), "--no-facts", "--outline")
+    report = json.loads(out)
+    assert code == 3 and report["status"] == "UNVERIFIED" and report["references"]["headings"] == {"UNVERIFIED": 3}
+    assert {b["heading_state"] for b in report["outline"]["blocks"]} == {"UNVERIFIED"}
+    code, out, _ = run(capsys, "content", "check", "--root", str(workspace), "--outline")
+    report = json.loads(out)
+    assert code == 0 and report["references"]["headings"] == {"VERIFIED": 3}
+
+
+def test_the_new_invalid_examples_are_refused(workspace, capsys):
+    folder = workspace / "content" / "invalid"
+    code, _, err = run(capsys, "content", "check", str(folder / "unproven-heading.json"), "--root", str(workspace))
+    assert code == 1 and "CONTENT_UNSUPPORTED_HEADING" in err and "CONTENT_FACT_NOT_CONFIRMED" in err
+    assert "UNSUPPORTED_BULLET" not in err
+    code, _, err = run(capsys, "content", "check", str(folder / "missing-heading-support.json"), "--root", str(workspace),
+                       "--no-facts")
+    assert code == 1 and "CONTENT_UNSUPPORTED_HEADING" in err  # structural: refused even without a fact base
+
+
+@pytest.mark.parametrize("name", sorted(path.name for path in (EXAMPLE_DIR / "content" / "invalid").glob("*.json")))
+def test_every_invalid_example_is_refused_and_every_valid_one_is_not(name, workspace, capsys):
+    code, out, err = run(capsys, "content", "check", str(workspace / "content" / "invalid" / name), "--root", str(workspace))
+    assert code == 1 and json.loads(out)["status"] == "INVALID" and err
+    for valid_name in ("resume.json", "resume.fr.json", "resume.en.json"):
+        assert run(capsys, "content", "check", str(workspace / "content" / valid_name), "--root", str(workspace))[0] == 0
+
+
+def test_french_english_and_bilingual_examples_have_proven_headings():
+    base = facts.check_file(EXAMPLE_DIR / "facts.md").factbase
+    for name, language in (("resume.fr.json", "fr"), ("resume.en.json", "en"), ("resume.json", "en"), ("resume.json", "fr")):
+        parsed = content.parse_file(EXAMPLE_DIR / "content" / name, base)
+        assert parsed.selectable(base, language), name
+        assert all(state == "VERIFIED" for kind, _e, state in content.check_file(
+            EXAMPLE_DIR / "content" / name, base).references if kind == "heading")
+
+
+def test_heading_support_is_stable_in_identifiers_and_fingerprints():
+    document = minimal()
+    set_at(document, "blocks.0.supports", ["fact.two", "fact.one"])
+    first = valid(document).content
+    set_at(document, "blocks.0.supports", ["fact.one", "fact.two"])
+    second = valid(document).content
+    assert first.content_sha256 == second.content_sha256 and first.to_model() == second.to_model()
+    assert first.content_sha256 != valid(minimal()).content.content_sha256  # the support is part of the meaning
+    again = valid(document).content
+    assert again.reservoir()[0].heading_supports == ("fact.one", "fact.two")
+    assert [e.bullet_id for e in again.reservoir()] == ["job.01"]
+
+
+def test_a_heading_diagnostic_never_repeats_a_factual_value():
+    document = minimal()
+    document["blocks"][0]["heading"]["en"] = {"title": SECRET + " title", "subtitle": SECRET + " employer",
+                                              "period": SECRET + " period", "place": SECRET + " place"}
+    set_at(document, "blocks.0.supports", ["fact.unsure", "zxq-private-9931"])
+    result = check(document)
+    assert "CONTENT_UNSUPPORTED_HEADING" in codes(result)
+    shown = " ".join("%s %s %s" % (e.code, e.message, e.path) for e in result.errors).lower()
+    assert not any(part in shown for part in ("zxq", "9931", "private", "employer", "period value", "place value"))
+
+
+# --- M5-R1: language parity binds the en/fr pair only ---------------------------------------------------------------
+
+def three_languages():
+    document = bilingual()
+    document["sections"][0]["title"]["de"] = "Erfahrung"
+    block = document["blocks"][0]
+    block["languages"] = ["de", "en", "fr"]
+    block["heading"]["de"] = {"title": "Entwickler"}
+    block["bullets"][0]["text"]["de"] = "Etwas gebaut."
+    return document
+
+
+def test_a_third_language_needs_no_parity_but_en_and_fr_still_do():
+    document = three_languages()
+    valid(document)
+    document["blocks"][0]["bullets"][0]["text"].pop("de")      # a third language may be missing
+    document["blocks"][0]["heading"].pop("de")
+    document["sections"][0]["title"].pop("de")
+    valid(document)
+    for language in ("en", "fr"):                               # the pair may not
+        broken = three_languages()
+        broken["blocks"][0]["bullets"][0]["text"].pop(language)
+        assert codes(check(broken)) == ["CONTENT_PARITY_BULLET"]
+        broken = three_languages()
+        broken["blocks"][0]["heading"].pop(language)
+        assert codes(check(broken)) == ["CONTENT_PARITY_HEADING"]
+        broken = three_languages()
+        broken["sections"][0]["title"].pop(language)
+        assert codes(check(broken)) == ["CONTENT_PARITY_TITLE"]
+
+
+def test_a_block_without_the_en_fr_pair_has_no_parity_obligation():
+    document = minimal()
+    block = document["blocks"][0]
+    block["languages"] = ["de", "en"]
+    block["heading"] = {"en": {"title": "Developer"}}
+    block["bullets"] = [{"id": "job.01", "text": {"en": "English only."}, "supports": ["fact.one"]},
+                        {"id": "job.02", "text": {"de": "Nur Deutsch."}, "supports": ["fact.one"]},
+                        {"id": "job.03", "text": {"de": "Beides.", "en": "Both."}, "supports": ["fact.one"]}]
+    result = valid(document).content
+    assert [e.bullet_id for e in result.selectable(factbase(), "de")] == ["job.02", "job.03"]
+    assert [e.bullet_id for e in result.selectable(factbase(), "en")] == ["job.01", "job.03"]
+
+
+def test_the_general_structural_checks_remain_for_every_language():
+    document = three_languages()
+    document["blocks"][0]["bullets"][0]["text"]["es"] = "No declarado."   # a language the block does not declare
+    assert codes(check(document)) == ["CONTENT_PARITY_BULLET"]
+    document = three_languages()
+    document["blocks"][0]["heading"]["es"] = {"title": "No declarado"}
+    assert codes(check(document)) == ["CONTENT_PARITY_HEADING"]
+    only = minimal()
+    only["blocks"][0].update(languages=["de"], heading={"de": {"title": "Entwickler"}})
+    only["blocks"][0]["bullets"][0]["text"] = {"en": "Wrong language."}
+    assert codes(check(only)) == ["CONTENT_PARITY_BULLET"]               # a one-language block needs that language
+    only["blocks"][0]["bullets"][0]["text"] = {"de": "Richtig."}
+    assert codes(check(only)) == ["CONTENT_PARITY_TITLE"]                # and so does the title of its section
+    only["sections"][0]["title"] = {"de": "Erfahrung"}
+    valid(only)
+
+
+def test_skill_categories_in_other_languages_follow_the_same_distinction():
+    document = minimal()
+    document["skills"] = [{"id": "cat", "title": {"de": "Werkzeuge", "en": "Tools"},
+                           "items": [{"id": "py", "text": {"en": "Python"}, "supports": ["fact.one"]}]}]
+    valid(document)                                                       # de/en: no pair, no obligation
+    document["skills"][0]["title"]["fr"] = "Outils"
+    assert codes(check(document)) == ["CONTENT_PARITY_ITEM"]              # en+fr declared: the item needs both
+    set_at(document, "skills.0.items.0.text", {"en": "Python", "fr": "Python"})
+    valid(document)
+
+
+def test_baselines_in_a_third_language_only_take_items_written_in_it():
+    document = three_languages()
+    document["blocks"][0]["bullets"].append({"id": "job.02", "text": {"en": "No german.", "fr": "Pas d'allemand."},
+                                             "supports": ["fact.two"]})
+    document["baselines"] = [{"family": "software", "language": "de", "items": ["job.01"]}]
+    valid(document)
+    document["baselines"][0]["items"].append("job.02")
+    assert codes(check(document)) == ["CONTENT_BASELINE_LANGUAGE"]
+
+
+def test_the_documentation_records_the_decisions_taken_in_m5_r1():
+    contract = (REPO / "docs" / "design" / "CONTRACTS.md").read_text(encoding="utf-8").split("### 3.2", 1)[1]
+    for phrase in ("UNSUPPORTED_HEADING", "organisational", "selectable", "pair", "backslash"):
+        assert phrase in contract, phrase
+    guide = (REPO / "docs" / "CONTENT.md").read_text(encoding="utf-8")
+    for phrase in ("heading", "backslash", "Windows path", "taxonomy", "other language"):
         assert phrase in guide, phrase

@@ -53,8 +53,8 @@ python -m modularcv profile fingerprint --only profile
 ### Your resume content
 
 `content/resume.json` (`ResumeContent-v1`, example: `examples/workspace/content/`, guide: [CONTENT.md](CONTENT.md)) holds the text
-your CVs will be built from. Each bullet and skill lists the fact ids that support it, and counts as printable only if every one
-of those facts is `CONFIRMED` in your `facts.md`. French-only, English-only and bilingual content are all valid.
+your CVs will be built from. Each bullet, skill and block heading (job title, employer, period, place) lists the fact ids that support it, and counts as
+printable only if every one of those facts is `CONFIRMED` in your `facts.md`. French-only, English-only and bilingual content are all valid.
 
 ```bash
 python -m modularcv content check            # exit 0 valid and references verified, 1 invalid, 2 unreadable

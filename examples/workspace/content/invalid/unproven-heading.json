@@ -1,0 +1,15 @@
+{
+  "schema": "ResumeContent-v1",
+  "sections": [{"id": "experience", "kind": "experience", "title": {"en": "Experience"}}],
+  "blocks": [
+    {
+      "id": "senior-role", "section": "experience", "order": 1, "languages": ["en"],
+      "supports": ["exp.junior-dev.lead"],
+      "heading": {"en": {"title": "Team lead", "subtitle": "Example Company (fictional)", "period": "2025 – 2026"}},
+      "bullets": [
+        {"id": "senior-role.01", "text": {"en": "Built REST endpoints in Python for an internal tool."},
+         "supports": ["exp.junior-dev.api"]}
+      ]
+    }
+  ]
+}

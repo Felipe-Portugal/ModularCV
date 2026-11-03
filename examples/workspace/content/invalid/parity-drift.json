@@ -3,7 +3,7 @@
   "sections": [{"id": "experience", "kind": "experience", "title": {"en": "Experience", "fr": "Expérience"}}],
   "blocks": [
     {
-      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["en", "fr"],
+      "id": "junior-dev", "section": "experience", "order": 1, "supports": ["exp.junior-dev.api"], "languages": ["en", "fr"],
       "heading": {"en": {"title": "Junior developer"}, "fr": {"title": "Développeur junior"}},
       "bullets": [
         {"id": "junior-dev.01", "text": {"en": "Built REST endpoints in Python.", "fr": "Développement de points d'accès REST."},

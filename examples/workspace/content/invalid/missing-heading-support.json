@@ -1,0 +1,14 @@
+{
+  "schema": "ResumeContent-v1",
+  "sections": [{"id": "experience", "kind": "experience", "title": {"en": "Experience"}}],
+  "blocks": [
+    {
+      "id": "unlinked", "section": "experience", "order": 1, "languages": ["en"],
+      "heading": {"en": {"title": "Developer", "period": "2025"}},
+      "bullets": [
+        {"id": "unlinked.01", "text": {"en": "Built REST endpoints in Python for an internal tool."},
+         "supports": ["exp.junior-dev.api"]}
+      ]
+    }
+  ]
+}

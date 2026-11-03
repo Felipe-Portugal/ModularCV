@@ -4,12 +4,12 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 
 ## Repository
 
-- Branch: `main`. M5 is committed locally on top of `5585c42` (M4 final closure; see `git log`). Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
+- Branch: `main`. M5 (`20979f9`) and M5-R1 are committed locally on top of `5585c42` (M4 final closure; see `git log`). Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: `py -3.9 -m pytest` gives 918 passed and 1 skipped (a symlink test that only runs off Windows), 919 collected; synthetic
-  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
+- Tests: `py -3.9 -m pytest` gives 946 passed and 1 skipped (a symlink test that only runs off Windows), 947 collected; synthetic
+  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
   Python 3.10 (see the M4-R1 report).
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -23,7 +23,7 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M2 | Canonicalisation and FactBase-v1 | PASS (with M2-R1) |
 | M3 | Provenance and readiness hardening (`0.2.0`) | PASS (validated) |
 | M4 | Profile-v1 and legacy fact import | PASS (M4-R1 and final closure validated) |
-| M5 | ResumeContent-v1 and reservoir | Implemented, awaiting validation |
+| M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Planned, not authorised |
 | M7 | Rendering, optional PDF, metadata v3, package | Planned, not authorised |
 | M8 | Public release preparation | Planned, not authorised |
@@ -56,6 +56,26 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
   removed promotion guard makes them fail. `IMPORT.md` and `CONTRACTS.md` §1.5.1 now separate the mapping's authorisation from
   the user's fact-by-fact verification.
 - Foreign file investigated read-only (below). Nothing moved, ignored or committed.
+
+## Last work (M5-R1)
+
+- **Heading provenance (decision 9).** A block now carries `supports` (fact ids) that back its factual heading: job title,
+  employer, period, place, institution, degree. It is required and non-empty (`CONTENT_UNSUPPORTED_HEADING`); with a fact base
+  each fact must exist and be `CONFIRMED` (`CONTENT_FACT_UNKNOWN`, `CONTENT_FACT_NOT_CONFIRMED`, `CONTENT_FACT_DATE_REQUIRED`);
+  without one the heading is `UNVERIFIED` and `content check` exits `3`. Organisational fields (section and skill-category titles,
+  ids, order, kind, protected, baselines) need no proof. Same mechanism as bullets and skills: one `supports` list per entity, no
+  second provenance architecture. `ResumeContent.selectable()` returns a bullet only when its own support **and** its block's
+  heading support are `CONFIRMED`; `selectable_skills()` does the same for skills. Report and `--outline` show a heading state.
+- **Skills (decision 10).** `supports` stays required on skill items; behaviour and tests unchanged.
+- **Parity (decision 11).** The obligation is the contract's pair: an entity declaring both `en` and `fr` needs both everywhere
+  (heading, section title, bullets, skill items). No obligation for any other language. Kept for all languages as general structure:
+  a text may only use a declared language, a one-language entity needs that language, every text exists in at least one language.
+- **Capabilities (decision 12).** Vocabulary and taxonomy deferred to M6; M5 keeps valid, stable identifiers.
+- Examples updated (`supports` on every block) plus two invalid ones: `unproven-heading.json` (the regression: a confirmed bullet
+  under a withdrawn title) and `missing-heading-support.json`.
+- Limits recorded: no semantic comparison of any text against its facts, none between languages; every backslash is refused
+  (also a Windows path), to be revisited with the renderer (M7).
+- Not run: pytest on Linux. `legacy_import.py` stays in `_quarantine`, untouched.
 
 ## Last work (M5)
 
@@ -110,16 +130,10 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
 5. Whether a signed or otherwise authenticated approval is wanted instead of the plain `cv-quality-review.json`.
 6. Whether the first release tags `0.2.0` or `0.3.0` now that `Profile-v1` and the import are in (M4 changed no version).
 7. Final fate of the quarantined `legacy_import.py` (keep outside the repository, delete, or restore); isolated, not deleted.
-9. Headings (`title`, `subtitle`, `period`, `place`) carry no fact link in the contract, so employers, dates and places are not
-   verified. Add an optional `supports` on blocks, or keep them as free text?
-10. M5 made `supports` required on skill items (the contract had none). Confirm, or relax to optional.
-11. Parity applies to any declared language code, not only `fr` and `en` (the contract said others have no parity obligation).
-    Confirm, or restrict it to the two shipped languages.
-12. `capabilities` are identifiers without a vocabulary until the taxonomy (M6); `technologies` are display names compared with the
-    technologies of the supporting facts (warning only).
-
 Settled: strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`; the
-import never confirms by itself (M4).
+import never confirms by itself (M4); decision 9, factual headings are tied to the fact base through `supports` (M5-R1);
+decision 10, `supports` is required on skills; decision 11, parity binds the `en`/`fr` pair only, other languages carry no
+obligation; decision 12, the capability vocabulary and taxonomy belong to M6.
 
 ## Blockers
 
@@ -127,6 +141,6 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M5 and decisions 7 and 9 to 12 above. Do not start M6 (JobOffer-v1, taxonomy, matrix,
+Wait for the maintainer's validation of M5-R1 and decision 7 above. Do not start M6 (JobOffer-v1, taxonomy, matrix,
 plan) before. Do not start M5 or any later milestone
 before.

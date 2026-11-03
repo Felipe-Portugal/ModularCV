@@ -278,7 +278,7 @@ every printed bullet is a bullet of this file.
 ```json
 {"schema":"ResumeContent-v1",
  "sections":[{"id":"experience","kind":"experience","title":{"en":"Experience","fr":"Expérience"}}],
- "blocks":[{"id":"acme-2025","section":"experience","order":1,"languages":["en","fr"],
+ "blocks":[{"id":"acme-2025","section":"experience","order":1,"languages":["en","fr"],"supports":["fact.id"],
    "heading":{"en":{"title":"...","subtitle":"...","period":"...","place":"..."}},
    "protected":false,
    "bullets":[{"id":"acme-2025.01","text":{"en":"...","fr":"..."},
@@ -291,6 +291,8 @@ every printed bullet is a bullet of this file.
 Rules:
 
 - Text is plain Unicode with a minimal inline subset (`**bold**`, `_italic_`). **Raw LaTeX is refused**; the renderer escapes.
+- A block's `supports` backs its **factual heading** (job title, employer, period, place, institution, degree) the same way a
+  bullet's `supports` backs the bullet (M5-R1, see 3.2). Section and skill-category titles are organisational and need none.
 - `supports` lists fact ids. Each must exist and be `CONFIRMED`; otherwise the content is invalid (`CONTENT_UNSUPPORTED_BULLET`).
   Support is **explicit**, never inferred by shared words.
 - `technologies` and `capabilities` are declared, or derived deterministically from the taxonomy; a declared value must be in it.
@@ -328,13 +330,24 @@ contract left open, made in M5, always the smallest compatible one:
   because every fact in its `supports` is `CONFIRMED` in the fact base (`ResumeContent.selectable`); `DERIVED`, `NOT_CONFIRMED`
   and `WITHDRAWN` facts never allow it. A `never_publish` bullet is a reminder: it needs no support, may cite a fact of any status,
   but a fact id it names must still exist.
-- **Support is required, and also for skills.** A publishable bullet with an empty or missing `supports` is
-  `CONTENT_UNSUPPORTED_BULLET`. The contract's skill items had no `supports`; M5 adds the field and makes it required (an item is a
-  professional claim too), error `CONTENT_UNSUPPORTED_SKILL`. A reference that fails adds `CONTENT_FACT_UNKNOWN`,
-  `CONTENT_FACT_NOT_CONFIRMED` or, when a profile requires a date, `CONTENT_FACT_DATE_REQUIRED` at the reference itself.
-  Headings (`title`, `subtitle`, `period`, `place`) are plain text with no fact link in this contract: they are not verified.
-- **Technologies and capabilities are declared, never derived.** The taxonomy arrives in M6, so `capabilities` are identifiers whose
-  vocabulary is not checked yet, and `technologies` are display names. When a fact base is given, a declared technology that no
+- **Factual and organisational fields (M5-R1, decision 9).** *Factual* fields assert something about the person and may be
+  printed in a CV: a block's heading (`title`, `subtitle`, `period`, `place`: job title, employer, dates, location, institution,
+  degree), a bullet, a skill item. *Organisational* fields assert nothing: a section `title`, a skill category `title`, ids,
+  `order`, `kind`, `protected`, baselines and `focus`. Only factual fields need proof.
+- **Support is required for every factual field.** One list of fact ids per entity: `supports` on the block (it backs the whole
+  heading, not field by field), on each bullet and on each skill item. A publishable bullet, a heading or a skill with an empty or
+  missing `supports` is `CONTENT_UNSUPPORTED_BULLET`, `CONTENT_UNSUPPORTED_HEADING` or `CONTENT_UNSUPPORTED_SKILL` (decision 10:
+  `supports` is required on skills, which the first draft of this section did not have). A reference that fails adds
+  `CONTENT_FACT_UNKNOWN`, `CONTENT_FACT_NOT_CONFIRMED` or, when a profile requires a date, `CONTENT_FACT_DATE_REQUIRED` at the
+  reference itself. The same fact may back several entities. Nothing is inferred from the text of a heading: no date, employer,
+  title or responsibility is read from it.
+- **Printable means proven, for the whole chain.** `ResumeContent.selectable(factbase, language)` returns a bullet only if its
+  own `supports` **and** its block's heading `supports` exist and are `CONFIRMED`; `selectable_skills` does the same for skill
+  items. Without a fact base nothing is verified and nothing is selectable. A bullet proven under an unproven heading is not
+  printable, and a content file with an unproven heading is invalid when checked against a fact base.
+- **Technologies and capabilities are declared, never derived (decision 12).** The taxonomy and its controlled vocabulary are
+  deferred to M6, so in M5 `capabilities` are valid, stable identifiers whose vocabulary is not checked, and `technologies` are
+  display names. When a fact base is given, a declared technology that no
   supporting fact lists is the warning `CONTENT_TECHNOLOGY_NOT_IN_SUPPORT` (compared with `fold`, not by words of the text).
 - **Section kinds** are `experience`, `project`, `education` and `other`. A section title and a block heading are plain text in
   every language the blocks declare.
@@ -345,11 +358,14 @@ contract left open, made in M5, always the smallest compatible one:
   blocks in print order (section position, then `order`), so moving a block in the file changes nothing; sections, bullets,
   `technologies`, baseline `items` and baseline `skills` keep the order written. `supports`, `capabilities` and `condenses` are
   sets, stored sorted. The block order is single (one `order` for all languages), so "compared between languages" holds by construction.
-- **Parity (by id, structure only).** A block declares `languages`. Its heading, its section's title and every bullet must exist in
-  **exactly** those languages (`CONTENT_PARITY_HEADING`, `CONTENT_PARITY_TITLE`, `CONTENT_PARITY_BULLET`); a skill category
-  declares its languages through its `title`, and its items must match (`CONTENT_PARITY_ITEM`). The rule is the same for any
-  language code. A block with one language has no parity rule; a bullet that exists in one language only lives in a one-language
-  block and is not selectable for the other (`selectable` leaves it out). Drift is an error, never repaired.
+- **Parity (by id, structure only; decision 11).** A block declares `languages`. Two rules, kept distinct:
+  *the contractual pair*: when an entity declares **both `en` and `fr`**, its heading, its section's title and every bullet must
+  exist in both (`CONTENT_PARITY_HEADING`, `CONTENT_PARITY_TITLE`, `CONTENT_PARITY_BULLET`), and likewise for a skill category,
+  which declares its languages through its `title` (`CONTENT_PARITY_ITEM`). *Any other language* carries no obligation: a
+  third language such as `de` may be missing from a bullet, a heading or a title. What stays for every language is general
+  structure, not parity: a text may use only languages its entity declares, an entity declaring one language must have that
+  language, and every text exists in at least one language. A bullet that exists in one language only is selectable for that
+  language only (`selectable` leaves it out for the other). Drift between `en` and `fr` is an error, never repaired.
 - **Links.** `follows` and `condenses` name other bullets of the **same block** (`CONTENT_UNKNOWN_BULLET`,
   `CONTENT_INVALID_REFERENCE` for itself, `CONTENT_REFERENCE_CYCLE` for a loop). `protected` (default `false`) is metadata for the
   future selection engine and has no effect today.
@@ -361,7 +377,9 @@ contract left open, made in M5, always the smallest compatible one:
   (`CONTENT_BASELINE_FAMILY_UNKNOWN`, `CONTENT_BASELINE_FAMILY_LANGUAGE`) and `policy.require_confirmation_date` applies to
   supporting facts. `focus` is an optional note and is never printed.
 - **Text.** A text is one line, NFC, whitespace collapsed, 1 to 1000 characters (headings and titles up to 200). A **backslash**
-  is TeX's escape and is refused everywhere (`CONTENT_RAW_LATEX`): raw LaTeX is not a content format and the renderer escapes. The
+  is TeX's escape and is refused everywhere (`CONTENT_RAW_LATEX`): raw LaTeX is not a content format and the renderer escapes.
+  This is a deliberately blunt, current restriction: it also refuses a legitimate backslash such as a Windows path (write `/`).
+  It will be revisited with the renderer (M7), not before. The
   other characters that LaTeX treats specially (`%`, `&`, `$`, `#`, `_`, `{`, `}`, `~`, `^`) are ordinary text here. In a bullet or
   a skill item, `**bold**` and `_italic_` must be balanced, not empty and not crossed (`CONTENT_INLINE_MARKUP`); an underscore
   inside a word (`snake_case`) is ordinary, one that opens a word is read as italics.
@@ -377,7 +395,7 @@ Error codes (`CONTENT_` prefix): `FILE_UNREADABLE`, `NOT_UTF8`, `NOT_JSON`, `DUP
 `MISSING_FIELD`, `BAD_TYPE`, `BAD_EXTENSION`, `EMPTY_VALUE`, `CONTROL_CHARACTER`, `TOO_LONG`, `OUT_OF_RANGE`, `INVALID_ID`,
 `INVALID_VALUE`, `INVALID_LANGUAGE`, `DUPLICATE_ID`, `DUPLICATE_VALUE`, `DUPLICATE_ORDER`, `DUPLICATE_BASELINE`, `UNKNOWN_SECTION`,
 `UNKNOWN_BULLET`, `UNKNOWN_SKILL`, `INVALID_REFERENCE`, `REFERENCE_CYCLE`, `RAW_LATEX`, `INLINE_MARKUP`, `PARITY_HEADING`,
-`PARITY_TITLE`, `PARITY_BULLET`, `PARITY_ITEM`, `UNSUPPORTED_BULLET`, `UNSUPPORTED_SKILL`, `FACT_UNKNOWN`, `FACT_NOT_CONFIRMED`,
+`PARITY_TITLE`, `PARITY_BULLET`, `PARITY_ITEM`, `UNSUPPORTED_BULLET`, `UNSUPPORTED_HEADING`, `UNSUPPORTED_SKILL`, `FACT_UNKNOWN`, `FACT_NOT_CONFIRMED`,
 `FACT_DATE_REQUIRED`, `FACTS_INVALID`, `BASELINE_NEVER_PUBLISH`, `BASELINE_LANGUAGE`, `BASELINE_EXCLUSIVE`, `BASELINE_FOLLOWS`,
 `BASELINE_FAMILY_UNKNOWN`, `BASELINE_FAMILY_LANGUAGE`; warnings `FACTS_NOT_CHECKED`, `TECHNOLOGY_NOT_IN_SUPPORT`. CLI exit codes of
 `content check`: `0` valid **and** every reference verified (or none to verify), `1` invalid (or a fact base that is invalid), `2`

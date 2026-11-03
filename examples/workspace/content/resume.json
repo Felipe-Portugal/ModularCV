@@ -8,6 +8,7 @@
   "blocks": [
     {
       "id": "junior-dev", "section": "experience", "order": 1, "languages": ["en", "fr"], "protected": false,
+      "supports": ["exp.junior-dev.api"],
       "heading": {
         "en": {"title": "Junior developer", "subtitle": "Example Company (fictional)", "period": "2025 – 2026", "place": "Exampleville"},
         "fr": {"title": "Développeur junior", "subtitle": "Example Company (fictive)", "period": "2025 – 2026", "place": "Exampleville"}
@@ -39,6 +40,7 @@
     },
     {
       "id": "internal-tool", "section": "projects", "order": 1, "languages": ["en", "fr"],
+      "supports": ["exp.junior-dev.api"],
       "heading": {
         "en": {"title": "Internal REST tool", "period": "2025"},
         "fr": {"title": "Outil interne REST", "period": "2025"}
@@ -51,6 +53,7 @@
     },
     {
       "id": "beng", "section": "education", "order": 1, "languages": ["en", "fr"],
+      "supports": ["edu.beng"],
       "heading": {
         "en": {"title": "B.Eng. in software engineering", "subtitle": "Example University (fictional)", "period": "2024 – 2028 (expected)"},
         "fr": {"title": "Diplôme d'ingénieur en génie logiciel", "subtitle": "Example University (fictive)", "period": "2024 – 2028 (prévu)"}

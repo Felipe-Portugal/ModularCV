@@ -5,7 +5,7 @@
   ],
   "blocks": [
     {
-      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["fr"],
+      "id": "junior-dev", "section": "experience", "order": 1, "supports": ["exp.junior-dev.api"], "languages": ["fr"],
       "heading": {"fr": {"title": "Développeur junior", "subtitle": "Example Company (fictive)", "period": "2025 – 2026"}},
       "bullets": [
         {"id": "junior-dev.01", "text": {"fr": "Développement de points d'accès REST en Python pour un outil interne."},

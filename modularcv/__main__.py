@@ -179,6 +179,7 @@ def _content_outline(found, states):
     model = found.to_model()
     blocks = [{"id": block["id"], "section": block["section"], "order": block["order"],
                "languages": block["languages"], "protected": block["protected"],
+               "heading_state": states.get(("heading", block["id"])),
                "bullets": [{"id": bullet["id"], "state": states.get(("bullet", bullet["id"]))}
                            for bullet in block["bullets"]]} for block in model["blocks"]]
     skills = [{"id": category["id"], "languages": sorted(category["title"]),
@@ -197,9 +198,9 @@ def _content_report(name, result, no_facts, profile_checked, outline):
     found = result.content
     unchecked = any(w.code == "CONTENT_FACTS_NOT_CHECKED" for w in result.warnings)
     states = {(kind, entity_id): state for kind, entity_id, state in result.references}
-    tally = {"bullets": {}, "skills": {}}
+    tally = {"headings": {}, "bullets": {}, "skills": {}}
     for kind, _entity_id, state in result.references:
-        bucket = tally["bullets" if kind == "bullet" else "skills"]
+        bucket = tally[{"heading": "headings", "bullet": "bullets", "skill": "skills"}[kind]]
         bucket[state] = bucket.get(state, 0) + 1
     report = {
         "status": "INVALID" if result.errors else ("UNVERIFIED" if unchecked else "OK"),

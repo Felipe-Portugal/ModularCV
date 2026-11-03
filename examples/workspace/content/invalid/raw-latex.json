@@ -3,7 +3,7 @@
   "sections": [{"id": "experience", "kind": "experience", "title": {"en": "Experience"}}],
   "blocks": [
     {
-      "id": "junior-dev", "section": "experience", "order": 1, "languages": ["en"],
+      "id": "junior-dev", "section": "experience", "order": 1, "supports": ["exp.junior-dev.api"], "languages": ["en"],
       "heading": {"en": {"title": "Junior developer"}},
       "bullets": [
         {"id": "junior-dev.01", "text": {"en": "Built \\textbf{REST} endpoints."}, "supports": ["exp.junior-dev.api"]}

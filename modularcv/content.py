@@ -8,8 +8,9 @@ What is checked, and what is not:
 
 * **Structure** (always): the shape, the identifiers, the order, the FR/EN parity *by entity id*, the inline subset, and
   the refusal of raw LaTeX.
-* **References to the fact base** (only when a `FactBase` is given): every fact a bullet or a skill leans on exists and
-  is `CONFIRMED`. Without a fact base the references are reported `UNVERIFIED`, never assumed.
+* **References to the fact base** (only when a `FactBase` is given): every fact a bullet, a skill or a block heading
+  (title, employer, period, place: the factual fields) leans on exists and is `CONFIRMED`. Section and category
+  titles are organisational and need none. Without a fact base the references are reported `UNVERIFIED`, never assumed.
 * **Never checked**: that a text *means* what its supporting facts say, or that the French and the English text of an
   entity say the same thing. Support is explicit and human-made; the engine proves existence and status only.
 
@@ -38,7 +39,28 @@ NEVER_PUBLISH = "NEVER_PUBLISH"
 CheckResult = namedtuple("CheckResult", "content errors warnings content_source_sha256 references")
 Reference = namedtuple("Reference", "path fact_id kind entity_path")
 Entry = namedtuple("Entry", "bullet_id block_id section_id section_position block_order position languages text supports "
-                            "technologies capabilities follows condenses never_publish protected")
+                            "heading_supports technologies capabilities follows condenses never_publish protected")
+
+# The pair whose parity the contract requires (CONTRACTS.md section 3.1). Any other language is allowed
+# without an obligation: it only has to be declared by the entity that uses it.
+PARITY_PAIR = frozenset(("en", "fr"))
+
+
+def required_languages(declared):
+    """The languages every text of an entity declaring `declared` must be written in.
+
+    A single declared language is required. Of several, `en` and `fr` are required when both are declared
+    (the parity of the contract); no other language is ever required, so a third language may be partial."""
+    declared = set(declared)
+    if len(declared) == 1:
+        return declared
+    return set(PARITY_PAIR) if PARITY_PAIR <= declared else set()
+
+
+def parity_holds(present, declared):
+    """True when `present` uses only declared languages and includes the required ones."""
+    present = set(present)
+    return present <= set(declared) and required_languages(declared) <= present
 
 
 class ContentError(ValueError):
@@ -97,6 +119,7 @@ class ResumeContent:
         """Every fact id the file leans on, sorted. A reference, not a proof: see `selectable`."""
         found = set()
         for block in self._model["blocks"]:
+            found.update(block["supports"])
             for bullet in block["bullets"]:
                 found.update(bullet["supports"])
         for category in self._model["skills"]:
@@ -113,22 +136,26 @@ class ResumeContent:
                 entries.append(Entry(
                     bullet["id"], block["id"], block["section"], positions[block["section"]], block["order"], position,
                     tuple(block["languages"]), dict(bullet["text"]), tuple(bullet["supports"]),
-                    tuple(bullet["technologies"]), tuple(bullet["capabilities"]), bullet["follows"],
+                    tuple(block["supports"]), tuple(bullet["technologies"]), tuple(bullet["capabilities"]), bullet["follows"],
                     tuple(bullet["condenses"]), bullet["never_publish"], block["protected"]))
         return tuple(entries)
 
     def selectable(self, factbase, language):
-        """The bullets a document in `language` may print: written in that language, not `never_publish`, and leaning
-        only on facts that exist and are `CONFIRMED` in `factbase`. The content cannot promote anything itself."""
+        """The bullets a document in `language` may print: written in that language, not `never_publish`, with
+        support that exists and is `CONFIRMED` in `factbase` **for the bullet and for the heading of its block**
+        (a proven bullet under an unproven title, employer or period is not printable). The content cannot promote
+        anything itself: an unverified field is never selectable."""
         by_id = {fact.id: fact for fact in factbase.facts}
-        chosen = []
-        for entry in self.reservoir():
-            if entry.never_publish or language not in entry.text or not entry.supports:
-                continue
-            if all(by_id.get(fact_id) is not None and by_id[fact_id].status == facts.CONFIRMED
-                   for fact_id in entry.supports):
-                chosen.append(entry)
-        return tuple(chosen)
+        return tuple(entry for entry in self.reservoir()
+                     if not entry.never_publish and language in entry.text
+                     and _proven(by_id, entry.supports) and _proven(by_id, entry.heading_supports))
+
+    def selectable_skills(self, factbase, language):
+        """The skill items written in `language` whose support exists and is `CONFIRMED` in `factbase`, in print
+        order, as `(category id, item id)` pairs."""
+        by_id = {fact.id: fact for fact in factbase.facts}
+        return tuple((category["id"], item["id"]) for category in self._model["skills"] for item in category["items"]
+                     if language in item["text"] and _proven(by_id, item["supports"]))
 
     def baseline(self, family, language):
         """The baseline of a family and language as a copy, or None."""
@@ -136,6 +163,11 @@ class ResumeContent:
             if baseline["family"] == family and baseline["language"] == language:
                 return copy.deepcopy(baseline)
         return None
+
+
+def _proven(by_id, fact_ids):
+    """Non-empty support, every fact existing and `CONFIRMED`."""
+    return bool(fact_ids) and all(fact_id in by_id and by_id[fact_id].status == facts.CONFIRMED for fact_id in fact_ids)
 
 
 # --- text ---------------------------------------------------------------------------------------------
@@ -304,9 +336,9 @@ def _check_bullet(reader, value, path, languages, ids, refs, bullet_ids):
     _register(reader, ids["bullets"], bullet_id, docvalidate.join(path, "id"))
     text = _language_map(reader, data["text"], docvalidate.join(path, "text"),
                          lambda v, p: _inline(reader, v, p)) if "text" in data else None
-    if text is not None and languages and sorted(text) != languages:
+    if text is not None and languages and not parity_holds(text, languages):
         reader.error("PARITY_BULLET", docvalidate.join(path, "text"),
-                     "a bullet must be written in exactly the languages its block declares")
+                     "a bullet must be written in declared languages only, and in en and fr when its block declares both")
     never = False
     if "never_publish" in data:
         flag = reader.boolean(data["never_publish"], docvalidate.join(path, "never_publish"))
@@ -343,7 +375,7 @@ def _check_blocks(reader, value, ids, refs, section_ids):
     for position, item in enumerate(items or ()):
         path = docvalidate.index("blocks", position)
         data, extensions = reader.obj(item, path, required=("id", "section", "order", "languages", "heading"),
-                                      optional=("protected", "bullets"))
+                                      optional=("protected", "bullets", "supports"))
         if data is None:
             continue
         block_id = reader.ident(data["id"], docvalidate.join(path, "id")) if "id" in data else None
@@ -369,9 +401,17 @@ def _check_blocks(reader, value, ids, refs, section_ids):
             languages = sorted(reader.unique(languages, docvalidate.join(path, "languages")))
         heading = _check_heading_map(reader, data["heading"], docvalidate.join(path, "heading")) \
             if "heading" in data else None
-        if heading is not None and languages and sorted(heading) != languages:
+        if heading is not None and languages and not parity_holds(heading, languages):
             reader.error("PARITY_HEADING", docvalidate.join(path, "heading"),
-                         "the heading must exist in exactly the languages the block declares")
+                         "the heading must use declared languages only, and en and fr when the block declares both")
+        supports = _identifier_list(reader, data["supports"], docvalidate.join(path, "supports"), True) \
+            if "supports" in data else []
+        if not supports and block_id is not None:
+            reader.error("UNSUPPORTED_HEADING", path,
+                         "the heading (title, employer, period, place) must name the facts that support it")
+        for fact_position, fact_id in enumerate(supports):
+            refs.append(Reference(docvalidate.index(docvalidate.join(path, "supports"), fact_position), fact_id,
+                                  "heading", path))
         protected = False
         if "protected" in data:
             flag = reader.boolean(data["protected"], docvalidate.join(path, "protected"))
@@ -386,7 +426,7 @@ def _check_blocks(reader, value, ids, refs, section_ids):
         if None in (block_id, section, order, heading) or not languages:
             continue
         record = {"id": block_id, "section": section, "order": order, "languages": languages, "heading": heading,
-                  "protected": protected, "bullets": bullets}
+                  "supports": supports, "protected": protected, "bullets": bullets}
         if extensions:
             record["extensions"] = extensions
         blocks.append((path, record))
@@ -423,9 +463,9 @@ def _check_skills(reader, value, ids, refs):
             _register(reader, ids["skills"], skill_id, docvalidate.join(entry_path, "id"))
             text = _language_map(reader, skill["text"], docvalidate.join(entry_path, "text"),
                                  lambda v, p: _inline(reader, v, p)) if "text" in skill else None
-            if text is not None and languages and sorted(text) != languages:
+            if text is not None and languages and not parity_holds(text, languages):
                 reader.error("PARITY_ITEM", docvalidate.join(entry_path, "text"),
-                             "a skill must be written in exactly the languages its category declares")
+                             "a skill must be written in declared languages only, and in en and fr when its category declares both")
             supports = _identifier_list(reader, skill["supports"], docvalidate.join(entry_path, "supports"), True) \
                 if "supports" in skill else []
             if not supports and skill_id is not None:
@@ -532,10 +572,10 @@ def _check_parity(reader, sections, blocks, categories):
     for _path, block in blocks:
         needed.setdefault(block["section"], set()).update(block["languages"])
     for position, section in enumerate(sections):
-        missing = needed.get(section["id"], set()) - set(section["title"])
+        missing = required_languages(needed.get(section["id"], set())) - set(section["title"])
         if missing:
             reader.error("PARITY_TITLE", docvalidate.join(docvalidate.index("sections", position), "title"),
-                         "the title must exist in every language the section's blocks declare")
+                         "the title must exist in the languages its blocks require (en and fr when they declare both)")
 
 
 def _check_baseline_links(reader, baselines, blocks, categories, profile):
@@ -593,8 +633,9 @@ def _verify_references(reader, refs, factbase, require_date):
         elif require_date and fact.confirmed_on is None:
             reader.error("FACT_DATE_REQUIRED", ref.path, "this workspace requires `confirmed_on` on a CONFIRMED fact")
             refused.add((ref.kind, ref.entity_path))
-    for kind, entity_path in sorted(refused, key=lambda item: item[1]):
-        reader.error("UNSUPPORTED_BULLET" if kind == "bullet" else "UNSUPPORTED_SKILL", entity_path,
+    unsupported = {"bullet": "UNSUPPORTED_BULLET", "skill": "UNSUPPORTED_SKILL", "heading": "UNSUPPORTED_HEADING"}
+    for kind, entity_path in sorted(refused, key=lambda item: (item[1], item[0])):
+        reader.error(unsupported[kind], entity_path,
                      "a supporting fact is missing or not CONFIRMED, so this cannot be published")
     return refused
 
@@ -670,6 +711,8 @@ def check_data(document, source_sha256=None, factbase=None, profile=None):
 
     references = []
     for block_path, block in blocks:
+        state = UNVERIFIED if factbase is None else (REFUSED if ("heading", block_path) in refused else VERIFIED)
+        references.append(("heading", block["id"], state))
         for b_position, bullet in enumerate(block["bullets"]):
             path = docvalidate.index(docvalidate.join(block_path, "bullets"), b_position)
             if bullet["never_publish"]:
