@@ -4,12 +4,12 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 
 ## Repository
 
-- Branch: `main`. Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 is committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
+- Branch: `main`. Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: `py -3.9 -m pytest` gives 652 passed and 1 skipped (a symlink test that only runs off Windows), 653 collected; synthetic
-  data only. Before M4: 376; after M4: 612. Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
+- Tests: `py -3.9 -m pytest` gives 670 passed and 1 skipped (a symlink test that only runs off Windows), 671 collected; synthetic
+  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671. Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
   Python 3.10 (see the M4-R1 report).
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -22,7 +22,7 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M1.1 | Finalise the data and provenance contracts | PASS |
 | M2 | Canonicalisation and FactBase-v1 | PASS (with M2-R1) |
 | M3 | Provenance and readiness hardening (`0.2.0`) | PASS (validated) |
-| M4 | Profile-v1 and legacy fact import | Rated PARTIAL; M4-R1 closure done, awaiting validation |
+| M4 | Profile-v1 and legacy fact import | M4-R1 PASS; final operational closure done, awaiting validation |
 | M5 | ResumeContent-v1 and reservoir | Planned, **not authorised** |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Planned, not authorised |
 | M7 | Rendering, optional PDF, metadata v3, package | Planned, not authorised |
@@ -57,20 +57,30 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
   the user's fact-by-fact verification.
 - Foreign file investigated read-only (below). Nothing moved, ignored or committed.
 
+## Last work (M4 final closure)
+
+- The foreign file `modularcv/legacy_import.py` was moved, unchanged, to `D:\Projets\ModularCV\_quarantine\legacy_import.py`
+  (outside the repository, so no local build can include it). SHA-256 checked before and after:
+  `5c73e936d25ce534dc13b8ef77005630f1643f96092140a3b690b190a2504106`. Nothing deleted, nothing committed.
+  **Restore:** move it back to `modularcv/legacy_import.py` (never overwrite a file there) and compare the SHA-256.
+- `facts import` now refuses, with the stable code `IMPORT_OUTPUT_IS_FACT_BASE` (exit 2, no path in the message), any `--out` or
+  `--report` that designates the configured fact base: existing or not, by an equivalent or absolute path, a different letter
+  case, a symbolic link (also a dangling one) or a linked folder. `--dry-run` still writes nothing; existing files are still
+  never overwritten (a dangling symbolic link now counts as existing, which closed a path where the import wrote through it);
+  a separate proposal file works as before. Classification and the `CONFIRMED` policy are untouched. Decision 8 is settled.
+
 ## Known defects and anomalies
 
 - Residual points of M3 stand: the human approval is a file, not a signature.
-- Untracked file `modularcv/legacy_import.py`, **not written by the M4 work**: 714 lines, 35,017 bytes, SHA-256
+- Foreign file (now isolated in `_quarantine`, see above; origin still unknown), **not written by the M4 work**: 714 lines, 35,017 bytes, SHA-256
   `5c73e936d25ce534dc13b8ef77005630f1643f96092140a3b690b190a2504106`, created 2026-11-02 15:03:50 and last written 15:04:01
   (-0500). It is a parallel implementation of the same importer (`LegacyFactMap-v1`), it imports `profile.fold`, which does not
   exist (`fold` lives in `canonical`), so importing it raises `ImportError`; nothing in the tracked code, the tests or the docs
   references it; it holds no network, `exec` or `eval` call. Setuptools lists the whole `modularcv` package, so a build made from
   this working tree would ship it; a build from a clean checkout would not. Origin: **not established**. One indication only:
   the transcript search finds a write-result message naming this path in another local session (working directory outside
-  ModularCV, last active 15:11 the same day); that is evidence, not proof. It is left exactly as found.
-  Proposed reversible isolation (needs the maintainer's authorisation): move it, unchanged, to a folder outside the repository
-  (for example `D:\Projets\ModularCV\_quarantine\`), keep the SHA-256 above to check it later, and move it back to restore.
-  Do not rely on `.gitignore` or `.git/info/exclude`: they would hide it from Git but not from a build.
+  ModularCV, last active 15:11 the same day); that is evidence, not proof. It was left unchanged and moved out of the
+  package folder; `.gitignore` would not have been enough, it hides a file from Git but not from a build.
 
 ## Open decisions (maintainer)
 
@@ -80,9 +90,7 @@ Details and acceptance criteria: `docs/design/MILESTONES.md`.
 4. Whether `###` sub-headings should be allowed later (M2 refuses them).
 5. Whether a signed or otherwise authenticated approval is wanted instead of the plain `cv-quality-review.json`.
 6. Whether the first release tags `0.2.0` or `0.3.0` now that `Profile-v1` and the import are in (M4 changed no version).
-7. What to do with the foreign `modularcv/legacy_import.py` (isolate, delete or keep), see above.
-8. Whether `facts import` should refuse `--out` pointing at the configured fact base, so that a proposal can never become the
-   source of truth without the review step (today only documented; an existing file is never overwritten).
+7. Final fate of the quarantined `legacy_import.py` (keep outside the repository, delete, or restore); isolated, not deleted.
 
 Settled: strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`; the
 import never confirms by itself (M4).
@@ -93,5 +101,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M4 / M4-R1 and the decisions 7 and 8 above. Do not start M5 or any later milestone
+Wait for the maintainer's validation of the M4 final closure and decision 7 above. Do not start M5 or any later milestone
 before.

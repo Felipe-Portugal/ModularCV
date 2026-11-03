@@ -911,3 +911,132 @@ def test_the_cli_refuses_a_confirmed_rule_the_mapping_did_not_authorise(workspac
     before = tree_hash(workspace)
     code, out, err = run(capsys, *import_args(workspace))
     assert code == 2 and "LEGACY_MAP_CONFIRMED_NOT_ALLOWED" in err and tree_hash(workspace) == before
+
+
+# --- M4 closure: a proposal can never be written over the active fact base ---------------------------------
+
+FACT_BASE_REFUSAL = "IMPORT_OUTPUT_IS_FACT_BASE"
+
+
+def refused_fact_base(capsys, workspace, argv):
+    before = tree_hash(workspace)
+    code, out, err = run(capsys, *argv)
+    assert code == 2 and out == "" and FACT_BASE_REFUSAL in err
+    assert tree_hash(workspace) == before
+    return err
+
+
+def make_link(link, target, directory):
+    try:
+        os.symlink(str(target), str(link), target_is_directory=directory)
+    except (OSError, NotImplementedError, AttributeError):
+        pytest.skip("symlinks cannot be created here")
+
+
+@pytest.mark.parametrize("name", ["facts.md", "./facts.md", "sub/../facts.md"])
+def test_out_naming_the_fact_base_is_refused_even_by_an_equivalent_path(workspace, capsys, name):
+    (workspace / "sub").mkdir()
+    refused_fact_base(capsys, workspace, import_args(workspace, out=name))
+
+
+def test_out_naming_the_fact_base_by_an_absolute_path_is_refused(workspace, capsys):
+    refused_fact_base(capsys, workspace, import_args(workspace, out=str(workspace / "facts.md")))
+
+
+def test_the_refusal_applies_when_the_fact_base_does_not_exist_yet(workspace, capsys):
+    (workspace / "facts.md").unlink()
+    refused_fact_base(capsys, workspace, import_args(workspace, out="facts.md"))
+    assert not (workspace / "facts.md").exists()
+
+
+def test_the_report_cannot_be_written_over_the_fact_base_either(workspace, capsys):
+    refused_fact_base(capsys, workspace, import_args(workspace, report="facts.md"))
+    (workspace / "facts.md").unlink()
+    refused_fact_base(capsys, workspace, import_args(workspace, report="facts.md"))
+
+
+def test_the_refusal_follows_a_configured_fact_base_name_and_folder(workspace, capsys):
+    (workspace / "data").mkdir()
+    (workspace / "modularcv.json").write_text(json.dumps({"facts": "data/base.md"}), encoding="utf-8")
+    refused_fact_base(capsys, workspace, import_args(workspace, out="data/base.md"))
+    refused_fact_base(capsys, workspace, import_args(workspace, out="data/../data/base.md"))
+    code, _, _ = run(capsys, *import_args(workspace, out="facts.md", report="r.json"))  # the old default name is now free
+    assert code == 2  # it exists (the example fact base), so the overwrite rule answers instead
+    assert FACT_BASE_REFUSAL not in capsys.readouterr().err
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="a case-insensitive file system is needed")
+def test_a_different_letter_case_does_not_get_around_the_refusal(workspace, capsys):
+    refused_fact_base(capsys, workspace, import_args(workspace, out="FACTS.MD"))
+    (workspace / "facts.md").unlink()
+    refused_fact_base(capsys, workspace, import_args(workspace, out="Facts.Md"))
+
+
+def test_a_symlink_to_the_fact_base_cannot_be_used_as_the_output(workspace, capsys):
+    make_link(workspace / "alias.md", workspace / "facts.md", False)
+    refused_fact_base(capsys, workspace, import_args(workspace, out="alias.md"))
+
+
+def test_a_dangling_symlink_to_a_missing_fact_base_cannot_be_used_as_the_output(workspace, capsys):
+    (workspace / "facts.md").unlink()
+    make_link(workspace / "alias.md", workspace / "facts.md", False)
+    refused_fact_base(capsys, workspace, import_args(workspace, out="alias.md"))
+    assert not (workspace / "facts.md").exists()
+
+
+def test_a_symlinked_folder_leading_to_the_fact_base_is_refused(workspace, capsys):
+    make_link(workspace / "here", workspace, True)
+    refused_fact_base(capsys, workspace, import_args(workspace, out="here/facts.md"))
+
+
+def test_a_fact_base_that_is_itself_a_symlink_is_protected_by_its_target(workspace, capsys):
+    (workspace / "real").mkdir()
+    shutil.move(str(workspace / "facts.md"), str(workspace / "real" / "facts.md"))
+    make_link(workspace / "facts.md", workspace / "real" / "facts.md", False)
+    refused_fact_base(capsys, workspace, import_args(workspace, out="facts.md"))
+    refused_fact_base(capsys, workspace, import_args(workspace, out="real/facts.md"))
+
+
+def test_the_refusal_also_applies_to_a_dry_run_and_writes_nothing(workspace, capsys):
+    refused_fact_base(capsys, workspace, import_args(workspace, "--dry-run", out="facts.md", report=None))
+
+
+def test_the_refusal_message_is_stable_and_does_not_reveal_paths(workspace, capsys):
+    err = refused_fact_base(capsys, workspace, import_args(workspace, out=str(workspace / "facts.md")))
+    assert json.loads(err.strip().splitlines()[-1])["status"] == FACT_BASE_REFUSAL
+    assert str(workspace) not in err and workspace.name not in err and "facts.md" not in err
+    other = refused_fact_base(capsys, workspace, import_args(workspace, out="./sub/../facts.md"))
+    assert other == err  # the same fixed text whatever the spelling
+
+
+def test_a_separate_proposal_file_is_still_written_and_the_fact_base_is_untouched(workspace, capsys):
+    fact_base = (workspace / "facts.md").read_bytes()
+    code, _, err = run(capsys, *import_args(workspace, out="proposals/new-facts.md"))
+    assert code == 2 and "IMPORT_WRITE_FAILED" in err  # the folder must exist: the import creates no directories
+    (workspace / "proposals").mkdir()
+    code, _, _ = run(capsys, *import_args(workspace, out="proposals/new-facts.md", report="proposals/report.json"))
+    assert code == 0 and (workspace / "proposals" / "new-facts.md").is_file()
+    assert (workspace / "facts.md").read_bytes() == fact_base
+    assert facts.check_file(workspace / "proposals" / "new-facts.md").errors == ()
+
+
+def test_overwriting_another_existing_file_is_still_refused(workspace, capsys):
+    (workspace / "proposed.md").write_text("mine", encoding="utf-8")
+    before = tree_hash(workspace)
+    code, _, err = run(capsys, *import_args(workspace))
+    assert code == 2 and "IMPORT_OUTPUT_EXISTS" in err and FACT_BASE_REFUSAL not in err
+    assert tree_hash(workspace) == before
+
+
+def test_a_dry_run_towards_a_separate_file_still_writes_nothing(workspace, capsys):
+    before = tree_hash(workspace)
+    code, out, _ = run(capsys, *import_args(workspace, "--dry-run", out="proposed.md", report=None))
+    assert code == 0 and json.loads(out)["counts"] and tree_hash(workspace) == before
+
+
+def test_a_dangling_symlink_elsewhere_is_not_written_through(workspace, capsys):
+    make_link(workspace / "alias.md", workspace / "nowhere.md", False)
+    before = tree_hash(workspace)
+    code, _, err = run(capsys, *import_args(workspace, out="alias.md"))
+    assert code == 2 and "IMPORT_OUTPUT_EXISTS" in err and not (workspace / "nowhere.md").exists()
+    assert tree_hash(workspace) == before

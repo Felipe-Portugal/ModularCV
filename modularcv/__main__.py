@@ -176,6 +176,33 @@ def _inside(root, value):
     return resolved, True
 
 
+def _same_target(path, other):
+    """Whether two resolved paths name the same file, existing or not (case, short names, links in the parents)."""
+    if os.path.normcase(str(path)) == os.path.normcase(str(other)):
+        return True
+    try:
+        if path.exists() and other.exists() and os.path.samefile(str(path), str(other)):
+            return True
+        return (os.path.normcase(path.name) == os.path.normcase(other.name)
+                and os.path.samefile(str(path.parent), str(other.parent)))
+    except OSError:
+        return False
+
+
+def _reaches_target(path, other):
+    """`_same_target`, also following a symbolic link at the end of `path` (resolve() leaves a dangling one alone on Windows)."""
+    for _ in range(40):
+        if _same_target(path, other):
+            return True
+        if not os.path.islink(str(path)):
+            return False
+        try:
+            path = Path(os.path.join(os.path.dirname(str(path)), os.readlink(str(path)))).resolve()
+        except (OSError, RuntimeError):
+            return False
+    return False
+
+
 def _import_refusal(code, detail):
     print(json.dumps({"status": code, "detail": detail}), file=sys.stderr)
     return 2
@@ -184,7 +211,7 @@ def _import_refusal(code, detail):
 def _import_main(args) -> int:
     try:
         root = config.workspace_root(args.root)
-        config.load(args.root)
+        fact_base = (root / config.load(args.root)["facts"]).resolve()
     except config.ConfigError as error:
         return _import_refusal("CONFIG_ERROR", str(error))
     if not args.dry_run and (args.out is None or args.report is None):
@@ -201,7 +228,11 @@ def _import_main(args) -> int:
         if not inside or ".git" in resolved.relative_to(root.resolve()).parts:
             return _import_refusal("IMPORT_OUTPUT_OUTSIDE_WORKSPACE",
                                    "--%s must be inside the workspace (and not in .git)" % which)
-        if resolved.exists():
+        if _reaches_target(resolved, fact_base):
+            return _import_refusal("IMPORT_OUTPUT_IS_FACT_BASE",
+                                   "--%s designates the workspace's active fact base; write the proposal to a separate "
+                                   "file and review it before it replaces the fact base" % which)
+        if os.path.lexists(str(resolved)):  # a dangling symbolic link counts: writing would go through it
             return _import_refusal("IMPORT_OUTPUT_EXISTS",
                                    "--%s already exists; the import never overwrites a file" % which)
         targets[which] = resolved

@@ -12,6 +12,8 @@ What the import never does:
   authorisation, not a check);
 - it never invents a date;
 - it never modifies your document, and never overwrites an existing file;
+- it never writes over your active fact base: `--out` (or `--report`) naming it, however the path is spelled or linked, is
+  refused with `IMPORT_OUTPUT_IS_FACT_BASE`, whether or not the file exists; write the proposal to a separate file;
 - it never writes outside your workspace, and uses no network or model.
 
 ## Workflow

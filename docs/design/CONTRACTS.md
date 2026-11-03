@@ -178,7 +178,10 @@ contract left open, made in M4:
 - **Partial results.** Exit `0` only when every line is classified and at least one fact is accepted. Otherwise exit `1`, the
   report is written, and the facts file is written only with `--allow-partial` (the exit code stays `1`).
 - **Boundaries.** The mapping, `--out` and `--report` must be inside the workspace; the legacy document may be anywhere and is only
-  read. An output that already exists is never overwritten. `--dry-run` classifies and prints the report and writes nothing.
+  read. An output that already exists (a dangling symbolic link included) is never overwritten. Neither `--out` nor `--report` may
+  designate the workspace's configured fact base, existing or not, by any equivalent path, resolved path or symbolic link: the
+  refusal `IMPORT_OUTPUT_IS_FACT_BASE` repeats no path, and a proposal reaches the fact base only when the user copies it there
+  after review. `--dry-run` classifies and prints the report and writes nothing.
 - **Privacy.** The report holds line numbers, decisions, rule indexes and a hash per line, never the text of a line.
 
 Error codes of the mapping (exit `2`): `LEGACY_MAP_FILE_UNREADABLE`, `LEGACY_MAP_NOT_UTF8`, `LEGACY_MAP_NOT_JSON`,
@@ -191,7 +194,7 @@ Error codes of the mapping (exit `2`): `LEGACY_MAP_FILE_UNREADABLE`, `LEGACY_MAP
 `LEGACY_TEXT_UNSAFE`, `LEGACY_TECHNOLOGY_UNSAFE`, `LEGACY_CONTROL_CHARACTER`, `LEGACY_EMPTY_TEXT`, `LEGACY_LINE_TOO_LONG`,
 `LEGACY_ID_COLLISION`. Refusals of the command (exit `2`): `CONFIG_ERROR`, `MAPPING_INVALID`, `LEGACY_FILE_UNREADABLE`,
 `LEGACY_NOT_UTF8`, `LEGACY_OUTPUT_INVALID`, `IMPORT_OUTPUT_REQUIRED`, `IMPORT_MAPPING_OUTSIDE_WORKSPACE`,
-`IMPORT_OUTPUT_OUTSIDE_WORKSPACE`, `IMPORT_OUTPUT_EXISTS`, `IMPORT_PATH_CONFLICT`, `IMPORT_WRITE_FAILED`.
+`IMPORT_OUTPUT_OUTSIDE_WORKSPACE`, `IMPORT_OUTPUT_IS_FACT_BASE`, `IMPORT_OUTPUT_EXISTS`, `IMPORT_PATH_CONFLICT`, `IMPORT_WRITE_FAILED`.
 
 ## 2. Profile-v1
 
