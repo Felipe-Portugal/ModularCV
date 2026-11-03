@@ -494,6 +494,21 @@ and the core never imports one.
   neighbourhood, not a level; the page target is recorded, not enforced.
 - Deferred to M7: any rendering, `tailored_cv_id`, the review gate.
 
+### 5.2 Assembly and rendering (M7-A)
+
+`modularcv/assemble.py`, `modularcv/latex.py`, `modularcv/pdf.py`; user guide: [RENDER.md](../RENDER.md).
+
+- **Input contract.** The renderer consumes a verified plan, never a trusted one: shape, `plan_sha256`, source fingerprints,
+  reproduction by the engine from the current sources, and an independent re-validation of everything selected (fact status for
+  the item and its heading, language, `never_publish`, profile policy). Errors are `ASSEMBLY_*`, `RENDER_*` and `PDF_*`, with fixed
+  messages and paths, never a value of a document.
+- **`AssembledResume-v1`** is the LaTeX-independent CV: public header, sections and blocks in content order, verbatim bullets with
+  their `supports`, skills, `pending_directives` (unapplied `soften`), `layout`, `assembly_sha256`; `ready_to_send` is always `false`.
+- **LaTeX.** Template `generic-v1`; one escaping function; unsupported characters are refused, never replaced; the `.tex` is
+  byte-deterministic and fingerprinted (`tex_sha256`). PDFs are artefacts, not identities.
+- **`pdflatex`** is optional and never installed; no shell escape, fixed command line, time limit, scrubbed environment.
+- Deferred to M7-B: package, `tailored_cv_id`, metadata v3, readiness, human review gate.
+
 ## 6. Compatibility with the published metadata schema
 
 `schemas/application_metadata.schema.json` (published with `0.1.0`) accepts `schema_version` in `["1","2"]`, requires

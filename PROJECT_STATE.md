@@ -8,8 +8,8 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: `py -3.9 -m pytest` gives 1111 passed and 1 skipped (a symlink test that only runs off Windows), 1112 collected; synthetic
-  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
+- Tests: `py -3.9 -m pytest` gives 1179 passed and 1 skipped (a symlink test that only runs off Windows), 1180 collected; synthetic
+  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
   Python 3.10 (see the M4-R1 report).
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -25,10 +25,28 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M4 | Profile-v1 and legacy fact import | PASS (M4-R1 and final closure validated) |
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
-| M7 | Rendering, optional PDF, metadata v3, package | Planned, not authorised |
+| M7 | Rendering, optional PDF, metadata v3, package | M7-A done, awaiting validation; M7-B not authorised |
 | M8 | Public release preparation | Planned, not authorised |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
+
+## Last work (M7-A)
+
+- **Assembly** (`modularcv/assemble.py`): five verification layers on the plan (shape, fingerprint, sources, reproduction by the
+  engine, independent re-validation), then `AssembledResume-v1` (public header only, headline not printed, verbatim text, `soften`
+  left pending, `ready_to_send` false).
+- **LaTeX** (`modularcv/latex.py`): template `generic-v1`, one escaping table, ligature guards, closed safe character set (nine
+  Latin Extended-A letters excluded after a real-compiler probe), only bold/italic markup, deterministic bytes and `tex_sha256`.
+- **PDF** (`modularcv/pdf.py`): optional `pdflatex`, fixed command line, no shell escape, temporary directory, timeout, scrubbed
+  environment, MiKTeX installer disabled, result verified, value-free diagnostics (log only with `--log`).
+- **CLI**: `assemble`, `render` (`--out --pdf --log --paper --timeout`), `latex check`; exit 4 (`pdflatex` absent) and 5
+  (compilation failed) leave the `.tex` written. Docs: `docs/RENDER.md`, `CONTRACTS.md` 5.2.
+- **Tests**: 68 new in `tests/test_render.py`, including real compilation (MiKTeX 26.5 on Windows: 1-page PDF in en and fr),
+  a real failing document, a hostile-document check and random worlds. Mutations (throw-away harness) of every verification layer,
+  the escaping table, the character set, ligature guard, assembly fingerprint, public-view filter and the compiler wrapper
+  (`-no-shell-escape`, timeout, environment, output checks) all fail the tests.
+- **Not verified**: ATS behaviour; TeX Live / Linux compilation; byte-reproducibility of PDFs (not expected).
+- **Open decision 8**: print the public headline? It is left out because no fact backs it.
 
 ## Last work (M6)
 
@@ -164,4 +182,4 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M6 and decision 7 above. Do not start M7 (rendering, metadata v3, package) before.
+Wait for the maintainer's validation of M7-A and decision 7 above. Do not start M7-B (package, metadata v3, review gate).

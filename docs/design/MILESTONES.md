@@ -11,7 +11,7 @@ passes the privacy scan, and ends without a push, tag or release unless explicit
 | M4 | Profile-v1 and legacy fact import, implemented, awaiting validation | `profile.py`, `legacy.py`, `docvalidate.py`, `profile check\|fingerprint`, `facts import` with audit report, config key `profile` | import of a synthetic legacy file is line-by-line auditable; unmapped lines never become facts |
 | M5 | ResumeContent-v1 and reservoir, implemented, awaiting validation | content parser, per-entity FR/EN parity, explicit support, baselines, reservoir | parity only where both versions exist; unsupported bullet refused |
 | M6 | JobOffer-v1, taxonomy, matrix and plan, implemented, awaiting validation | offer parser, `generic-v1` taxonomy, requirement matrix, greedy ranking, plan fingerprints | same inputs give same plan fingerprint; unconfirmed claim never selected |
-| M7 | Rendering, optional PDF, metadata v3, package | templates, escaped deterministic `.tex`, `pdflatex` wrapper, schema `3`, package builder, human review gate | end-to-end synthetic run to a package; readiness gives the expected state |
+| M7 | Rendering, optional PDF, metadata v3, package (M7-A assembly and rendering implemented, awaiting validation; M7-B not started) | templates, escaped deterministic `.tex`, `pdflatex` wrapper, schema `3`, package builder, human review gate | end-to-end synthetic run to a package; readiness gives the expected state |
 | M8 | Public release preparation | CLI polish, docs FR/EN, full privacy audit with history, decision on letters, version and tag proposal | independent clone passes tests and scan; maintainer decides publication |
 
 ## M2 in detail (the first increment, deliberately small)

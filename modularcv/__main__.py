@@ -19,6 +19,11 @@
     taxonomy check|fingerprint [SPEC]   validate a Taxonomy-v1 (default builtin:generic-v1)
     matrix --offer FILE [--family F] [--language L] [--out F]   the RequirementMatrix-v1 of an offer (exit 0, 1 refused, 2 unreadable)
     plan --offer FILE [--family F] [--language L] [--out F]     the TailoringPlan-v1 (a plan, never a ready CV)
+    assemble --plan P --offer FILE [--outline] [--out F.json]   verify the plan, then the structured CV it describes
+    render --plan P --offer FILE [--out F.tex [--pdf F.pdf [--log F.log]]] [--paper P] [--timeout S]
+                          generic LaTeX of the verified plan; exit 0 done, 1 refused, 2 unreadable or output refused,
+                          4 .tex written but pdflatex absent, 5 .tex written but the compilation failed
+    latex check           is the optional pdflatex available (exit 0 found, 1 absent)
     privacy ...           scan a tree for personal data before publishing
 """
 from argparse import ArgumentParser
@@ -27,8 +32,8 @@ import os
 import sys
 from pathlib import Path
 
-from . import (config, content, docvalidate, facts, joboffer, legacy, plan, privacy, profile, provenance, readiness,
-               snapshot, taxonomy)
+from . import (assemble, config, content, docvalidate, facts, joboffer, latex, legacy, pdf, plan, privacy, profile, provenance,
+               readiness, snapshot, taxonomy)
 
 
 def _facts_report(name, result):
@@ -366,6 +371,155 @@ def _engine_main(args) -> int:
     return 0
 
 
+PDF_UNAVAILABLE_EXIT = 4
+PDF_FAILED_EXIT = 5
+PLAN_FILE_LIMIT = 8 * 1024 * 1024
+
+
+def _read_plan_file(path):
+    """The plan object, or an exit code (1 not a plan, 2 unreadable)."""
+    try:
+        with open(str(path), "rb") as handle:
+            data = handle.read(PLAN_FILE_LIMIT + 1)
+    except OSError:
+        print("plan: ASSEMBLY_PLAN_FILE_UNREADABLE (document): the plan file cannot be read", file=sys.stderr)
+        return 2
+    if len(data) > PLAN_FILE_LIMIT:
+        print("plan: ASSEMBLY_PLAN_TOO_LARGE (document): the plan file is too large", file=sys.stderr)
+        return 1
+    try:
+        return assemble.load_plan(data)
+    except assemble.AssemblyError as error:
+        return _stage_failed("plan", error.errors)
+
+
+def _output_targets(args, loaded, protected):
+    """Validate every requested output path before anything is written: `{name: Path}`, or an exit code."""
+    wanted = [("tex", args.out, ".tex"), ("pdf", args.pdf, ".pdf"), ("log", args.log, ".log")]
+    targets = {}
+    for name, value, suffix in wanted:
+        if value is None:
+            continue
+        if not value.endswith(suffix):
+            return _import_refusal("OUTPUT_BAD_EXTENSION", "--%s must end with %s" % ("out" if name == "tex" else name, suffix))
+        target = _write_new_output(loaded["root"], value, protected)
+        if isinstance(target, int):
+            return target
+        targets[name] = target
+    paths = list(targets.values())
+    if any(_same_target(paths[i], paths[j]) for i in range(len(paths)) for j in range(i + 1, len(paths))):
+        return _import_refusal("OUTPUT_DUPLICATE", "the output files must be different files")
+    return targets
+
+
+def _write_bytes(path, data):
+    try:
+        with open(str(path), "xb") as handle:
+            handle.write(data)
+    except OSError as error:
+        return _import_refusal("OUTPUT_WRITE_FAILED", "cannot write the output: %s" % error.strerror)
+    return None
+
+
+def _render_main(args) -> int:
+    rendering = args.command == "render"
+    if rendering and (args.pdf or args.log) and not args.out:
+        return _import_refusal("OUTPUT_REQUIRED", "--pdf and --log need --out: the .tex file is the artefact a PDF comes from")
+    if rendering and args.log and not args.pdf:
+        return _import_refusal("OUTPUT_REQUIRED", "--log is the compiler log: it needs --pdf")
+    loaded = _load_engine_inputs(args)
+    if isinstance(loaded, int):
+        return loaded
+    plan_document = _read_plan_file(args.plan)
+    if isinstance(plan_document, int):
+        return plan_document
+    try:
+        assembly = assemble.assemble(plan_document, loaded["offer"], loaded["taxonomy"], loaded["profile"],
+                                     loaded["factbase"], loaded["content"])
+    except assemble.AssemblyError as error:
+        _print_problems("assemble", error.errors)
+        return 1
+    protected = loaded["inputs"] + [Path(args.plan)]
+    if not rendering:
+        document = assemble.outline(assembly) if args.outline else assembly
+        rendered = json.dumps(document, indent=2, ensure_ascii=False, sort_keys=True)
+        if args.out is None:
+            print(rendered)
+            return 0
+        if not args.out.endswith(".json"):
+            return _import_refusal("OUTPUT_BAD_EXTENSION", "--out must end with .json")
+        target = _write_new_output(loaded["root"], args.out, protected)
+        if isinstance(target, int):
+            return target
+        failed = _write_bytes(target, (rendered + "\n").encode("utf-8"))
+        if failed is not None:
+            return failed
+        print(json.dumps({"status": "WRITTEN", "out": args.out, "assembly_sha256": assembly["assembly_sha256"]}, indent=2))
+        return 0
+    try:
+        text = latex.render(assembly, args.paper)
+    except latex.RenderError as error:
+        _print_problems("render", error.errors)
+        return 1
+    data = latex.tex_bytes(text)
+    if args.out is None:
+        sys.stdout.write(text)
+        return 0
+    targets = _output_targets(args, loaded, protected)
+    if isinstance(targets, int):
+        return targets
+    failed = _write_bytes(targets["tex"], data)
+    if failed is not None:
+        return failed
+    report = {
+        "status": "WRITTEN", "ready_to_send": False, "review": "NOT_REVIEWED", "template": latex.TEMPLATE_ID, "paper": args.paper,
+        "plan_sha256": assembly["source"]["plan_sha256"], "assembly_sha256": assembly["assembly_sha256"],
+        "tex": {"out": args.out, "bytes": len(data), "sha256": latex.tex_sha256(data)},
+        "pdf": {"status": "NOT_REQUESTED"},
+        "layout": {"page_target": assembly["layout"]["page_target"], "pages": None,
+                   "page_verdict": pdf.page_verdict(assembly["layout"]["page_target"], None)},
+        "pending_directives": len(assembly["pending_directives"]), "warnings": [w["code"] for w in assembly["warnings"]],
+    }
+    exit_code = 0
+    if args.pdf:
+        report["pdf"] = {"status": "PENDING", "out": args.pdf}
+        log_text = None
+        try:
+            result = pdf.compile_tex(data, args.timeout)
+            log_text = result.log
+        except pdf.PdfError as error:
+            unavailable = error.code == "PDF_UNAVAILABLE"
+            report["pdf"].update({"status": "UNAVAILABLE" if unavailable else "FAILED", "code": error.code,
+                                  "details": error.details})
+            report["pdf_compilation_validated"] = False
+            _print_problems("pdf", error.errors)
+            exit_code = PDF_UNAVAILABLE_EXIT if unavailable else PDF_FAILED_EXIT
+            result = None
+            log_text = error.log
+        if result is not None:
+            failed = _write_bytes(targets["pdf"], result.pdf)
+            if failed is not None:
+                return failed
+            report["pdf"].update({"status": "COMPILED", "bytes": len(result.pdf), "pages": result.pages,
+                                  "sha256": result.pdf_sha256, "byte_reproducible": False})
+            report["layout"]["pages"] = result.pages
+            report["layout"]["page_verdict"] = pdf.page_verdict(assembly["layout"]["page_target"], result.pages)
+            report["pdf_compilation_validated"] = True
+        if "log" in targets and log_text:
+            failed = _write_bytes(targets["log"], log_text.encode("utf-8"))
+            if failed is not None:
+                return failed
+            report["pdf"]["log"] = {"out": args.log, "may_contain_resume_text": True}
+    print(json.dumps(report, indent=2, sort_keys=True))
+    return exit_code
+
+
+def _latex_main(args) -> int:
+    environment = pdf.environment()
+    print(json.dumps(dict(environment, optional_dependency=True, note="pdflatex is never installed by modularcv"), indent=2))
+    return 0 if environment["pdflatex"] == "FOUND" else 1
+
+
 def _offer_main(args) -> int:
     result = joboffer.check_file(args.file)
     if result.errors:
@@ -673,6 +827,23 @@ def main(argv=None) -> int:
         e.add_argument("--language", default=None, choices=("fr", "en"), help="override the language of the offer")
         e.add_argument("--out", default=None, help="write the result to a new file inside the workspace (never overwritten)")
         e.add_argument("--root", default=None)
+    for name, text in (("assemble", "assemble the CV a verified tailoring plan describes (structured, no LaTeX)"),
+                       ("render", "render a verified plan as a generic LaTeX file, optionally compiled to PDF")):
+        e = sub.add_parser(name, help=text)
+        e.add_argument("--plan", required=True, help="the TailoringPlan-v1 file written by `plan --out`")
+        e.add_argument("--offer", required=True, help="the JobOffer-v1 file the plan was built for")
+        e.add_argument("--out", default=None, help="write to a new file inside the workspace (never overwritten)")
+        e.add_argument("--root", default=None)
+        if name == "assemble":
+            e.add_argument("--outline", action="store_true", help="identifiers and counts only, no text")
+        else:
+            e.add_argument("--pdf", default=None, help="also compile the .tex to this new .pdf (needs pdflatex)")
+            e.add_argument("--log", default=None, help="keep the compiler log in this new .log file (it can quote the CV)")
+            e.add_argument("--paper", choices=latex.PAPERS, default=latex.DEFAULT_PAPER)
+            e.add_argument("--timeout", type=int, default=pdf.DEFAULT_TIMEOUT, help="compiler time limit in seconds")
+    lt = sub.add_parser("latex", help="report whether the optional pdflatex dependency is available")
+    ltsub = lt.add_subparsers(dest="latex_command", required=True)
+    ltsub.add_parser("check", help="exit 0 when pdflatex is found, 1 when absent")
     sub.add_parser("privacy", help="scan for personal data (see: modularcv privacy --help)")
     args = parser.parse_args(argv)
     if args.command == "provenance":
@@ -711,6 +882,10 @@ def main(argv=None) -> int:
         return _taxonomy_main(args)
     if args.command in ("matrix", "plan"):
         return _engine_main(args)
+    if args.command in ("assemble", "render"):
+        return _render_main(args)
+    if args.command == "latex":
+        return _latex_main(args)
     return 0
 
 

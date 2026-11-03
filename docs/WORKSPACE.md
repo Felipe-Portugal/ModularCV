@@ -79,6 +79,11 @@ python -m modularcv plan --offer offers/backend-intern.json --out plans/backend-
 Both commands write nothing unless `--out` is given. The plan says what would be shown and why; it is not a CV and not reviewed.
 Guide: [PLAN.md](PLAN.md).
 
+### Assembly and LaTeX
+
+`render --plan plans/p.json --offer offers/job.json --out out/cv.tex [--pdf out/cv.pdf]` verifies the plan against your current sources, then writes a
+new `.tex` (and a PDF if `pdflatex` is installed). Outputs are artefacts: not reviewed, never ready to send. Guide: [RENDER.md](RENDER.md).
+
 ### Importing an old document
 
 `python -m modularcv facts import --mapping import-map.json --in old-notes.md --dry-run` classifies a historical Markdown
