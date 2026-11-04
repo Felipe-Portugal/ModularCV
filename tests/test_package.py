@@ -260,6 +260,18 @@ def test_a_symbolic_link_cannot_lead_the_package_outside_the_workspace(ws, tmp_p
     assert raised.value.code in ("PACKAGE_PATH_UNSAFE", "PACKAGE_EXISTS") and list(outside.iterdir()) == []
 
 
+@pytest.mark.parametrize("folder", ["applications", "packages"])
+def test_a_dangling_symbolic_link_is_not_written_through_by_a_package(ws, folder):
+    """M8-A: a package folder that is, or passes through, a link (even a dangling one inside the workspace) is refused."""
+    try:
+        os.symlink(str(ws / folder / "nowhere"), str(ws / folder / "fresh"))
+    except (OSError, NotImplementedError):
+        pytest.skip("symbolic links cannot be created here")
+    with pytest.raises(package.PackageError) as raised:
+        package.create(ws, **create_args(ws))
+    assert raised.value.code == "PACKAGE_PATH_UNSAFE" and not (ws / folder / "nowhere").exists()
+
+
 # --- readiness: the approved document ------------------------------------------------------------------------------------
 
 def test_a_fictional_approval_of_the_exact_pdf_makes_the_package_ready(ws):
@@ -610,6 +622,70 @@ def test_the_command_line_refuses_what_the_library_refuses(template, tmp_path, c
     assert code == 2 and "PACKAGE_UNREADABLE" in err
     code, _out, err = run(capsys, "package", "status", "--name", "Bad Name", "--root", str(root))
     assert code == 2 and "PACKAGE_NAME_INVALID" in err
+
+
+def compile_args(root, name="job2", *extra):
+    return ["package", "create", "--name", name, "--plan", str(root / "plans/p.json"), "--offer", offer_of(root),
+            "--tex", str(root / "out/cv.tex"), "--root", str(root), *extra]
+
+
+@pytest.mark.skipif(not REAL_PDFLATEX, reason="pdflatex is not installed")
+def test_create_with_compile_packages_the_compiler_output_of_the_verified_tex(template, tmp_path, capsys):
+    """M8-A: no file travels between the compilation and the package; the PDF is compiled from the verified bytes."""
+    root = cli_ws(template, tmp_path)
+    code, out, err = run(capsys, *compile_args(root, "job2", "--compile"))
+    assert code == 0, err
+    summary = json.loads(out)
+    assert summary["state"] == readiness.NEEDS_REVIEW and summary["reasons"] == ["HUMAN_REVIEW_REQUIRED"]
+    pdf_bytes = (root / "applications" / "job2" / "cv" / "resume.pdf").read_bytes()
+    assert pdf.looks_like_pdf(pdf_bytes) and pdf.count_pages(pdf_bytes) == 1
+    assert canonical.sha256_bytes(pdf_bytes) == summary["pdf_sha256"]
+    assert read_json(root / "applications" / "job2" / "cv" / "metadata.json")["pdf_pages"] == 1
+
+
+def test_create_with_compile_needs_a_compiler_and_leaves_nothing_behind(template, tmp_path, capsys, monkeypatch):
+    root = cli_ws(template, tmp_path)
+    monkeypatch.setattr(pdf, "find_pdflatex", lambda: None)
+    before = tree_hash(root)
+    code, _out, err = run(capsys, *compile_args(root, "job2", "--compile"))
+    assert code == cli.PDF_UNAVAILABLE_EXIT and "PDF_UNAVAILABLE" in err and tree_hash(root) == before
+
+
+def test_create_with_compile_reports_a_failed_compilation_and_leaves_nothing_behind(template, tmp_path, capsys, monkeypatch):
+    root = cli_ws(template, tmp_path)
+
+    def failing(tex, timeout=pdf.DEFAULT_TIMEOUT, executable=None):
+        raise pdf.PdfError([pdf._problem("COMPILE_FAILED", "the compiler reported an error")])
+    monkeypatch.setattr(pdf, "compile_tex", failing)
+    before = tree_hash(root)
+    code, _out, err = run(capsys, *compile_args(root, "job2", "--compile"))
+    assert code == cli.PDF_FAILED_EXIT and "PDF_COMPILE_FAILED" in err and tree_hash(root) == before
+
+
+def test_create_with_compile_never_compiles_a_tex_that_is_not_the_rendering(template, tmp_path, capsys, monkeypatch):
+    """The compiler is only run on bytes already verified against the assembly of the plan."""
+    root = cli_ws(template, tmp_path)
+    (root / "out" / "bad.tex").write_text("\\documentclass{article}\n\\begin{document}x\\end{document}\n", encoding="utf-8")
+
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("the compiler must not run on an unverified .tex")
+    monkeypatch.setattr(pdf, "compile_tex", forbidden)
+    args = compile_args(root, "job2", "--compile")
+    args[args.index("--tex") + 1] = str(root / "out" / "bad.tex")
+    before = tree_hash(root)
+    code, _out, err = run(capsys, *args)
+    assert code == 1 and "TEX_NOT_FROM_ASSEMBLY" in err and tree_hash(root) == before
+
+
+def test_create_refuses_both_a_pdf_and_a_compilation(template, tmp_path, capsys):
+    root = cli_ws(template, tmp_path)
+    before = tree_hash(root)
+    code, _out, err = run(capsys, *compile_args(root, "job2", "--compile", "--pdf", str(root / "out/cv.pdf")))
+    assert code == 2 and "PDF_SOURCE_AMBIGUOUS" in err and tree_hash(root) == before
+    with pytest.raises(package.PackageError) as raised:
+        package.create(root, "job2", offer_of(root), (root / "plans/p.json").read_bytes(), (root / "out/cv.tex").read_bytes(),
+                       FAKE_PDF, compile_timeout=5)
+    assert raised.value.code == "PDF_SOURCE_AMBIGUOUS" and tree_hash(root) == before
 
 
 def test_status_exit_codes_follow_the_computed_state(template, tmp_path, capsys):

@@ -55,11 +55,26 @@ def _json_bytes(document):
     return (json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8")
 
 
+def _traverses_a_link(root, relative):
+    """True when a component of the workspace-relative path is a symbolic link, dangling or not.
+
+    `Path.resolve()` follows a dangling link on POSIX, so the resolved path alone would not show that a new package would be
+    written through it."""
+    current = os.path.abspath(str(root))
+    for part in relative.split("/"):
+        current = os.path.join(current, part)
+        if os.path.islink(current):
+            return True
+    return False
+
+
 def _location(root, settings, name):
     if not isinstance(name, str) or not facts.valid_id(name):
         raise PackageError("PACKAGE_NAME_INVALID", "the package name must be lowercase letters, digits, `.` and `-`")
     application = "%s/%s/cv" % (settings["applications_dir"].rstrip("/"), name)
     package = "%s/%s" % (settings["packages_dir"].rstrip("/"), name)
+    if _traverses_a_link(root, application) or _traverses_a_link(root, package):
+        raise PackageError("PACKAGE_PATH_UNSAFE", "a package folder may not be, or pass through, a symbolic link")
     targets = {"application": paths.resolve_inside(root, application), "package": paths.resolve_inside(root, package)}
     if None in targets.values():
         raise PackageError("PACKAGE_PATH_UNSAFE", "the package folders would leave the workspace")
@@ -85,7 +100,7 @@ def _git_files(settings, sources):
     return names
 
 
-def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None):
+def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compile_timeout=None):
     """Create the package `name` from a plan file's bytes, the `.tex` and an optional PDF. Returns a value-free summary.
 
     Raises `chain.ChainError` (a source does not validate), `assemblemod.AssemblyError` (the plan does not verify),
@@ -105,6 +120,14 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None):
     paper = next((p for p in latex.PAPERS if latex.tex_bytes(latex.render(assembly, p)) == tex_bytes), None)
     if paper is None:
         raise PackageError("TEX_NOT_FROM_ASSEMBLY", "the .tex is not the rendering of the assembly of this plan")
+    if compile_timeout is not None:
+        # M8-A: the PDF is the compiler's own output for these very bytes, produced after the .tex was verified against the
+        # assembly and before anything is written; no file travels between the compilation and the package.
+        if pdf_bytes is not None:
+            raise PackageError("PDF_SOURCE_AMBIGUOUS", "give either a PDF or a compilation, not both")
+        pdf_bytes = pdf.compile_tex(tex_bytes, compile_timeout).pdf
+        if len(pdf_bytes) > PDF_LIMIT:
+            raise PackageError("ARTEFACT_TOO_LARGE", "an artefact exceeds the size limit")
     if pdf_bytes is not None and not pdf.looks_like_pdf(pdf_bytes):
         raise PackageError("PDF_MALFORMED", "the PDF is not a complete PDF file")
     commit = provenance.resolve_source_commit(root, _git_files(settings, sources))

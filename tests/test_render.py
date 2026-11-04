@@ -798,6 +798,19 @@ def test_a_symbolic_link_cannot_lead_the_output_out_of_the_workspace(workspace, 
     assert list(outside.iterdir()) == []
 
 
+def test_a_dangling_symbolic_link_inside_the_workspace_is_not_written_through(workspace, capsys):
+    """M8-A: `Path.resolve()` follows a dangling link on POSIX, so the guard must also look at the path as written."""
+    plan_path = write_plan(workspace, capsys)
+    try:
+        os.symlink(str(workspace / "out" / "nowhere.tex"), str(workspace / "out" / "alias.tex"))
+    except (OSError, NotImplementedError):
+        pytest.skip("symbolic links cannot be created here")
+    before = tree_hash(workspace)
+    code, _out, err = run(capsys, *render_args(workspace, plan_path, "--out", "out/alias.tex"))
+    assert code == 2 and "OUTPUT_EXISTS" in err and not (workspace / "out" / "nowhere.tex").exists()
+    assert tree_hash(workspace) == before
+
+
 def test_an_altered_or_obsolete_plan_stops_the_command_and_names_the_layer(workspace, capsys):
     plan_path = write_plan(workspace, capsys)
     edited = json.loads(Path(plan_path).read_text(encoding="utf-8"))

@@ -24,7 +24,8 @@
                           generic LaTeX of the verified plan; exit 0 done, 1 refused, 2 unreadable or output refused,
                           4 .tex written but pdflatex absent, 5 .tex written but the compilation failed
     latex check           is the optional pdflatex available (exit 0 found, 1 absent)
-    package create --name N --plan P --offer FILE --tex T [--pdf F]   build a package (never an approval)
+    package create --name N --plan P --offer FILE --tex T [--pdf F | --compile [--timeout S]]   build a package (never an approval);
+                          --compile packages the output of pdflatex run now on that very .tex (exit 4 absent, 5 failed)
     package status|review --name N      computed readiness (exit 0 READY_TO_SEND, 1 NEEDS_REVIEW, 3 BLOCKED, 2 unusable)
                                         / what a person must review, with the exact PDF hash
     package approve --name N --reviewer R   record a human decision on the exact PDF (interactive terminal required)
@@ -338,7 +339,7 @@ def _write_new_output(root, value, protected):
         return _import_refusal("OUTPUT_OUTSIDE_WORKSPACE", "--out must be inside the workspace (and not in .git)")
     if any(_reaches_target(resolved, Path(item).resolve()) for item in protected):
         return _import_refusal("OUTPUT_IS_AN_INPUT", "--out designates one of the inputs of the engine")
-    if os.path.lexists(str(resolved)):
+    if os.path.lexists(str(resolved)) or _exists_as_written(root, value):
         return _import_refusal("OUTPUT_EXISTS", "--out already exists; the engine never overwrites a file")
     return resolved
 
@@ -521,7 +522,7 @@ def _render_main(args) -> int:
 PACKAGE_STATE_EXIT = {"READY_TO_SEND": 0, "NEEDS_REVIEW": 1, "BLOCKED": 3}
 PACKAGE_REFUSALS = ("PACKAGE_NAME_INVALID", "PACKAGE_PATH_UNSAFE", "PACKAGE_EXISTS", "INPUT_OUTSIDE_WORKSPACE", "INPUT_PATH_UNSAFE",
                     "PACKAGE_UNREADABLE", "METADATA_UNREADABLE", "REVIEW_EXISTS", "OUTPUT_WRITE_FAILED", "PATH_UNSAFE",
-                    "ARTEFACT_TOO_LARGE", "REVIEWER_REQUIRED", "DECISION_INVALID")
+                    "ARTEFACT_TOO_LARGE", "REVIEWER_REQUIRED", "DECISION_INVALID", "PDF_SOURCE_AMBIGUOUS")
 
 
 def _stdin_is_terminal():
@@ -566,7 +567,10 @@ def _package_main(args) -> int:
             pdf_bytes = _read_input(args.pdf, "the PDF") if args.pdf else None
             if plan_bytes is None or tex_bytes is None or (args.pdf and pdf_bytes is None):
                 return 2
-            summary = package.create(root, args.name, args.offer, plan_bytes, tex_bytes, pdf_bytes)
+            if args.compile and args.pdf:
+                return _import_refusal("PDF_SOURCE_AMBIGUOUS", "give either --pdf or --compile, not both")
+            summary = package.create(root, args.name, args.offer, plan_bytes, tex_bytes, pdf_bytes,
+                                     compile_timeout=args.timeout if args.compile else None)
             summary.update({"ready_to_send": False, "note": "creating a package is never an approval; run `package review`, "
                                                             "examine the PDF, then `package approve`"})
             print(json.dumps(summary, indent=2, sort_keys=True))
@@ -602,6 +606,9 @@ def _package_main(args) -> int:
         result = package.record_review(root, args.name, args.decision, args.reviewer, args.note)
         print(json.dumps(result, indent=2, sort_keys=True))
         return PACKAGE_STATE_EXIT[result["state"]] if args.decision == "APPROVED" else 0
+    except pdf.PdfError as error:
+        _print_problems("pdf", error.errors)
+        return PDF_UNAVAILABLE_EXIT if error.code == "PDF_UNAVAILABLE" else PDF_FAILED_EXIT
     except failures as error:
         return _package_failure(error)
 
@@ -698,6 +705,17 @@ def _inside(root, value):
     return resolved, True
 
 
+def _exists_as_written(root, value):
+    """Whether `value` exists exactly as written (relative to `root`), a dangling symbolic link included.
+
+    `Path.resolve()` follows a dangling link on POSIX and returns its target, so a check on the resolved path alone would let
+    a new file be created through the link; the path as written is checked as well."""
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        candidate = Path(root) / candidate
+    return os.path.lexists(os.path.abspath(str(candidate)))
+
+
 def _same_target(path, other):
     """Whether two resolved paths name the same file, existing or not (case, short names, links in the parents)."""
     if os.path.normcase(str(path)) == os.path.normcase(str(other)):
@@ -754,7 +772,7 @@ def _import_main(args) -> int:
             return _import_refusal("IMPORT_OUTPUT_IS_FACT_BASE",
                                    "--%s designates the workspace's active fact base; write the proposal to a separate "
                                    "file and review it before it replaces the fact base" % which)
-        if os.path.lexists(str(resolved)):  # a dangling symbolic link counts: writing would go through it
+        if os.path.lexists(str(resolved)) or _exists_as_written(root, value):  # a dangling symbolic link counts: writing would go through it
             return _import_refusal("IMPORT_OUTPUT_EXISTS",
                                    "--%s already exists; the import never overwrites a file" % which)
         targets[which] = resolved
@@ -940,6 +958,9 @@ def main(argv=None) -> int:
     pc.add_argument("--offer", required=True, help="the JobOffer-v1 file, inside the workspace")
     pc.add_argument("--tex", required=True, help="the .tex written by `render`")
     pc.add_argument("--pdf", default=None, help="the compiled PDF: without one the package can never be READY_TO_SEND")
+    pc.add_argument("--compile", action="store_true",
+                    help="compile the verified .tex now with pdflatex and package that very output (instead of --pdf)")
+    pc.add_argument("--timeout", type=int, default=pdf.DEFAULT_TIMEOUT, help="compiler time limit in seconds (with --compile)")
     ps = pksub.add_parser("status", help="the computed readiness: 0 READY_TO_SEND, 1 NEEDS_REVIEW, 3 BLOCKED, 2 unusable")
     pr = pksub.add_parser("review", help="print what a person needs to review the exact PDF (writes nothing)")
     pa = pksub.add_parser("approve", help="record a human decision on the exact PDF (interactive terminal only)")
