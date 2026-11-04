@@ -8,7 +8,7 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: after M8-A-R1, `py -3.9 -m pytest` gives 1304 passed and 1 skipped (1305 collected), as does Python 3.14; before that, after M8-A, `py -3.9 -m pytest` gave 1293 passed and 1 skipped (a symlink test needing privileges on Windows), 1294 collected (before M8-A: 1285 passed, 1 skipped, 1286 collected); on Linux (Python 3.10.12, WSL, no `pdflatex`) 1285 passed and 9 skipped; synthetic
+- Tests: after M8-A-R2, `py -3.9 -m pytest` gives 1311 passed and 1 skipped (1312 collected); after M8-A-R1 it gave 1304 passed and 1 skipped (1305 collected), as did Python 3.14; before that, after M8-A, `py -3.9 -m pytest` gave 1293 passed and 1 skipped (a symlink test needing privileges on Windows), 1294 collected (before M8-A: 1285 passed, 1 skipped, 1286 collected); on Linux (Python 3.10.12, WSL, no `pdflatex`) 1285 passed and 9 skipped; synthetic
   data only. (History: before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`); after M7-B: 1286 (106 new in `tests/test_package.py`; two M3 tests moved from version "3" to "4" as the unknown version; after M8-A: 1294, 8 new). Before M8-A, Linux had only a stdlib smoke test.)
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -25,11 +25,27 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
-| M8 | Public release preparation | M8-A audit and M8-A-R1 stabilisation done, awaiting validation; M8-B not authorised |
+| M8 | Public release preparation | M8-A audit, M8-A-R1 and M8-A-R2 done, awaiting validation; M8-B not authorised |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (M8-A-R1, stabilisation and verification of the blockers)
+## Last work (M8-A-R2, final pre-publication checks)
+
+Details: `docs/design/PREPUBLICATION_AUDIT.md` section 17 and `docs/design/PUBLIC_SNAPSHOT.md`. Nothing pushed, tagged, released or published; no remote.
+
+- **PDF origin recorded**: optional additive field `pdf_origin` of metadata version 3 (`COMPILED_FROM_VERIFIED_TEX` / `SUPPLIED_PROVENANCE_NOT_VERIFIED`).
+  Only a PDF made by `package create --compile` can make a package `READY_TO_SEND`; a supplied or unrecorded origin stays `NEEDS_REVIEW`
+  (`PDF_ORIGIN_NOT_VERIFIED`) whatever a review says; `package approve` refuses it. Not a signature. 7 tests, 5 mutations caught.
+- **Public snapshot** simulated in a temporary folder (single commit, no remote, `normes-ets.md` excluded): 93 files, no trace of the file or its content,
+  no broken link, 0 privacy finding, builds, tests and quick start pass. `SKILL.md` no longer depends on the file. Private history untouched.
+- **Python (suite, install, identities identical)**: 3.12.14 (Windows, uv), 3.13.18 (Linux, offline container), 3.14.7 (Windows); regression 3.9.13 and
+  3.10.12. 3.15 absent. `Requires-Python` unchanged (`>=3.9`): governance decision.
+- **Linux/TeX Live**: no TeX in any available environment; nothing installed; not tested; procedure documented.
+- **Tests**: 1312 collected; private repository 3.9: 1311 passed, 1 skipped.
+- **Open decisions added**: 19 route for the public repository (snapshot, rewritten history, or authorisation); 20 which working-tree documents are public;
+  21 public identity, name, visibility; 22 whether to keep accepting `--pdf` at all.
+
+## Earlier work (M8-A-R1, stabilisation and verification of the blockers)
 
 Details and evidence: `docs/design/PREPUBLICATION_AUDIT.md` section 16. Nothing pushed, tagged, released or published; version `0.2.0`.
 
@@ -249,5 +265,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M8-A-R1 (`docs/design/PREPUBLICATION_AUDIT.md` section 16) and for the decisions it lists (notably the
+Wait for the maintainer's validation of M8-A-R2 (`docs/design/PREPUBLICATION_AUDIT.md` sections 16 and 17) and for the decisions it lists (notably the
 strategy for `skills/cv-panel/normes-ets.md` and the history). Do not start M8-B or any publication without an explicit go.

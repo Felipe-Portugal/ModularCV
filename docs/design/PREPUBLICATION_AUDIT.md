@@ -369,3 +369,98 @@ on Windows only and never through an index; (5) the documented limits (unsigned 
 Decisions for the maintainer, in addition to section 15: the strategy for `normes-ets.md` and the history (16.5); the supported Python range
 and whether to authorise installing interpreters (or a CI) to test 3.12, 3.13 and 3.15; whether to store the PDF origin in the package (a contract change);
 whether to authorise a TeX Live installation (WSL or a container) for the Linux compilation test.
+
+## 17. M8-A-R2: final pre-publication checks
+
+Nothing was pushed, merged, tagged, released or published; no remote or GitHub repository was created; the version stays `0.2.0`. Baseline:
+`main` at `6af7675`, `origin/main` at `0a553e1`, 1304 passed / 1 skipped on Python 3.9 as expected.
+
+### 17.1 Origin of the PDF: policy and tests (P0)
+
+Rule now enforced: **only a PDF made by `package create --compile` from the verified `.tex` can make a package `READY_TO_SEND`.**
+
+- The metadata of version 3 gain one **optional, additive** field, `pdf_origin`: `COMPILED_FROM_VERIFIED_TEX` or `SUPPLIED_PROVENANCE_NOT_VERIFIED`
+  (only with a PDF). Absent means "not recorded". It is covered by the snapshot like the rest of the metadata.
+- Readiness: a version 3 package with a PDF whose origin is not the compiled one is `NEEDS_REVIEW` with the reason `PDF_ORIGIN_NOT_VERIFIED`
+  (codes `PDF_ORIGIN_SUPPLIED`, `PDF_ORIGIN_NOT_RECORDED`), **whatever the review file says**. `package approve` refuses such a package
+  (`PACKAGE_NOT_REVIEWABLE`), and a review file written by hand for it leaves the verdict unchanged: an approval binds a decision to exact bytes, it
+  cannot make the origin of those bytes known.
+- Pages: no PDF without a readable page can be packaged (`PDF_NO_PAGE`) or be ready (`CHAIN_PDF_NO_PAGE`), unchanged from R1. A PDF modified after
+  approval voids it (`HUMAN_REVIEW_MISMATCH`), unchanged and re-tested on the compiled path.
+- Historical formats: metadata versions 1 and 2 and their rules are untouched. A version 3 package made before this field (R1 and earlier, never
+  published) has no origin and is therefore conservatively `NEEDS_REVIEW`.
+- **Schema evaluation**: an additive optional field in version 3, no version bump (version 3 was never published), no migration; the existing
+  validator refused unknown fields, so the field is declared in `metadata.V3_OPTIONAL`. Documented in `CONTRACTS.md` 4.2 and `PACKAGE.md`.
+- **Not a signature.** The field is a recorded statement. Whoever can write the workspace can rewrite it and rebuild the snapshot, and then
+  claim a compiled origin for any PDF. Editing it without rebuilding the snapshot is detected (tested). This limit is documented.
+- Tests added (7, plus fixtures moved to the compiled path): origin recorded and compiled package ready; supplied package never ready, approval
+  refused; hand-written approval does not help; unrecorded origin conservative; edited origin detected, invalid value blocked; origin without a PDF
+  invalid; modification after approval on the compiled path. **Mutations** (throw-away harness, scratch copies): disabling the readiness check,
+  recording a supplied PDF as compiled, never recording the origin, not validating the value, allowing approval of an unknown origin: each is caught
+  (3, 3, 32, 1 and 1 failing tests).
+
+### 17.2 Public snapshot (P0)
+
+Procedure and decisions: [PUBLIC_SNAPSHOT.md](PUBLIC_SNAPSHOT.md). Simulation, in a temporary folder, from the tracked files of `fa4142b`:
+
+- The file `normes-ets.md` removed; a new repository with **one** commit, **no remote**; 93 tracked files (94 minus the excluded one).
+- Observed: the file is absent from the tree and from every object of the new history; its distinctive content is absent; no quarantine file,
+  PDF, log, cache or backup; one identity (the no-reply address); no broken relative link in any Markdown file; `LICENSE` and the attribution of
+  `cv-panel` (`NOTICE.md`) kept.
+- `SKILL.md` no longer depends on the file (without it the skill must not quote school norms from memory); `MANIFEST.in` excludes it; the one
+  test that reads it is skipped when it is absent.
+- Privacy scan of the snapshot tree and history with the outside deny list: 0 finding; the built archives: 0 finding each.
+- From the snapshot: wheel and sdist build (27 modules in the wheel; the sdist holds tests, examples, docs, templates, schemas and skills but not the
+  excluded file); the wheel installs on Python 3.14, 3.12 and (offline, Linux) 3.13; the sdist on 3.9 and 3.12; the quick start runs from outside the
+  folder with the installed package, with `--compile` (origin `COMPILED_FROM_VERIFIED_TEX` in both the A4 and the Letter package).
+- Not done, by instruction: rewriting the private history, deleting the file from the private repository, creating a repository, configuring a remote.
+  Some documents still *name* the file to explain the exclusion (they reproduce none of its content).
+
+### 17.3 Python matrix actually run
+
+Interpreters found already installed (no interpreter was installed): 3.8.10, 3.9.13, 3.10.21 and 3.12.14 (Windows; the last two managed by `uv`),
+3.14.7 (Windows), 3.10.12 (WSL Ubuntu 22.04) and 3.13.18 (the local `python:3.13` Docker image, run **offline**, `--network none`). **3.15 is not
+available** and not tested; 3.11 is not available.
+
+| Python | Platform | Full suite (snapshot) | Installation | Identities |
+|---|---|---|---|---|
+| 3.9.13 (regression) | Windows | 1310 passed, 2 skipped (private repository: 1311 / 1) | sdist | reference |
+| 3.10.12 (regression) | Linux, WSL | 1302 passed, 10 skipped (private: 1303 / 9) | n/a | identical |
+| 3.12.14 | Windows | 1310 passed, 2 skipped | wheel and sdist; quick start | identical |
+| 3.13.18 | Linux, container, offline | 1302 passed, 10 skipped | wheel (offline) | identical |
+| 3.14.7 | Windows | 1310 passed, 2 skipped | wheel; quick start | identical |
+
+"Identities": fact base, profile and content fingerprints, `plan_sha256` and `.tex` SHA-256 of the shipped example in French and English, compared
+across all interpreters (one digest of the lines: identical everywhere). Skips: the symbolic-link test on Windows, the excluded-file test, and on Linux
+the tests that need `pdflatex` (see 17.4).
+
+The proposed range **3.12, 3.13, 3.14** is therefore *supported by tests* on those three versions (full suite, installation, identities), with the
+limits that 3.13 was exercised on Linux only and 3.12 and 3.14 on Windows only, and no compilation was run on Linux. `Requires-Python` was **not
+changed** (it still says `>=3.9`): changing it, and the end-of-life policy for 3.9 to 3.11, needs a governance decision.
+
+### 17.4 Linux and TeX Live
+
+Environments checked: WSL Ubuntu 22.04, the Docker Desktop distribution and the local images (`ubuntu:22.04`, `ubuntu:24.04`, `debian`, `python:*`):
+none has `pdflatex` or a TeX Live package. **Not installed (no authorisation).** Result: **not tested** (no compilation, page count, extraction,
+`--compile`, or substitution test with a real PDF on Linux). A stand-in PDF was not used in place of a compilation. Reproducible procedure, to run
+once the installation of TeX Live in a throw-away container is authorised (network needed; paths are examples):
+
+```bash
+docker run --rm -v <snapshot>:/src:ro ubuntu:24.04 bash -c '
+  apt-get update && apt-get install -y --no-install-recommends git python3 python3-venv poppler-utils \
+      texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended &&
+  cp -r /src /work && cd /work && git config --global --add safe.directory "*" &&
+  python3 -m venv /v && /v/bin/pip install . pytest &&
+  /v/bin/python -m modularcv latex check && /v/bin/python -m pytest -q -rs'
+# then the quick start of docs/QUICKSTART.md with `package create --compile`, `pdftotext -layout` on both PDFs (FR and EN), and a one-byte change of the
+# PDF to see READY_TO_SEND lost; compare plan_sha256 and the .tex SHA-256 with the Windows values.
+```
+
+### 17.5 Remaining blockers and exact decisions
+
+Technical blockers (need work or means, not a decision): compilation on Linux/TeX Live not run (needs the installation in 17.4); Python 3.15 absent.
+Missing authorisations: installing TeX Live in a container (network); installing Python 3.11/3.15; any publication step.
+Human decisions: (1) route for the public repository: single-commit snapshot (17.2), rewritten history, or authorisation for the school summary;
+(2) which working-tree documents are public; (3) public identity, repository name, visibility; (4) supported Python range and `Requires-Python`
+(and what to do with 3.9 to 3.11); (5) whether to keep the weaker `--pdf` path at all or to reject it (today it is accepted and never ready);
+(6) the earlier open decisions (default paper, approval authenticity, quarantined file).
