@@ -37,7 +37,7 @@ import os
 import sys
 from pathlib import Path
 
-from . import (assemble, chain, config, content, docvalidate, facts, joboffer, latex, legacy, package, pdf, plan, privacy, profile,
+from . import (assemble, canonical, chain, config, content, docvalidate, facts, joboffer, latex, legacy, package, pdf, plan, privacy, profile,
                provenance, readiness, snapshot, taxonomy)
 
 
@@ -573,6 +573,9 @@ def _package_main(args) -> int:
                                      compile_timeout=args.timeout if args.compile else None)
             summary.update({"ready_to_send": False, "note": "creating a package is never an approval; run `package review`, "
                                                             "examine the PDF, then `package approve`"})
+            if summary.get("pdf_origin") == package.PDF_ORIGIN_SUPPLIED:
+                summary["pdf_note"] = ("this PDF was supplied: the tool cannot show that it was compiled from this .tex; "
+                                       "use `package create --compile` for a PDF made from the verified .tex")
             print(json.dumps(summary, indent=2, sort_keys=True))
             return 0
         if args.package_command == "status":
@@ -835,7 +838,7 @@ def _import_main(args) -> int:
 
 def _snapshot_main(args) -> int:
     try:
-        document = json.loads(open(args.file, "rb").read().decode("utf-8-sig"))
+        document = canonical.loads(open(args.file, "rb").read().decode("utf-8-sig"))
     except (OSError, ValueError) as error:
         print(json.dumps({"status": "SNAPSHOT_UNREADABLE", "detail": str(error)}), file=sys.stderr)
         return 2

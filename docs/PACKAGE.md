@@ -145,13 +145,21 @@ package whose chain is broken cannot be approved and loses readiness whatever a 
 - **Semantics.** A reference check proves that facts exist and are `CONFIRMED`, not that a sentence means what they say; FR and EN texts are
   paired by identifier and their equivalence is not checked. The headline of the profile is **not printed**: no fact backs it (open decision).
 - **ATS.** Compatibility with applicant tracking systems is not verified; only text order and accents were checked on the example.
-- **PDF provenance.** With `--pdf`, the PDF is a file compiled elsewhere: `package create` checks only that it looks like a complete
-  PDF (starts with `%PDF-`, ends with `%%EOF`), not that it comes from the `.tex` (a PDF of another CV is accepted; one without a readable
-  page tree is accepted with an unknown page count). With `--compile`, the package runs `pdflatex` itself on the `.tex` it has just
-  verified against the assembly and packages that output: the normal workflow has no gap between compilation and package. Neither
+- **PDF provenance.** `package create --compile` is the recommended way to build a package: it runs `pdflatex` itself on the `.tex` it
+  has just verified against the assembly and packages that output, so the normal workflow has no gap between compilation and package
+  (`pdf_origin: COMPILED_FROM_VERIFIED_TEX` in the command's output). With `--pdf`, the PDF is a file the tool did not make and its
+  origin is **not verified** (`pdf_origin: SUPPLIED_PROVENANCE_NOT_VERIFIED`, and a note): `package create` checks that it looks like a
+  complete PDF (starts with `%PDF-`, ends with `%%EOF`) and that **at least one page can be read from its own page tree**
+  (`PDF_NO_PAGE` otherwise; `package status` also blocks such a file with `CHAIN_PDF_NO_PAGE`). It does not check that the file comes from
+  the `.tex`: the PDF of another CV, of another language, or the right PDF with bytes appended is accepted, and after a person's approval
+  of that exact file it becomes `READY_TO_SEND` like any other. The origin is not stored in the package; the guarantees of the integrated
+  compilation must not be attributed to a supplied PDF. The page count is read from the page tree written in the file by a small reader
+  that does not render anything: a counted page is not necessarily legible, and a PDF built differently from what the reader expects is
+  refused (use `--compile`, or report it). Neither
   proves, once the files sit in the workspace, that the PDF is the compilation of the `.tex`: PDFs are not guaranteed reproducible (on one
   machine with one engine, two compilations were identical, which is evidence but not a contract), and whoever can write to the workspace can
   replace the PDF and rebuild every hash. The human review of the PDF is what binds the two.
 - **TeX.** `pdflatex` is not a sandbox. The compiler is run with no shell escape, a fixed command line and a time limit, but its isolation is
-  not proven. MiKTeX on Windows was exercised; TeX Live and Linux were **not**.
+  not proven. MiKTeX on Windows was exercised; TeX Live and Linux were **not** (no TeX distribution was available on the Linux test
+  machine, and none was installed for the purpose).
 - **Page count** is read from the PDF's own page tree (standard library); when it cannot be established it is recorded as unknown.

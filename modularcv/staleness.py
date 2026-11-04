@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
-from . import config
+from . import canonical, config
 
 REGISTRY_VERSION = "StalePackageRegistry-v1"
 
@@ -21,7 +21,7 @@ def registry_path(root=None) -> Path:
 def load(path) -> dict:
     path = Path(path)
     if path.is_file():
-        return json.loads(path.read_text(encoding="utf-8"))
+        return canonical.loads(path.read_text(encoding="utf-8"))
     return {"registry_version": REGISTRY_VERSION, "packages": []}
 
 

@@ -131,3 +131,26 @@ def test_module_imports_nothing_from_the_package():
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             names = [alias.name for alias in node.names] + [getattr(node, "module", "") or ""]
             assert not any(name.startswith("modularcv") for name in names)
+
+
+def test_loads_refuses_a_deeply_nested_document_the_same_way_on_every_interpreter():
+    """M8-A-R1: Python 3.14 parses far deeper than 3.9 before failing; the checks then overflowed. The limit is ours."""
+    deep = "[" * 1000 + "]" * 1000
+    for text in (deep, '{"a": %s}' % deep, "[" * 200000 + "]" * 200000):
+        with pytest.raises(ValueError):
+            canonical.loads(text)
+    assert canonical.loads('{"a": [1, {"b": [2]}]}') == {"a": [1, {"b": [2]}]}
+    ok = "[" * canonical.MAX_JSON_DEPTH + "]" * canonical.MAX_JSON_DEPTH
+    assert canonical.loads(ok) is not None
+    with pytest.raises(ValueError):
+        canonical.loads("[" + ok + "]")
+
+
+@pytest.mark.parametrize("module", ["joboffer", "content", "profile"])
+def test_a_deeply_nested_extension_is_a_clean_refusal_not_a_crash(module):
+    import importlib
+    checker = importlib.import_module("modularcv." + module)
+    deep = b"[" * 1000 + b"]" * 1000
+    for payload in (deep, b'{"schema": "x", "x-ext": ' + deep + b"}"):
+        result = checker.check_bytes(payload)
+        assert [e.code for e in result.errors][-1].endswith("_NOT_JSON")

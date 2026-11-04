@@ -28,6 +28,8 @@ from . import (__version__, assemble as assemblemod, canonical, chain, config, f
 PACKAGE_SCHEMA = readiness.PACKAGE_V2
 FILE_NAMES = {"plan": "tailoring-plan.json", "assembly": "assembly.json", "tex": "resume.tex", "pdf": "resume.pdf",
               "metadata": "metadata.json"}
+PDF_ORIGIN_COMPILED = "COMPILED_FROM_VERIFIED_TEX"
+PDF_ORIGIN_SUPPLIED = "SUPPLIED_PROVENANCE_NOT_VERIFIED"
 PDF_LIMIT = 32 * 1024 * 1024
 TEX_LIMIT = 4 * 1024 * 1024
 LIMITS = (
@@ -36,7 +38,9 @@ LIMITS = (
     "READY_TO_SEND proves that the process and the evidence are consistent; it does not prove that the candidate meets the"
     " requirements of the job: unsatisfied required requirements are listed in the metadata and in every review.",
     "The PDF is the document that is approved. That it was compiled from the .tex is not machine-verified (PDFs are not"
-    " reproducible); the human review of the PDF is what binds the two.",
+    " reproducible); the human review of the PDF is what binds the two. A PDF given with `--pdf` has no verified origin: it may"
+    " be another document of the same shape. Only `package create --compile` makes the PDF from the verified .tex inside the tool.",
+    "The page count is read from the page tree written in the file, not from a rendering: it does not prove that a page is legible.",
     "A reference check proves that facts exist and are CONFIRMED, not that a text means what they say; FR and EN texts are not"
     " checked for equivalence; ATS compatibility is not verified.",
     "The PDF may contain the applicant's personal data: it is never printed in a diagnostic.",
@@ -130,6 +134,10 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
             raise PackageError("ARTEFACT_TOO_LARGE", "an artefact exceeds the size limit")
     if pdf_bytes is not None and not pdf.looks_like_pdf(pdf_bytes):
         raise PackageError("PDF_MALFORMED", "the PDF is not a complete PDF file")
+    if pdf_bytes is not None and pdf.count_pages(pdf_bytes) is None:
+        # M8-A-R1: a file that only carries the PDF markers is not a document: no page can be read from its own page tree,
+        # so there would be nothing for a person to approve. (The reader is limited: see `pdf.count_pages`.)
+        raise PackageError("PDF_NO_PAGE", "no page can be read from the page tree of the PDF; it cannot be packaged or approved")
     commit = provenance.resolve_source_commit(root, _git_files(settings, sources))
 
     metadata_document = chain.build_metadata(plan, assembly, sources, tex_bytes, pdf_bytes, paper, commit, settings["facts"])
@@ -184,14 +192,16 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
     return {"name": name, "tailored_cv_id": metadata_document["tailored_cv_id"], "state": verdict["status"],
             "reasons": verdict["reasons"], "source_commit": commit, "paper": paper, "application": application_rel,
             "package": package_rel, "plan_sha256": plan["plan_sha256"], "assembly_sha256": assembly["assembly_sha256"],
-            "tex_sha256": metadata_document["tex_sha256"], "pdf_sha256": metadata_document["pdf_sha256"]}
+            "tex_sha256": metadata_document["tex_sha256"], "pdf_sha256": metadata_document["pdf_sha256"],
+            "pdf_origin": PDF_ORIGIN_COMPILED if compile_timeout is not None else
+            (PDF_ORIGIN_SUPPLIED if pdf_bytes is not None else None)}
 
 
 def _load_package(root, settings, name):
     _application, package_rel, targets = _location(root, settings, name)
     path = targets["package"] / "package.json"
     try:
-        document = json.loads(path.read_text(encoding="utf-8"))
+        document = canonical.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         raise PackageError("PACKAGE_UNREADABLE", "package.json cannot be read")
     if not isinstance(document, dict):
@@ -212,7 +222,7 @@ def _metadata_of(root, settings, name):
     package, _dir = _load_package(root, settings, name)
     try:
         relative = package["artifacts"]["cv"]["metadata"]
-        document = json.loads(paths.resolve_inside(root, relative).read_text(encoding="utf-8"))
+        document = canonical.loads(paths.resolve_inside(root, relative).read_text(encoding="utf-8"))
     except (KeyError, TypeError, AttributeError, OSError, ValueError):
         raise PackageError("METADATA_UNREADABLE", "the CV metadata of this package cannot be read")
     return package, relative, document

@@ -195,7 +195,7 @@ def inventory_placeholders(root=None, folder: str = "applications") -> dict:
     placeholders, real, unreadable = [], [], []
     for path in sorted((root / folder).rglob("metadata.json")):
         try:
-            value = json.loads(path.read_text(encoding="utf-8")).get("source_commit")
+            value = canonical.loads(path.read_text(encoding="utf-8")).get("source_commit")
         except (OSError, ValueError):
             unreadable.append(path.relative_to(root).as_posix())
             continue

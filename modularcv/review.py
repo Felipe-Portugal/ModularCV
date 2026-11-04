@@ -8,6 +8,8 @@ useless: it matches nothing.
 """
 import json
 
+from . import canonical
+
 FILE_NAME = "cv-quality-review.json"
 SCHEMA = "CVQualityReview-v1"
 FIELDS = ("schema", "decision", "tailored_cv_id", "document_sha256")
@@ -18,7 +20,7 @@ DECISIONS = ("APPROVED", "REJECTED")
 def parse(data):
     """(document, error). `error` is a message when the file cannot be used."""
     try:
-        document = json.loads(data.decode("utf-8-sig"))
+        document = canonical.loads(data.decode("utf-8-sig"))
     except (ValueError, UnicodeDecodeError) as error:
         return None, "not valid JSON: %s" % error
     if not isinstance(document, dict):
@@ -67,7 +69,7 @@ def _hex64(value):
 def schema_of(data):
     """The schema string of a review file, or None when it is not even a JSON object."""
     try:
-        document = json.loads(data.decode("utf-8-sig"))
+        document = canonical.loads(data.decode("utf-8-sig"))
     except (ValueError, UnicodeDecodeError):
         return None
     return document.get("schema") if isinstance(document, dict) else None
@@ -76,7 +78,7 @@ def schema_of(data):
 def parse_v2(data):
     """(document, error) for a `CVQualityReview-v2` file."""
     try:
-        document = json.loads(data.decode("utf-8-sig"))
+        document = canonical.loads(data.decode("utf-8-sig"))
     except (ValueError, UnicodeDecodeError) as error:
         return None, "not valid JSON: %s" % error
     if not isinstance(document, dict) or document.get("schema") != SCHEMA_V2:

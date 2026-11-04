@@ -75,7 +75,7 @@ class Mapping:
         self.ignore_patterns = ignore_patterns
 
     def to_model(self):
-        return json.loads(canonical.canonical_json(self._model))
+        return canonical.loads(canonical.canonical_json(self._model))
 
     @property
     def mapping_sha256(self):

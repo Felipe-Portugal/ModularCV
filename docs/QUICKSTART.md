@@ -10,9 +10,9 @@ you from nothing to a package you can review, using the fictional example shippe
 
 | Need | Detail |
 |---|---|
-| Python | 3.9 or newer, standard library only (no dependency to install). |
+| Python | Standard library only (no dependency to install). The metadata declare `>= 3.9`; the whole test suite was run on 3.9, 3.10 (Linux) and 3.14. Which versions are *supported* is a maintainer decision not taken yet. |
 | Git | Your workspace is a Git repository: a CV can only be built from sources committed in it. Git must know your name and e-mail (`git config user.name`, `user.email`) so you can commit. |
-| `pdflatex` | **Optional.** MiKTeX (Windows) or TeX Live. Without it you still get the `.tex`; you cannot get a PDF, so a package stays `NEEDS_REVIEW` (never ready). `python -m modularcv latex check` tells you. MiKTeX on Windows is the only distribution exercised so far. |
+| `pdflatex` | **Optional.** MiKTeX (Windows) or TeX Live. Without it you still get the `.tex`; you cannot get a PDF, so a package stays `NEEDS_REVIEW` (never ready). `python -m modularcv latex check` tells you. MiKTeX on Windows is the only distribution exercised so far; **TeX Live and compilation on Linux are untested**. The template uses `fontenc`, `inputenc`, `lmodern`, `geometry` and `enumitem`; on Debian/Ubuntu these should come from `texlive-latex-base`, `texlive-latex-recommended`, `texlive-latex-extra` and `texlive-fonts-recommended` (expected, not verified: run `latex check`, then compile the example). |
 | A private workspace | A separate private Git repository for your facts, CVs and packages. **Never put your data in this repository.** See [WORKSPACE.md](WORKSPACE.md). |
 
 ## Install
@@ -20,15 +20,17 @@ you from nothing to a package you can review, using the fictional example shippe
 From a clone of this repository:
 
 ```bash
-python -m pip install -e ".[dev]"      # needs pip >= 21.3 and a network, or a build backend (setuptools >= 64) already installed
+python -m pip install -e ".[dev]"      # pip downloads setuptools >= 77 into an isolated build environment: it needs a network (or use --no-build-isolation with setuptools >= 77 installed)
 python -m modularcv --help
 ```
 
 There is no `modularcv` command: always run `python -m modularcv ...`. Without installing, point Python at the clone instead:
 `PYTHONPATH=/path/to/ModularCV python -m modularcv ...` (PowerShell: `$env:PYTHONPATH = "C:\path\to\ModularCV"`).
 
-> Not yet verified from a distribution archive: the installation steps above were not exercised in the M8-A audit because the audit
-> machine had no build backend able to read `pyproject.toml` and no network. Running from the clone with `PYTHONPATH` works.
+> Verified (M8-A-R1, Windows): `python -m build` produces a wheel and a source archive; each installs in a fresh virtual environment
+> (wheel and editable on Python 3.14, source archive on 3.9) and the commands above run from outside the clone. The source archive
+> carries the tests, examples and documentation but not `skills/cv-panel/normes-ets.md` (distribution rights not established). Not
+> verified: Linux and macOS installations, and PyPI (nothing is published).
 
 ## Try the fictional example (about five minutes)
 
@@ -93,7 +95,8 @@ Importing an old document: [IMPORT.md](IMPORT.md).
 | `SOURCE_NOT_AT_COMMIT` / `SOURCE_COMMIT_UNVERIFIABLE` | A source differs from the last commit, or the commit is unknown. | Commit your sources, then build the plan again. |
 | `PLAN_FAMILY_REQUIRED` | Several families in the profile. | Add `--family NAME`. |
 | `PLAN_CAPABILITY_UNKNOWN` | A fact or bullet uses a capability that is not in the taxonomy. | Use an identifier of the taxonomy (for example `data-analysis`, not `data`) or provide your own taxonomy. |
-| A section (for example Education) is missing from the CV | Its block has no selected bullet and is not protected. | Set `"protected": true` on the block. |
+| A section (for example Education) is missing from the CV | Its block has no bullet and is not protected (`content check` warns `CONTENT_BLOCK_NEVER_PRINTED`). | Set `"protected": true` on the block. |
+| `PDF_NO_PAGE` | The PDF given to `package create --pdf` has no page that can be read from its page tree. | Compile it again, or use `package create --compile`. |
 | `ASSEMBLY_SOURCE_MISMATCH`, `ASSEMBLY_PLAN_FINGERPRINT` | A source changed after the plan, or the plan was edited. | Build a new plan (`plan --out` with a new file name). |
 | `OUTPUT_EXISTS`, `PACKAGE_EXISTS` | Nothing is ever overwritten. | Choose a new file or package name. |
 | `render` exits `4` | `pdflatex` not found. | Install MiKTeX or TeX Live, or continue without a PDF (the package will be `NEEDS_REVIEW` / `FINAL_DOCUMENT_MISSING`). |

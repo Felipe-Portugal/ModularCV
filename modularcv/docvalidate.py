@@ -71,7 +71,7 @@ def load(data, prefix):
         raise DocumentError(prefix + "NOT_JSON", "NaN and infinity are not valid JSON")
 
     try:
-        return json.loads(text, object_pairs_hook=pairs, parse_constant=constant)
+        return canonical.loads(text, object_pairs_hook=pairs, parse_constant=constant)
     except DocumentError:
         raise
     except (ValueError, RecursionError):
@@ -105,7 +105,7 @@ class Reader:
                     self.error("BAD_EXTENSION", join(path, key), "an extension name must read `x-` then a lowercase identifier")
                     continue
                 try:
-                    extensions[key] = json.loads(canonical.canonical_json(value[key]))
+                    extensions[key] = canonical.loads(canonical.canonical_json(value[key]))
                 except canonical.CanonicalError:
                     self.error("BAD_EXTENSION", join(path, key), "the extension value has no canonical form")
             else:

@@ -397,7 +397,7 @@ Error codes (`CONTENT_` prefix): `FILE_UNREADABLE`, `NOT_UTF8`, `NOT_JSON`, `DUP
 `UNKNOWN_BULLET`, `UNKNOWN_SKILL`, `INVALID_REFERENCE`, `REFERENCE_CYCLE`, `RAW_LATEX`, `INLINE_MARKUP`, `PARITY_HEADING`,
 `PARITY_TITLE`, `PARITY_BULLET`, `PARITY_ITEM`, `UNSUPPORTED_BULLET`, `UNSUPPORTED_HEADING`, `UNSUPPORTED_SKILL`, `FACT_UNKNOWN`, `FACT_NOT_CONFIRMED`,
 `FACT_DATE_REQUIRED`, `FACTS_INVALID`, `BASELINE_NEVER_PUBLISH`, `BASELINE_LANGUAGE`, `BASELINE_EXCLUSIVE`, `BASELINE_FOLLOWS`,
-`BASELINE_FAMILY_UNKNOWN`, `BASELINE_FAMILY_LANGUAGE`; warnings `FACTS_NOT_CHECKED`, `TECHNOLOGY_NOT_IN_SUPPORT`. CLI exit codes of
+`BASELINE_FAMILY_UNKNOWN`, `BASELINE_FAMILY_LANGUAGE`; warnings `FACTS_NOT_CHECKED`, `TECHNOLOGY_NOT_IN_SUPPORT`, `BLOCK_NEVER_PRINTED` (M8-A-R1: a block with no bullet and no `protected` flag is never printed). CLI exit codes of
 `content check`: `0` valid **and** every reference verified (or none to verify), `1` invalid (or a fact base that is invalid), `2`
 unreadable content, unreadable fact base, bad profile or bad configuration, `3` structurally valid but references left
 `UNVERIFIED` (what `--no-facts` yields whenever there is a reference to verify). `content fingerprint` is structural and says nothing

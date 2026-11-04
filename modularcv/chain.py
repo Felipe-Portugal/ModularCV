@@ -208,6 +208,8 @@ def verify(root, document, cv_metadata, settings):
     if pdf_bytes is not None:
         if not pdf.looks_like_pdf(pdf_bytes):
             add("CHAIN_INVALID", "CHAIN_PDF_MALFORMED", "the PDF is not a complete PDF file")
+        elif pdf.count_pages(pdf_bytes) is None:
+            add("CHAIN_INVALID", "CHAIN_PDF_NO_PAGE", "no page can be read from the page tree of the PDF")
     expected = build_metadata(plan, fresh, sources, tex_bytes, pdf_bytes, paper, cv_metadata.get("source_commit"),
                               settings["facts"], cv_metadata["engine_version"])
     if canonical.canonical_bytes(expected) != canonical.canonical_bytes(cv_metadata):

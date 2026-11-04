@@ -19,8 +19,9 @@ EXAMPLE_DIR = Path(__file__).resolve().parent.parent / "examples" / "workspace"
 GIT = ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false",
        "-c", "core.autocrlf=false"]
 REAL_PDFLATEX = pdf.find_pdflatex() is not None
-FAKE_PDF = b"%PDF-1.5\n1 0 obj\n<<>>\nendobj\n%%EOF\n"
-OTHER_PDF = b"%PDF-1.4\n% another document\n%%EOF\n"
+FAKE_PDF = b"%PDF-1.5\n1 0 obj\n<</Type/Pages/Count 1/Kids[]>>\nendobj\n%%EOF\n"
+OTHER_PDF = b"%PDF-1.4\n% another document\n1 0 obj\n<</Type/Pages/Count 1/Kids[]>>\nendobj\n%%EOF\n"
+NO_PAGE_PDF = b"%PDF-1.4\nnot a real document\n%%EOF\n"
 NAME = "demo"
 SECRETS = ("Example Software Inc", "Jordan Example", "jordan@example.com", "Built REST endpoints")
 
@@ -184,6 +185,7 @@ def create_args(ws, **override):
     ({"name": NAME}, package.PackageError, "PACKAGE_EXISTS"),
     ({"tex_bytes": b"\\documentclass{article}\n"}, package.PackageError, "TEX_NOT_FROM_ASSEMBLY"),
     ({"pdf_bytes": b"not a pdf"}, package.PackageError, "PDF_MALFORMED"),
+    ({"pdf_bytes": NO_PAGE_PDF}, package.PackageError, "PDF_NO_PAGE"),
     ({"plan_bytes": b"{"}, Exception, "ASSEMBLY_PLAN_NOT_JSON"),
 ])
 def test_a_bad_input_creates_nothing(ws, override, error, code):
@@ -510,10 +512,41 @@ def test_a_substituted_pdf_with_updated_hashes_still_needs_a_new_approval(ws):
     approve(ws)
     app_file(ws, "pdf").write_bytes(OTHER_PDF)
     edit_json(ws, "applications/demo/cv/metadata.json",
-              lambda d: d.update(pdf_sha256=canonical.sha256_bytes(OTHER_PDF), pdf_pages=None))
+              lambda d: d.update(pdf_sha256=canonical.sha256_bytes(OTHER_PDF), pdf_pages=1))
     reseal(ws)
     status, reasons, _ = status_of(ws)
     assert status != readiness.READY and "HUMAN_REVIEW_MISMATCH" in reasons
+
+
+def test_a_pdf_without_a_page_tree_substituted_with_consistent_hashes_is_never_ready(ws):
+    """M8-A-R1: markers alone (`%PDF-` ... `%%EOF`) are not a document, even if the metadata and the snapshot agree with it."""
+    approve(ws)
+    app_file(ws, "pdf").write_bytes(NO_PAGE_PDF)
+    edit_json(ws, "applications/demo/cv/metadata.json",
+              lambda d: d.update(pdf_sha256=canonical.sha256_bytes(NO_PAGE_PDF), pdf_pages=None))
+    reseal(ws)
+    status, _reasons, codes = status_of(ws)
+    assert status == readiness.BLOCKED and "CHAIN_PDF_NO_PAGE" in codes
+
+
+def test_a_supplied_pdf_is_declared_unverified_by_the_summary_and_by_the_command_line(template, tmp_path, capsys):
+    root = cli_ws(template, tmp_path)
+    code, out, _ = run(capsys, "package", "create", "--name", "job1", "--plan", str(root / "plans/p.json"), "--offer", offer_of(root),
+                       "--tex", str(root / "out/cv.tex"), "--pdf", str(root / "out/cv.pdf"), "--root", str(root))
+    created = json.loads(out)
+    assert code == 0 and created["pdf_origin"] == package.PDF_ORIGIN_SUPPLIED and "--compile" in created["pdf_note"]
+    code, out, _ = run(capsys, "package", "review", "--name", "job1", "--root", str(root))
+    limits = " ".join(json.loads(out)["limits"])
+    assert "--pdf" in limits and "--compile" in limits and "legible" in limits
+
+
+def test_the_command_line_refuses_a_pdf_without_a_page_and_creates_nothing(template, tmp_path, capsys):
+    root = cli_ws(template, tmp_path)
+    (root / "out" / "none.pdf").write_bytes(NO_PAGE_PDF)
+    before = tree_hash(root)
+    code, _out, err = run(capsys, "package", "create", "--name", "job1", "--plan", str(root / "plans/p.json"), "--offer", offer_of(root),
+                          "--tex", str(root / "out/cv.tex"), "--pdf", str(root / "out/none.pdf"), "--root", str(root))
+    assert code == 1 and "PDF_NO_PAGE" in err and tree_hash(root) == before
 
 
 def test_a_package_that_declares_a_verdict_is_blocked(ws):
@@ -641,6 +674,27 @@ def test_create_with_compile_packages_the_compiler_output_of_the_verified_tex(te
     assert pdf.looks_like_pdf(pdf_bytes) and pdf.count_pages(pdf_bytes) == 1
     assert canonical.sha256_bytes(pdf_bytes) == summary["pdf_sha256"]
     assert read_json(root / "applications" / "job2" / "cv" / "metadata.json")["pdf_pages"] == 1
+    assert summary["pdf_origin"] == package.PDF_ORIGIN_COMPILED and "pdf_note" not in summary
+
+
+def stub_compiler(monkeypatch, produced):
+    monkeypatch.setattr(pdf, "compile_tex", lambda tex, timeout=None: pdf.Result(produced, 1, canonical.sha256_bytes(produced), 0, ""))
+
+
+def test_a_compiled_pdf_is_declared_as_made_from_the_verified_tex(template, tmp_path, capsys, monkeypatch):
+    root = cli_ws(template, tmp_path)
+    stub_compiler(monkeypatch, FAKE_PDF)
+    code, out, err = run(capsys, *compile_args(root, "job2", "--compile"))
+    assert code == 0, err
+    assert json.loads(out)["pdf_origin"] == package.PDF_ORIGIN_COMPILED
+
+
+def test_a_compiled_output_without_a_readable_page_is_refused_and_leaves_nothing_behind(template, tmp_path, capsys, monkeypatch):
+    root = cli_ws(template, tmp_path)
+    stub_compiler(monkeypatch, NO_PAGE_PDF)
+    before = tree_hash(root)
+    code, _out, err = run(capsys, *compile_args(root, "job2", "--compile"))
+    assert code == 1 and "PDF_NO_PAGE" in err and tree_hash(root) == before
 
 
 def test_create_with_compile_needs_a_compiler_and_leaves_nothing_behind(template, tmp_path, capsys, monkeypatch):
@@ -735,7 +789,7 @@ def test_the_page_count_is_read_from_a_real_pdf_and_the_real_package_is_ready_af
 
 
 def test_the_page_count_of_a_pdf_without_a_page_tree_is_unknown():
-    assert pdf.count_pages(FAKE_PDF) is None and pdf.count_pages(b"not a pdf") is None and pdf.count_pages(b"") is None
+    assert pdf.count_pages(NO_PAGE_PDF) is None and pdf.count_pages(b"not a pdf") is None and pdf.count_pages(b"") is None
     tree = b"%PDF-1.4\n1 0 obj\n<</Type/Pages/Count 2/Kids[2 0 R 3 0 R]>>\nendobj\n%%EOF\n"
     assert pdf.count_pages(tree) == 2
 

@@ -377,6 +377,24 @@ def test_a_technology_no_supporting_fact_lists_is_flagged_not_added_or_removed()
     assert result.content.to_model()["blocks"][0]["bullets"][0]["technologies"] == ["python", "Rust"]
 
 
+def test_a_block_that_can_never_be_printed_is_flagged_and_a_protected_one_is_not():
+    """M8-A-R1: a bullet-less block without `protected` vanishes from every CV; the check says so instead of staying silent."""
+    document = minimal()
+    document["blocks"].append({"id": "degree", "section": "experience", "order": 2, "languages": ["en"], "supports": ["fact.one"],
+                               "heading": {"en": {"title": "Diploma"}}, "bullets": []})
+    result = valid(document)
+    assert [(w.code, w.path) for w in result.warnings] == [("CONTENT_BLOCK_NEVER_PRINTED", "blocks[1]")]
+    document["blocks"][1]["protected"] = True
+    assert valid(document).warnings == ()
+    # a deliberate reminder (bullets that are all `never_publish`) is not flagged, and neither is a block with a bullet
+    reminder = minimal()
+    reminder["blocks"][0]["bullets"][0]["never_publish"] = True
+    assert valid(reminder).warnings == () and valid(minimal()).warnings == ()
+    # the flag does not need a fact base
+    document["blocks"][1]["protected"] = False
+    assert [w.code for w in check(document, with_facts=False).warnings] == ["CONTENT_BLOCK_NEVER_PRINTED", "CONTENT_FACTS_NOT_CHECKED"]
+
+
 def test_content_has_no_way_to_carry_a_status_so_nothing_is_ever_confirmed_by_it():
     for field in ("status", "confirmed", "confirmed_on", "verified", "publishable"):
         document = minimal()

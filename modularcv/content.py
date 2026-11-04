@@ -698,6 +698,15 @@ def check_data(document, source_sha256=None, factbase=None, profile=None):
         _check_baseline_links(reader, baselines, blocks, categories, profile)
 
     warnings = []
+    if not reader.problems:
+        # M8-A-R1: a block with no bullet at all and no `protected` flag can never reach a CV (the plan keeps a block only for a
+        # selected bullet or for `protected`). Say so here, before it looks like a vanished section. A block whose bullets are
+        # all `never_publish` is a deliberate reminder and is not flagged.
+        for block_path, block in blocks:
+            if not block["protected"] and not block["bullets"]:
+                warnings.append(docvalidate.Problem(
+                    PREFIX + "BLOCK_NEVER_PRINTED",
+                    "this block has no bullet and is not `protected`: no CV will ever print it", block_path))
     refused = set()
     if refs and not reader.problems:
         if factbase is not None:

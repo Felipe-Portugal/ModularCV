@@ -18,6 +18,30 @@ BOM = "﻿"
 BOM_BYTES = b"\xef\xbb\xbf"
 
 
+MAX_JSON_DEPTH = 100
+
+
+def loads(text, **kwargs):
+    """`json.loads` with a nesting limit that does not depend on the interpreter. Raises `ValueError` (never `RecursionError`).
+
+    Interpreters differ in how deep `json` goes before failing (3.9 stops near 1000 levels, 3.14 goes much further and a deep
+    value then overflows later, in the checks); a document here is a few levels deep, so anything beyond `MAX_JSON_DEPTH` is refused
+    the same way everywhere."""
+    try:
+        value = json.loads(text, **kwargs)
+    except RecursionError:
+        raise ValueError("the JSON document is nested too deeply")
+    stack = [(value, 1)]
+    while stack:
+        item, depth = stack.pop()
+        if isinstance(item, (list, dict)):
+            if depth > MAX_JSON_DEPTH:
+                raise ValueError("the JSON document is nested too deeply")
+            children = item.values() if isinstance(item, dict) else item
+            stack.extend((child, depth + 1) for child in children)
+    return value
+
+
 class CanonicalError(ValueError):
     """Input that cannot be canonicalised. `code` is a stable machine code."""
 

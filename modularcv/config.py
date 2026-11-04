@@ -9,7 +9,7 @@ import json
 import os
 from pathlib import Path
 
-from . import paths
+from . import canonical, paths
 
 ROOT_ENV = "MODULARCV_ROOT"
 CONFIG_NAME = "modularcv.json"
@@ -50,7 +50,7 @@ def load(root=None) -> dict:
     path = root / CONFIG_NAME
     if path.is_file():
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = canonical.loads(path.read_text(encoding="utf-8"))
         except ValueError as error:
             raise ConfigError("%s is not valid JSON: %s" % (path, error))
         if not isinstance(data, dict):

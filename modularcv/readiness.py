@@ -89,7 +89,7 @@ def _load_json(path):
     except OSError as error:
         return None, None, "cannot be read: %s" % (error.strerror or error)
     try:
-        return json.loads(data.decode("utf-8-sig")), data, None
+        return canonical.loads(data.decode("utf-8-sig")), data, None
     except (ValueError, UnicodeDecodeError) as error:
         return None, data, "is not valid JSON: %s" % error
 
@@ -435,7 +435,7 @@ def audit_directory(packages_dir, registry_path=None, root=None) -> dict:
     if index_path.is_file():
         try:
             index = {row["package_fingerprint"]: row
-                     for row in json.loads(index_path.read_text(encoding="utf-8"))["applications"]}
+                     for row in canonical.loads(index_path.read_text(encoding="utf-8"))["applications"]}
         except (OSError, ValueError, KeyError, TypeError) as error:
             contradictions.append({"kind": "INDEX_UNREADABLE", "detail": str(error)})
     found = sorted(packages_dir.glob("*/package.json"))
@@ -443,7 +443,7 @@ def audit_directory(packages_dir, registry_path=None, root=None) -> dict:
         raise AuditError("NO_PACKAGES", "no <folder>/package.json under %s" % packages_dir)
     for path in found:
         try:
-            package = json.loads(path.read_text(encoding="utf-8"))
+            package = canonical.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             package = None
         if not isinstance(package, dict):

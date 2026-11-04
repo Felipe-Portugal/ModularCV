@@ -11,9 +11,9 @@ page vous conduit de zéro à un paquet que vous pouvez relire, avec l'exemple f
 
 | Besoin | Détail |
 |---|---|
-| Python | 3.9 ou plus récent, bibliothèque standard seulement (aucune dépendance à installer). |
+| Python | Bibliothèque standard seulement (aucune dépendance à installer). Les métadonnées déclarent `>= 3.9` ; toute la suite de tests a été exécutée sur 3.9, 3.10 (Linux) et 3.14. Les versions *prises en charge* restent à décider par le mainteneur. |
 | Git | Votre espace de travail est un dépôt Git : un CV n'est construit qu'à partir de sources validées (commit) dedans. Git doit connaître votre nom et votre courriel (`git config user.name`, `user.email`). |
-| `pdflatex` | **Facultatif.** MiKTeX (Windows) ou TeX Live. Sans lui, vous obtenez le `.tex` mais pas de PDF : le paquet reste `NEEDS_REVIEW` (jamais prêt). `python -m modularcv latex check` le dit. Seul MiKTeX sous Windows a été éprouvé. |
+| `pdflatex` | **Facultatif.** MiKTeX (Windows) ou TeX Live. Sans lui, vous obtenez le `.tex` mais pas de PDF : le paquet reste `NEEDS_REVIEW` (jamais prêt). `python -m modularcv latex check` le dit. Seul MiKTeX sous Windows a été éprouvé ; **TeX Live et la compilation sous Linux ne sont pas testés**. Le gabarit utilise `fontenc`, `inputenc`, `lmodern`, `geometry` et `enumitem` ; sous Debian/Ubuntu ils devraient provenir de `texlive-latex-base`, `texlive-latex-recommended`, `texlive-latex-extra` et `texlive-fonts-recommended` (attendu, non vérifié : lancez `latex check`, puis compilez l'exemple). |
 | Un espace de travail privé | Un dépôt Git privé distinct pour vos faits, CV et paquets. **Ne mettez jamais vos données dans ce dépôt-ci** (voir `docs/WORKSPACE.md`). |
 
 ## Installation
@@ -21,15 +21,17 @@ page vous conduit de zéro à un paquet que vous pouvez relire, avec l'exemple f
 Depuis un clone de ce dépôt :
 
 ```bash
-python -m pip install -e ".[dev]"      # exige pip >= 21.3 et un accès réseau, ou un outil de construction (setuptools >= 64) déjà installé
+python -m pip install -e ".[dev]"      # pip télécharge setuptools >= 77 dans un environnement de construction isolé : il faut un réseau (ou --no-build-isolation avec setuptools >= 77 installé)
 python -m modularcv --help
 ```
 
 Il n'y a pas de commande `modularcv` : lancez toujours `python -m modularcv ...`. Sans installer, indiquez le clone à Python :
 `PYTHONPATH=/chemin/vers/ModularCV python -m modularcv ...` (PowerShell : `$env:PYTHONPATH = "C:\chemin\vers\ModularCV"`).
 
-> Pas encore vérifié depuis une archive de distribution : l'audit M8-A n'a pas pu exercer l'installation (aucun outil de
-> construction capable de lire `pyproject.toml` ni de réseau sur la machine d'audit). L'exécution depuis le clone avec `PYTHONPATH` fonctionne.
+> Vérifié (M8-A-R1, Windows) : `python -m build` produit un wheel et une archive source ; chacun s'installe dans un environnement
+> virtuel neuf (wheel et mode éditable sur Python 3.14, archive source sur 3.9) et les commandes ci-dessus s'exécutent hors du clone.
+> L'archive source contient les tests, exemples et la documentation, mais pas `skills/cv-panel/normes-ets.md` (droits de
+> distribution non établis). Non vérifié : installation sous Linux et macOS, et PyPI (rien n'est publié).
 
 ## Essayer l'exemple fictif (environ cinq minutes)
 
@@ -93,7 +95,8 @@ Si votre profil a plusieurs familles, nommez celle à utiliser : `matrix --famil
 | `SOURCE_NOT_AT_COMMIT` / `SOURCE_COMMIT_UNVERIFIABLE` | Une source diffère du dernier commit, ou le commit est inconnu. | Validez vos sources puis refaites le plan. |
 | `PLAN_FAMILY_REQUIRED` | Plusieurs familles dans le profil. | Ajoutez `--family NOM`. |
 | `PLAN_CAPABILITY_UNKNOWN` | Un fait ou une puce utilise une capacité absente de la taxonomie. | Utilisez un identifiant de la taxonomie (par exemple `data-analysis`, pas `data`) ou fournissez la vôtre. |
-| Une rubrique (par exemple Formation) manque au CV | Son bloc n'a aucune puce retenue et n'est pas protégé. | Ajoutez `"protected": true` au bloc. |
+| Une rubrique (par exemple Formation) manque au CV | Son bloc n'a aucune puce et n'est pas protégé (`content check` avertit `CONTENT_BLOCK_NEVER_PRINTED`). | Ajoutez `"protected": true` au bloc. |
+| `PDF_NO_PAGE` | Le PDF donné à `package create --pdf` n'a aucune page lisible dans son arbre de pages. | Recompilez-le, ou utilisez `package create --compile`. |
 | `ASSEMBLY_SOURCE_MISMATCH`, `ASSEMBLY_PLAN_FINGERPRINT` | Une source a changé après le plan, ou le plan a été modifié. | Refaites un plan (`plan --out` avec un nouveau nom de fichier). |
 | `OUTPUT_EXISTS`, `PACKAGE_EXISTS` | Rien n'est jamais écrasé. | Choisissez un nouveau nom de fichier ou de paquet. |
 | `render` sort avec `4` | `pdflatex` introuvable. | Installez MiKTeX ou TeX Live, ou continuez sans PDF (le paquet sera `NEEDS_REVIEW` / `FINAL_DOCUMENT_MISSING`). |
