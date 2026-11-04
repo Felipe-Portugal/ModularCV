@@ -48,13 +48,14 @@ python -m modularcv plan --offer offers/backend-intern.json --out plans/job.json
 python -m modularcv render --plan plans/job.json --offer offers/backend-intern.json \
                            --out out/job.tex --pdf out/job.pdf                                # 7. LaTeX and, with pdflatex, the PDF
 python -m modularcv package create --name job --plan plans/job.json --offer offers/backend-intern.json \
-                           --tex out/job.tex --pdf out/job.pdf                                # 8. the package (never an approval)
+                           --tex out/job.tex --compile                                        # 8. the package (never an approval)
 python -m modularcv package review --name job                                                # 9. what you must examine
 ```
 
-Step 7 exits with `4` if `pdflatex` is absent: the `.tex` is still written. Step 8 can compile for you instead of taking a PDF:
-`package create --name job --plan ... --offer ... --tex out/job.tex --compile` runs `pdflatex` on the very bytes it has just verified and
-packages that output, so no file travels between the compilation and the package. Use `--paper letterpaper` on `render` for a US/Canadian
+Step 7 exits with `4` if `pdflatex` is absent: the `.tex` is still written (and the package of step 8 cannot be made). Step 8 compiles for
+you: `--compile` runs `pdflatex` on the very bytes it has just verified and packages that output, so no file travels between the compilation
+and the package. This is the only way to a package that can become `READY_TO_SEND`: a PDF handed over with `--pdf` is recorded as
+`SUPPLIED_PROVENANCE_NOT_VERIFIED` and its package stays `NEEDS_REVIEW` (`PDF_ORIGIN_NOT_VERIFIED`) whatever you approve. Use `--paper letterpaper` on `render` for a US/Canadian
 Letter page (the default is A4); `package create` recognises the paper by itself.
 
 Then **open `applications/job/cv/resume.pdf` and read all of it**, and decide for yourself:

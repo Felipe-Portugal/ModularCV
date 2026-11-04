@@ -30,6 +30,7 @@ BLOCKED = "BLOCKED"
 SNAPSHOT_RELATIVE = ("provenance", "source-snapshot.json")
 PACKAGE_V2 = "ApplicationPackage-v2"  # carries no verdict: its state is always computed
 UNEVALUATED = "UNEVALUATED"
+PDF_ORIGIN_NOT_VERIFIED = "PDF_ORIGIN_NOT_VERIFIED"  # M8-A-R2: only a PDF compiled by the package command can be READY_TO_SEND
 
 # Reasons that make a package unusable (BLOCKED) rather than merely unreviewed.
 HARD_REASONS = (
@@ -339,6 +340,13 @@ def _v3_checks(package, document, cv_metadata, root, package_dir, meta_dir, file
     if pdf_bytes is None:
         return  # reported as ARTIFACT_MISSING by the file check
 
+    # A person's approval binds a decision to exact bytes; it cannot make the origin of those bytes known. Without a recorded
+    # compilation by the package command (a supplied PDF, or a package made before the origin was recorded) the package stays
+    # NEEDS_REVIEW whatever the approval says.
+    if cv_metadata.get("pdf_origin") != chain.ORIGIN_COMPILED:
+        verdict.add(PDF_ORIGIN_NOT_VERIFIED,
+                    "PDF_ORIGIN_SUPPLIED" if cv_metadata.get("pdf_origin") == chain.ORIGIN_SUPPLIED else "PDF_ORIGIN_NOT_RECORDED",
+                    "the PDF was not made by the package command from the verified .tex: its provenance is not demonstrated")
     review_path = paths.resolve_inside(root, meta_dir + "/" + review.FILE_NAME)
     if review_path is None or not review_path.is_file():
         verdict.add("HUMAN_REVIEW_REQUIRED", "REVIEW_FILE_MISSING", "no %s beside the CV metadata" % review.FILE_NAME)

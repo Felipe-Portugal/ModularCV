@@ -44,7 +44,7 @@ python -m modularcv offer check offre.json   # JobOffer-v1 (exemples : examples/
 python -m modularcv matrix --offer offers/backend-intern.json   # états des exigences, à partir des faits confirmés seulement
 python -m modularcv plan --offer offers/backend-intern.json     # plan de personnalisation déterministe (PLAN_ONLY)
 python -m modularcv render --plan plans/p.json --offer offers/backend-intern.json --out out/cv.tex   # ajouter --pdf out/cv.pdf si pdflatex est installé
-python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json --tex out/job.tex --pdf out/job.pdf   # ou --compile au lieu de --pdf ; puis : package review, package approve (par vous), package status
+python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json --tex out/job.tex --compile   # puis : package review, package approve (par vous), package status ; un PDF donné avec --pdf ne peut jamais être READY_TO_SEND
 python -m modularcv facts import --mapping import-map.json --in ancien.md --dry-run   # simulation, aucune écriture
 python -m modularcv privacy --root . --deny-file ~/termes-prives.txt --history        # avant toute publication
 ```

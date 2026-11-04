@@ -86,7 +86,7 @@ new `.tex` (and a PDF if `pdflatex` is installed). Outputs are artefacts: not re
 
 ### Package and approval
 
-`package create --name job --plan ... --offer ... --tex ... --pdf ...` (or `--compile` instead of `--pdf`) builds a package under `applications/job/cv/` and `packages/job/`, from a verified
+`package create --name job --plan ... --offer ... --tex ... --compile` (a PDF given with `--pdf` instead is recorded as unverified and can never be ready) builds a package under `applications/job/cv/` and `packages/job/`, from a verified
 plan only. It is never an approval. You then run `package review`, read the PDF, and `package approve` yourself in a terminal. `package status` computes
 the state (exit 0 only for `READY_TO_SEND`). These files can hold personal data: keep them in the private workspace. Guide: [PACKAGE.md](PACKAGE.md).
 

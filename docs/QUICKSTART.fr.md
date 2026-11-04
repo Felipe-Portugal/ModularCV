@@ -49,13 +49,15 @@ python -m modularcv plan --offer offers/backend-intern.json --out plans/job.json
 python -m modularcv render --plan plans/job.json --offer offers/backend-intern.json \
                            --out out/job.tex --pdf out/job.pdf                                # 7. LaTeX et, avec pdflatex, le PDF
 python -m modularcv package create --name job --plan plans/job.json --offer offers/backend-intern.json \
-                           --tex out/job.tex --pdf out/job.pdf                                # 8. le paquet (jamais une approbation)
+                           --tex out/job.tex --compile                                        # 8. le paquet (jamais une approbation)
 python -m modularcv package review --name job                                                # 9. ce que vous devez examiner
 ```
 
-L'étape 7 sort avec le code `4` si `pdflatex` est absent : le `.tex` est quand même écrit. L'étape 8 peut compiler à votre place au lieu de
-prendre un PDF : `package create --name job --plan ... --offer ... --tex out/job.tex --compile` lance `pdflatex` sur les octets qu'il vient de
-vérifier et met ce résultat dans le paquet, donc aucun fichier ne circule entre la compilation et le paquet. Utilisez `--paper letterpaper`
+L'étape 7 sort avec le code `4` si `pdflatex` est absent : le `.tex` est quand même écrit (et le paquet de l'étape 8 ne peut pas être fait).
+L'étape 8 compile à votre place : `--compile` lance `pdflatex` sur les octets qu'il vient de vérifier et met ce résultat dans le paquet, donc
+aucun fichier ne circule entre la compilation et le paquet. C'est la seule voie vers un paquet qui peut devenir `READY_TO_SEND` : un PDF
+fourni avec `--pdf` est enregistré `SUPPLIED_PROVENANCE_NOT_VERIFIED` et son paquet reste `NEEDS_REVIEW` (`PDF_ORIGIN_NOT_VERIFIED`) quoi que
+vous approuviez. Utilisez `--paper letterpaper`
 avec `render` pour une page Lettre (le défaut est A4) ; `package create` reconnaît le papier tout seul.
 
 Ensuite, **ouvrez `applications/job/cv/resume.pdf` et lisez-le en entier**, puis décidez vous-même :

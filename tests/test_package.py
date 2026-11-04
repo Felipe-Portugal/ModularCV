@@ -63,7 +63,14 @@ def template(tmp_path_factory):
     assert cli.main(["render", "--plan", str(root / "plans/p.json"), "--offer", offer, "--root", str(root), "--out", "out/cv.tex"]) == 0
     tex = (root / "out" / "cv.tex").read_bytes()
     (root / "out" / "cv.pdf").write_bytes(make_pdf(tex))
-    package.create(root, NAME, offer, (root / "plans/p.json").read_bytes(), tex, (root / "out/cv.pdf").read_bytes())
+    # The package is made the controlled way (compiled by the package command from the verified .tex); a stand-in compiler returns the
+    # fixture PDF when there is no pdflatex. Supplied PDFs are exercised by their own tests.
+    pdf_made = (root / "out" / "cv.pdf").read_bytes()
+    with pytest.MonkeyPatch.context() as patch:
+        if not REAL_PDFLATEX:
+            patch.setattr(pdf, "compile_tex", lambda data, timeout=None: pdf.Result(pdf_made, 1, canonical.sha256_bytes(pdf_made), 0, ""))
+        package.create(root, NAME, offer, (root / "plans/p.json").read_bytes(), tex, compile_timeout=120)
+    (root / "out" / "cv.pdf").write_bytes((root / "applications" / NAME / "cv" / "resume.pdf").read_bytes())
     return root
 
 
@@ -438,7 +445,7 @@ def test_a_committed_source_change_is_detected_by_the_snapshot_and_by_git(ws):
     assert status != readiness.READY and "SOURCE_CHANGED_SINCE_PACKAGING" in reasons
 
 
-def test_a_taxonomy_file_is_part_of_the_evidence(template, tmp_path):
+def test_a_taxonomy_file_is_part_of_the_evidence(template, tmp_path, monkeypatch):
     ws = tmp_path / "ws"
     shutil.copytree(str(template), str(ws))
     shutil.copy(str(EXAMPLE_DIR.parent / "taxonomy.generic-v1.json"), str(ws / "taxo.json"))
@@ -448,7 +455,9 @@ def test_a_taxonomy_file_is_part_of_the_evidence(template, tmp_path):
     offer = offer_of(ws)
     assert cli.main(["plan", "--offer", offer, "--root", str(ws), "--out", "plans/t.json"]) == 0
     assert cli.main(["render", "--plan", str(ws / "plans/t.json"), "--offer", offer, "--root", str(ws), "--out", "out/t.tex"]) == 0
-    summary = package.create(ws, "withtaxo", offer, (ws / "plans/t.json").read_bytes(), (ws / "out/t.tex").read_bytes(), FAKE_PDF)
+    stub_compiler(monkeypatch, FAKE_PDF)
+    summary = package.create(ws, "withtaxo", offer, (ws / "plans/t.json").read_bytes(), (ws / "out/t.tex").read_bytes(),
+                             compile_timeout=1)
     assert summary["state"] == readiness.NEEDS_REVIEW
     document = read_json(ws / "packages" / "withtaxo" / "provenance" / "source-snapshot.json")
     assert "taxonomy" in {e["role"] for e in document["entries"]}
@@ -549,6 +558,71 @@ def test_the_command_line_refuses_a_pdf_without_a_page_and_creates_nothing(templ
     assert code == 1 and "PDF_NO_PAGE" in err and tree_hash(root) == before
 
 
+def supplied_package(ws, name="supplied"):
+    """A package whose PDF was handed over (`--pdf`): its origin is recorded as not verified."""
+    summary = package.create(ws, name, offer_of(ws), (ws / "plans/p.json").read_bytes(), (ws / "out/cv.tex").read_bytes(), FAKE_PDF)
+    assert summary["pdf_origin"] == package.PDF_ORIGIN_SUPPLIED
+    return name
+
+
+def test_the_origin_of_the_pdf_is_recorded_in_the_metadata_and_a_compiled_package_is_ready_after_approval(ws):
+    assert read_json(app_file(ws, "metadata"))["pdf_origin"] == package.PDF_ORIGIN_COMPILED
+    assert package.review_summary(ws, NAME)["document"]["origin"] == package.PDF_ORIGIN_COMPILED
+    approve(ws)
+    assert status_of(ws) == (readiness.READY, set(), set())
+
+
+def test_a_supplied_pdf_can_never_be_ready_and_cannot_be_approved_through_the_tool(ws):
+    name = supplied_package(ws)
+    assert read_json(app_file(ws, "metadata", name))["pdf_origin"] == package.PDF_ORIGIN_SUPPLIED
+    status, reasons, codes = status_of(ws, name)
+    assert status == readiness.NEEDS_REVIEW and reasons == {"HUMAN_REVIEW_REQUIRED", readiness.PDF_ORIGIN_NOT_VERIFIED}
+    assert "PDF_ORIGIN_SUPPLIED" in codes
+    with pytest.raises(package.PackageError) as refused:
+        package.record_review(ws, name, "APPROVED", "Fictional Reviewer")
+    assert refused.value.code == "PACKAGE_NOT_REVIEWABLE" and readiness.PDF_ORIGIN_NOT_VERIFIED in refused.value.details["reasons"]
+
+
+def test_an_approval_written_by_hand_does_not_turn_an_unknown_origin_into_a_verified_one(ws):
+    name = supplied_package(ws)
+    document = package.build_review(package.review_summary(ws, name), "APPROVED", "Fictional Reviewer")
+    write_json(app_file(ws, "metadata", name).parent / review.FILE_NAME, document)
+    status, reasons, _ = status_of(ws, name)
+    assert status == readiness.NEEDS_REVIEW and reasons == {readiness.PDF_ORIGIN_NOT_VERIFIED}  # the approval itself matches
+
+
+def test_a_package_without_a_recorded_origin_stays_conservative(ws):
+    approve(ws)
+    edit_json(ws, "applications/demo/cv/metadata.json", lambda d: d.pop("pdf_origin"))
+    reseal(ws)
+    status, reasons, codes = status_of(ws)
+    assert status == readiness.NEEDS_REVIEW and reasons == {readiness.PDF_ORIGIN_NOT_VERIFIED} and codes == {"PDF_ORIGIN_NOT_RECORDED"}
+
+
+def test_an_origin_edited_without_resealing_is_detected_and_an_invalid_one_is_refused(ws):
+    approve(ws)
+    edit_json(ws, "applications/demo/cv/metadata.json", lambda d: d.update(pdf_origin=package.PDF_ORIGIN_SUPPLIED))
+    assert status_of(ws)[0] != readiness.READY  # the snapshot hash of the metadata no longer matches
+    edit_json(ws, "applications/demo/cv/metadata.json", lambda d: d.update(pdf_origin="TRUSTED"))
+    reseal(ws)
+    status, reasons, _ = status_of(ws)
+    assert status == readiness.BLOCKED and "CV_METADATA_INVALID" in reasons
+
+
+def test_an_origin_without_a_pdf_is_invalid_metadata(template, tmp_path):
+    document = read_json(template / "applications" / NAME / "cv" / "metadata.json")
+    assert metadata.problems(document) == []
+    document.update(pdf_sha256=None, pdf_pages=None)
+    assert any("pdf_origin" in m for _code, m in metadata.problems(document))
+
+
+def test_a_pdf_modified_after_approval_still_voids_a_compiled_package(ws):
+    approve(ws)
+    app_file(ws, "pdf").write_bytes(app_file(ws, "pdf").read_bytes() + b"\n%tampered\n")
+    status, reasons, _ = status_of(ws)
+    assert status != readiness.READY and "HUMAN_REVIEW_MISMATCH" in reasons
+
+
 def test_a_package_that_declares_a_verdict_is_blocked(ws):
     approve(ws)
     edit_json(ws, "packages/demo/package.json", lambda d: d["routing"].update(workflow_state="READY_TO_SEND"))
@@ -609,8 +683,9 @@ def cli_ws(template, tmp_path):
 def test_the_command_line_workflow_with_a_person_at_the_terminal(template, tmp_path, capsys, monkeypatch):
     root = cli_ws(template, tmp_path)
     offer = offer_of(root)
+    stub_compiler(monkeypatch, (root / "out" / "cv.pdf").read_bytes())
     code, out, err = run(capsys, "package", "create", "--name", "job1", "--plan", str(root / "plans/p.json"), "--offer", offer,
-                         "--tex", str(root / "out/cv.tex"), "--pdf", str(root / "out/cv.pdf"), "--root", str(root))
+                         "--tex", str(root / "out/cv.tex"), "--compile", "--root", str(root))
     created = json.loads(out)
     assert code == 0 and created["state"] == readiness.NEEDS_REVIEW and created["ready_to_send"] is False
     assert not any(secret in out + err for secret in SECRETS)

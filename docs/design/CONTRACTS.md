@@ -472,6 +472,10 @@ and the core never imports one.
 - **Metadata `schema_version` "3".** Exactly the fields listed in PACKAGE.md; strictly validated (`metadata.problems`); no `generated_at`.
   Versions 1 and 2 remain readable and are never repaired; unknown versions are refused. Compatibility rule: a document of version 1 or 2 is
   judged by the M3 rules and a v2 package may not carry version 3 metadata (and the reverse).
+  **`pdf_origin` (M8-A-R2, optional, additive).** `COMPILED_FROM_VERIFIED_TEX` or `SUPPLIED_PROVENANCE_NOT_VERIFIED`; present only with a PDF.
+  Absent means "not recorded". Readiness: a version 3 package with a PDF whose origin is not `COMPILED_FROM_VERIFIED_TEX` is `NEEDS_REVIEW` with
+  the reason `PDF_ORIGIN_NOT_VERIFIED` (codes `PDF_ORIGIN_SUPPLIED`, `PDF_ORIGIN_NOT_RECORDED`), whatever the review says. A recorded statement
+  covered by the snapshot, not a signature. No version bump: version 3 was never published.
 - **`ApplicationPackage-v2`.** Carries no verdict: `routing.workflow_state` is `UNEVALUATED`; declaring any other state is `PACKAGE_JSON_INVALID`
   (BLOCKED). The legacy package format keeps its M3 behaviour (a declared state other than `READY_TO_SEND` still yields `DECLARED_*`).
 - **Snapshot.** Roles `taxonomy` (source role, checked against the commit) and `assembly` (artefact role) added; no other change.

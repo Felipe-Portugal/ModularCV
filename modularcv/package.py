@@ -28,8 +28,8 @@ from . import (__version__, assemble as assemblemod, canonical, chain, config, f
 PACKAGE_SCHEMA = readiness.PACKAGE_V2
 FILE_NAMES = {"plan": "tailoring-plan.json", "assembly": "assembly.json", "tex": "resume.tex", "pdf": "resume.pdf",
               "metadata": "metadata.json"}
-PDF_ORIGIN_COMPILED = "COMPILED_FROM_VERIFIED_TEX"
-PDF_ORIGIN_SUPPLIED = "SUPPLIED_PROVENANCE_NOT_VERIFIED"
+PDF_ORIGIN_COMPILED = chain.ORIGIN_COMPILED
+PDF_ORIGIN_SUPPLIED = chain.ORIGIN_SUPPLIED
 PDF_LIMIT = 32 * 1024 * 1024
 TEX_LIMIT = 4 * 1024 * 1024
 LIMITS = (
@@ -140,7 +140,9 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
         raise PackageError("PDF_NO_PAGE", "no page can be read from the page tree of the PDF; it cannot be packaged or approved")
     commit = provenance.resolve_source_commit(root, _git_files(settings, sources))
 
-    metadata_document = chain.build_metadata(plan, assembly, sources, tex_bytes, pdf_bytes, paper, commit, settings["facts"])
+    origin = None if pdf_bytes is None else (PDF_ORIGIN_COMPILED if compile_timeout is not None else PDF_ORIGIN_SUPPLIED)
+    metadata_document = chain.build_metadata(plan, assembly, sources, tex_bytes, pdf_bytes, paper, commit, settings["facts"],
+                                             pdf_origin=origin)
     files = {"plan": plan_bytes, "assembly": _json_bytes(assembly), "tex": tex_bytes, "metadata": _json_bytes(metadata_document)}
     if pdf_bytes is not None:
         files["pdf"] = pdf_bytes
@@ -181,7 +183,8 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
         with open(str(paths.resolve_inside(root, package_rel + "/package.json")), "xb") as handle:
             handle.write(_json_bytes(package))
         verdict = status(root, name)
-        unexpected = [r for r in verdict["reasons"] if r not in ("HUMAN_REVIEW_REQUIRED", "FINAL_DOCUMENT_MISSING")]
+        unexpected = [r for r in verdict["reasons"]
+                      if r not in ("HUMAN_REVIEW_REQUIRED", "FINAL_DOCUMENT_MISSING", readiness.PDF_ORIGIN_NOT_VERIFIED)]
         if unexpected:
             raise PackageError("PACKAGE_SELF_CHECK_FAILED", "the package just created does not verify", {"reasons": unexpected})
     except BaseException:
@@ -193,8 +196,7 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
             "reasons": verdict["reasons"], "source_commit": commit, "paper": paper, "application": application_rel,
             "package": package_rel, "plan_sha256": plan["plan_sha256"], "assembly_sha256": assembly["assembly_sha256"],
             "tex_sha256": metadata_document["tex_sha256"], "pdf_sha256": metadata_document["pdf_sha256"],
-            "pdf_origin": PDF_ORIGIN_COMPILED if compile_timeout is not None else
-            (PDF_ORIGIN_SUPPLIED if pdf_bytes is not None else None)}
+            "pdf_origin": origin}
 
 
 def _load_package(root, settings, name):
@@ -246,6 +248,7 @@ def review_summary(root, name):
         "document": {"role": review.DOCUMENT_ROLE, "path": pdf_relative,
                      "sha256": None if pdf_bytes is None else canonical.sha256_bytes(pdf_bytes),
                      "bytes": None if pdf_bytes is None else len(pdf_bytes), "pages": metadata_document["pdf_pages"],
+                     "origin": metadata_document.get("pdf_origin"),
                      "page_target": metadata_document["page_target"], "page_verdict": acknowledged["page_verdict"]},
         "reviewed": {name_: metadata_document[name_] for name_ in review.REVIEWED_FIELDS},
         "to_acknowledge": acknowledged,

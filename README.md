@@ -53,7 +53,7 @@ python -m modularcv matrix --offer offers/backend-intern.json   # requirement st
 python -m modularcv plan --offer offers/backend-intern.json     # deterministic tailoring plan (PLAN_ONLY)
 python -m modularcv render --plan plans/p.json --offer offers/backend-intern.json --out out/cv.tex   # add --pdf out/cv.pdf if pdflatex is installed
 python -m modularcv facts import --mapping import-map.json --in legacy.md --dry-run   # classify, write nothing
-python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json --tex out/job.tex --pdf out/job.pdf   # or --compile instead of --pdf; then: package review, package approve (by you), package status
+python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json --tex out/job.tex --compile   # then: package review, package approve (by you), package status; a PDF given with --pdf can never be READY_TO_SEND
 python -m modularcv privacy --root . --deny-file ~/private-terms.txt --history
 ```
 

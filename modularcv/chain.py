@@ -22,6 +22,8 @@ from collections import namedtuple
 from . import (__version__, assemble as assemblemod, canonical, config, content as contentmod, docvalidate, facts,
                joboffer, latex, paths, pdf, plan as planmod, profile as profilemod, snapshot, taxonomy as taxonomymod)
 
+ORIGIN_COMPILED = "COMPILED_FROM_VERIFIED_TEX"
+ORIGIN_SUPPLIED = "SUPPLIED_PROVENANCE_NOT_VERIFIED"
 IDENTITY_SCHEMA = "TailoredCvIdentity-v1"
 Problem = namedtuple("Problem", "reason code message")
 Sources = namedtuple("Sources", "factbase profile taxonomy content offer")
@@ -89,9 +91,20 @@ def selected_content(plan):
 
 
 def build_metadata(plan, assembly, sources, tex, pdf_bytes, paper, source_commit, facts_path,
-                   engine_version=__version__):
-    """The `schema_version` 3 metadata of a CV, derived only from verified objects. `pdf_bytes` may be None."""
+                   engine_version=__version__, pdf_origin=None):
+    """The `schema_version` 3 metadata of a CV, derived only from verified objects. `pdf_bytes` may be None.
+
+    `pdf_origin` (M8-A-R2) says how the PDF came to be: `ORIGIN_COMPILED` (made by the package command from the verified `.tex`) or
+    `ORIGIN_SUPPLIED`. It is a recorded statement, covered by the snapshot like the rest of the metadata, not a signature: whoever can
+    write the workspace can write it. It is left out when there is no PDF or when no origin is recorded."""
     offer = sources.offer.to_model()
+    document = _metadata_core(plan, assembly, sources, tex, pdf_bytes, paper, source_commit, facts_path, engine_version, offer)
+    if pdf_bytes is not None and pdf_origin is not None:
+        document["pdf_origin"] = pdf_origin
+    return document
+
+
+def _metadata_core(plan, assembly, sources, tex, pdf_bytes, paper, source_commit, facts_path, engine_version, offer):
     return {
         "schema_version": "3",
         "tailored_cv_id": tailored_cv_id(plan, engine_version),
@@ -211,7 +224,7 @@ def verify(root, document, cv_metadata, settings):
         elif pdf.count_pages(pdf_bytes) is None:
             add("CHAIN_INVALID", "CHAIN_PDF_NO_PAGE", "no page can be read from the page tree of the PDF")
     expected = build_metadata(plan, fresh, sources, tex_bytes, pdf_bytes, paper, cv_metadata.get("source_commit"),
-                              settings["facts"], cv_metadata["engine_version"])
+                              settings["facts"], cv_metadata["engine_version"], cv_metadata.get("pdf_origin"))
     if canonical.canonical_bytes(expected) != canonical.canonical_bytes(cv_metadata):
         differing = sorted(key for key in expected if canonical.canonical_bytes(expected[key]) != canonical.canonical_bytes(cv_metadata.get(key)))
         add("CV_REFERENCE_MISMATCH", "METADATA_DIFFERS_FROM_CHAIN",

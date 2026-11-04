@@ -17,8 +17,9 @@ python -m modularcv plan   --offer offers/job.json --out plans/job.json         
 python -m modularcv render --plan plans/job.json --offer offers/job.json \
                            --out out/job.tex --pdf out/job.pdf                          # 3. assemble, render, compile (M7-A)
 python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json \
-                           --tex out/job.tex --pdf out/job.pdf                          # 4. the package (never an approval)
-#    or, to package the compiler's own output for the verified .tex:  package create ... --tex out/job.tex --compile
+                           --tex out/job.tex --compile                                  # 4. the package (never an approval)
+#    --compile packages the compiler's own output for the verified .tex. A PDF handed over with --pdf instead is recorded as
+#    SUPPLIED_PROVENANCE_NOT_VERIFIED and the package can never be READY_TO_SEND (see "PDF origin" below)
 python -m modularcv package review --name job                                          # 5. what to examine, and the exact PDF hash
 #    open applications/job/cv/resume.pdf and read it, all of it
 python -m modularcv package approve --name job --reviewer "Your Name"                  # 6. YOU, in a terminal: type the hash prefix
@@ -145,15 +146,24 @@ package whose chain is broken cannot be approved and loses readiness whatever a 
 - **Semantics.** A reference check proves that facts exist and are `CONFIRMED`, not that a sentence means what they say; FR and EN texts are
   paired by identifier and their equivalence is not checked. The headline of the profile is **not printed**: no fact backs it (open decision).
 - **ATS.** Compatibility with applicant tracking systems is not verified; only text order and accents were checked on the example.
+- **PDF origin (M8-A-R2).** The metadata record how the PDF came to be, in the optional field `pdf_origin`:
+  `COMPILED_FROM_VERIFIED_TEX` (made by `package create --compile`) or `SUPPLIED_PROVENANCE_NOT_VERIFIED` (`--pdf`). **Only the first
+  can reach `READY_TO_SEND`.** A package whose origin is supplied, or not recorded (a package made before this field existed), stays
+  `NEEDS_REVIEW` with the reason `PDF_ORIGIN_NOT_VERIFIED` whatever an approval says; `package approve` refuses it (`PACKAGE_NOT_REVIEWABLE`),
+  and an approval file written by hand for it does not change the verdict: a person's approval binds a decision to exact bytes, it cannot
+  make the origin of those bytes known. The field is **not a signature**: it is a statement in a file covered by the snapshot like the rest of
+  the metadata (editing it without rebuilding the snapshot is detected), and whoever can write the workspace can rebuild the snapshot and
+  claim `COMPILED_FROM_VERIFIED_TEX` for a PDF of their choice. Schema change: `pdf_origin` is an optional, additive field of metadata
+  version 3 (version 3 was never published; no migration, no version bump); historical metadata (versions 1 and 2) are unchanged. To get a
+  ready package from a PDF you made elsewhere, compile it the controlled way: `package create --compile`.
 - **PDF provenance.** `package create --compile` is the recommended way to build a package: it runs `pdflatex` itself on the `.tex` it
   has just verified against the assembly and packages that output, so the normal workflow has no gap between compilation and package
   (`pdf_origin: COMPILED_FROM_VERIFIED_TEX` in the command's output). With `--pdf`, the PDF is a file the tool did not make and its
   origin is **not verified** (`pdf_origin: SUPPLIED_PROVENANCE_NOT_VERIFIED`, and a note): `package create` checks that it looks like a
   complete PDF (starts with `%PDF-`, ends with `%%EOF`) and that **at least one page can be read from its own page tree**
   (`PDF_NO_PAGE` otherwise; `package status` also blocks such a file with `CHAIN_PDF_NO_PAGE`). It does not check that the file comes from
-  the `.tex`: the PDF of another CV, of another language, or the right PDF with bytes appended is accepted, and after a person's approval
-  of that exact file it becomes `READY_TO_SEND` like any other. The origin is not stored in the package; the guarantees of the integrated
-  compilation must not be attributed to a supplied PDF. The page count is read from the page tree written in the file by a small reader
+  the `.tex`: the PDF of another CV, of another language, or the right PDF with bytes appended is accepted, and it can be reviewed
+  but never reaches `READY_TO_SEND` (see "PDF origin"). The guarantees of the integrated compilation are not attributed to a supplied PDF. The page count is read from the page tree written in the file by a small reader
   that does not render anything: a counted page is not necessarily legible, and a PDF built differently from what the reader expects is
   refused (use `--compile`, or report it). Neither
   proves, once the files sit in the workspace, that the PDF is the compilation of the `.tex`: PDFs are not guaranteed reproducible (on one

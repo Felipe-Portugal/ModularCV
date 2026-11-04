@@ -71,6 +71,9 @@ V3_FIELDS = ("schema_version", "tailored_cv_id", "job_key", "language", "family"
              "company", "title", "job_sha256", "plan_sha256", "assembly_sha256", "tex_sha256", "pdf_sha256", "pdf_pages",
              "page_target", "paper", "template_id", "engine_version", "inputs", "decision", "unsatisfied_required",
              "pending_directives", "warnings")
+# M8-A-R2: `pdf_origin` is optional and additive. Absent, it means "origin not recorded" and is treated like a supplied PDF.
+V3_OPTIONAL = ("pdf_origin",)
+PDF_ORIGINS = ("COMPILED_FROM_VERIFIED_TEX", "SUPPLIED_PROVENANCE_NOT_VERIFIED")
 V3_INPUTS = ("facts_source_sha256", "factbase_sha256", "content_sha256", "profile_sha256", "taxonomy_sha256", "offer_sha256")
 V3_PAPERS = ("a4paper", "letterpaper")
 
@@ -90,7 +93,7 @@ def _problems_v3(document):
         out.append(("METADATA_FIELD_TYPE", "`%s` %s" % (name, message)))
 
     missing = [name for name in V3_FIELDS if name not in document]
-    extra = sorted(set(document) - set(V3_FIELDS))
+    extra = sorted(set(document) - set(V3_FIELDS) - set(V3_OPTIONAL))
     for name in missing:
         out.append(("METADATA_FIELD_MISSING", "missing field `%s`" % name))
     if extra:
@@ -115,6 +118,11 @@ def _problems_v3(document):
             bad(name, "must be null or an integer between %d and %d" % (low, high))
     if document["pdf_sha256"] is None and document["pdf_pages"] is not None:
         bad("pdf_pages", "must be null when there is no PDF")
+    if "pdf_origin" in document:
+        if document["pdf_origin"] not in PDF_ORIGINS:
+            bad("pdf_origin", "must be one of %s" % ", ".join(PDF_ORIGINS))
+        elif document["pdf_sha256"] is None:
+            bad("pdf_origin", "must be absent when there is no PDF")
     inputs = document["inputs"]
     if not isinstance(inputs, dict) or sorted(inputs) != sorted(V3_INPUTS) or not all(_hex(inputs[k]) for k in inputs):
         bad("inputs", "must hold exactly the six source fingerprints")
