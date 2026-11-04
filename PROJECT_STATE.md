@@ -8,8 +8,8 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: `py -3.9 -m pytest` gives 1179 passed and 1 skipped (a symlink test that only runs off Windows), 1180 collected; synthetic
-  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
+- Tests: `py -3.9 -m pytest` gives 1285 passed and 1 skipped (a symlink test that only runs off Windows), 1286 collected; synthetic
+  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`); after M7-B: 1286 (106 new in `tests/test_package.py`; two M3 tests moved from version "3" to "4" as the unknown version). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
   Python 3.10 (see the M4-R1 report).
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -25,10 +25,30 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M4 | Profile-v1 and legacy fact import | PASS (M4-R1 and final closure validated) |
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
-| M7 | Rendering, optional PDF, metadata v3, package | M7-A done, awaiting validation; M7-B not authorised |
+| M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
 | M8 | Public release preparation | Planned, not authorised |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
+
+## Last work (M7-B)
+
+- **Chain of evidence** (`modularcv/chain.py`): `tailored_cv_id`, metadata v3 derivation, `verify` re-deriving sources -> plan -> assembly ->
+  `.tex` -> PDF -> metadata from the workspace files. Documented hash graph without cycle (PACKAGE.md).
+- **Package** (`modularcv/package.py`): `create` (only from a verified plan, a `.tex` equal to the rendering, an optional PDF, a Git-verified
+  workspace; writes only new files; removes everything on failure; self-checks), `status`, `review_summary`, `record_review`. A package never
+  carries a verdict (`UNEVALUATED`).
+- **Review** (`review.py`): `CVQualityReview-v2` approves the exact PDF bytes and records what the reviewer was shown; `package approve` needs an
+  interactive terminal and a typed 12-character hash prefix. No signature.
+- **Readiness** (`readiness.py`): version 3 branch (package/snapshot fingerprints, chain, identity, `FINAL_DOCUMENT_MISSING`, review v2). A package
+  without a PDF is never ready. M3 behaviour for v1/v2 metadata is unchanged (two tests that pinned version "3" as unknown now pin "4").
+- **Metadata v3** (`metadata.py`), **snapshot roles** `taxonomy`/`assembly`, **`pdf.count_pages`** (stdlib page-tree reader).
+- **Tests**: `tests/test_package.py` (106): creation and refusals, every substitution scenario with and without approval, forged but
+  consistent packages, review variants, CLI with a stand-in terminal, metadata v3 validation, real MiKTeX compilation. All approvals are
+  fictional fixtures in temporary workspaces. Mutations (throw-away harness) of the review judgement, the snapshot comparison, the package
+  and snapshot fingerprints, the chain comparisons and the readiness branches all fail the tests.
+- **Not verified**: TeX Live / Linux compilation; ATS; the PDF-to-`.tex` derivation; real-user approval (none was made).
+- **Open decisions**: 8, print the public headline (still not printed); 9, whether a signed or authenticated approval is wanted (decision 5
+  stays open and now also concerns `CVQualityReview-v2`).
 
 ## Last work (M7-A)
 
@@ -182,4 +202,4 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M7-A and decision 7 above. Do not start M7-B (package, metadata v3, review gate).
+Wait for the maintainer's validation of M7-B and decision 7 above. Do not start M8 (public release preparation).

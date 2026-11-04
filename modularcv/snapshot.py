@@ -15,9 +15,9 @@ from . import canonical, paths
 SCHEMA = "SourceSnapshot-v1"
 
 # Roles covered by the workspace commit: they must also exist, unchanged, at `source_commit`.
-SOURCE_ROLES = ("facts", "profile", "resume_content", "template_override")
+SOURCE_ROLES = ("facts", "profile", "resume_content", "template_override", "taxonomy")
 # Roles produced by the engine for one package.
-ARTIFACT_ROLES = ("offer", "tailoring_plan", "cv_tex", "cv_metadata", "cv_validation_report", "cv_pdf")
+ARTIFACT_ROLES = ("offer", "tailoring_plan", "assembly", "cv_tex", "cv_metadata", "cv_validation_report", "cv_pdf")
 ROLES = SOURCE_ROLES + ARTIFACT_ROLES
 ROLE_KIND = {role: ("binary" if role == "cv_pdf" else "text") for role in ROLES}
 REQUIRED_ROLES = ("facts", "tailoring_plan", "cv_tex", "cv_metadata")

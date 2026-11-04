@@ -17,6 +17,7 @@ Français : [README.fr.md](README.fr.md)
 | `modularcv.content` | **ResumeContent-v1**: your resume text as validated data (sections, blocks, bullets, skills, baselines), in French, English or both. Each bullet, skill and block heading names the facts that back it; it can be printed only if they are all `CONFIRMED`. Raw LaTeX is refused, and the check proves existence and status of the facts, never the meaning of a text. See [docs/CONTENT.md](docs/CONTENT.md). |
 | `modularcv.joboffer`, `taxonomy`, `matrix`, `plan` | **JobOffer-v1**, a small configurable **taxonomy**, the **requirement matrix** (`DIRECT`, `ADJACENT`, `ABSENT`, `FORBIDDEN_TO_CLAIM`) and a deterministic **tailoring plan**: which of your proven lines would answer an offer. Only confirmed facts count, a prohibition beats relevance, an unmet requirement stays explicit. The plan is not a CV and nothing is written by a model. See [docs/PLAN.md](docs/PLAN.md). |
 | `modularcv.assemble`, `latex`, `pdf` | Turns a **verified** tailoring plan into a structured CV and a generic, escaped, byte-deterministic LaTeX file, and compiles it with `pdflatex` if you have it (optional). Nothing is written by a model, nothing is marked ready to send. See [docs/RENDER.md](docs/RENDER.md). |
+| `modularcv.package`, `chain` | Builds a **package** (plan, assembled CV, `.tex`, PDF, metadata, snapshot) in your private workspace, records a **human approval of the exact PDF**, and computes `READY_TO_SEND` from the evidence every time. Nothing is sent, nothing is approved automatically. See [docs/PACKAGE.md](docs/PACKAGE.md). |
 | `modularcv.legacy` | `facts import`: turns a historical Markdown document into a *proposed* fact base under a mapping you write. Unknown lines are never imported, nothing becomes `CONFIRMED` by itself. See [docs/IMPORT.md](docs/IMPORT.md). |
 | `modularcv.privacy` | Scans a tree (and optionally commit history) for e-mails, phones, SINs, user paths, profile URLs, credentials and your own private terms, **before** you publish. |
 | `modularcv.config`, `external` | A workspace configuration and clear diagnostics when an external input directory is missing. |
@@ -51,6 +52,7 @@ python -m modularcv matrix --offer offers/backend-intern.json   # requirement st
 python -m modularcv plan --offer offers/backend-intern.json     # deterministic tailoring plan (PLAN_ONLY)
 python -m modularcv render --plan plans/p.json --offer offers/backend-intern.json --out out/cv.tex   # add --pdf out/cv.pdf if pdflatex is installed
 python -m modularcv facts import --mapping import-map.json --in legacy.md --dry-run   # classify, write nothing
+python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json --tex out/job.tex --pdf out/job.pdf   # then: package review, package approve (by you), package status
 python -m modularcv privacy --root . --deny-file ~/private-terms.txt --history
 ```
 

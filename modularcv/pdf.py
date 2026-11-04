@@ -155,3 +155,39 @@ def page_verdict(page_target, pages):
     if pages is None:
         return "NOT_COMPILED"
     return "TARGET_MET" if pages <= page_target else "TARGET_EXCEEDED"
+
+
+def looks_like_pdf(data):
+    """True for a complete-looking PDF file: starts with `%PDF-` and ends with `%%EOF`. A shape check, not a validation."""
+    return isinstance(data, bytes) and data.startswith(b"%PDF-") and b"%%EOF" in data[-2048:]
+
+
+def count_pages(data):
+    """The page count written in the PDF's own page tree, or None when it cannot be established.
+
+    Standard library only: the objects are searched in the file and in its Flate-compressed object streams. The root of the
+    page tree is the `/Type /Pages` dictionary without a `/Parent`. This reads the file; it does not render anything."""
+    import zlib
+    if not looks_like_pdf(data):
+        return None
+    blobs = [data]
+    for found in re.finditer(rb"stream\r?\n", data):
+        end = data.find(b"endstream", found.end())
+        if end < 0:
+            continue
+        try:
+            blobs.append(zlib.decompressobj().decompress(data[found.end():end]))
+        except zlib.error:
+            continue
+    roots, others = [], []
+    for blob in blobs:
+        for dictionary in re.finditer(rb"<<[^<>]*>>", blob):
+            body = dictionary.group(0)
+            if not re.search(rb"/Type\s*/Pages\b", body):
+                continue
+            count = re.search(rb"/Count\s+(\d+)", body)
+            if count:
+                (others if b"/Parent" in body else roots).append(int(count.group(1)))
+    if roots:
+        return max(roots)
+    return max(others) if others else None

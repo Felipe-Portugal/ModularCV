@@ -353,7 +353,7 @@ def test_v1_and_v2_are_readable_and_ready_only_with_full_evidence(tmp_path, vers
     assert ws.assess()["status"] == BLOCKED
 
 
-@pytest.mark.parametrize("version", ["3", "4", "", None, 2])
+@pytest.mark.parametrize("version", ["4", "", None, 2])
 def test_unknown_schema_versions_are_refused_not_guessed(ws, version):
     ws.metadata["schema_version"] = version
     ws.write_metadata()

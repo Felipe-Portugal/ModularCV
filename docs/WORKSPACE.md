@@ -84,6 +84,12 @@ Guide: [PLAN.md](PLAN.md).
 `render --plan plans/p.json --offer offers/job.json --out out/cv.tex [--pdf out/cv.pdf]` verifies the plan against your current sources, then writes a
 new `.tex` (and a PDF if `pdflatex` is installed). Outputs are artefacts: not reviewed, never ready to send. Guide: [RENDER.md](RENDER.md).
 
+### Package and approval
+
+`package create --name job --plan ... --offer ... --tex ... --pdf ...` builds a package under `applications/job/cv/` and `packages/job/`, from a verified
+plan only. It is never an approval. You then run `package review`, read the PDF, and `package approve` yourself in a terminal. `package status` computes
+the state (exit 0 only for `READY_TO_SEND`). These files can hold personal data: keep them in the private workspace. Guide: [PACKAGE.md](PACKAGE.md).
+
 ### Importing an old document
 
 `python -m modularcv facts import --mapping import-map.json --in old-notes.md --dry-run` classifies a historical Markdown

@@ -20,7 +20,7 @@ Reasons are stable machine codes, documented in `docs/design/PROVENANCE_READINES
 import json
 from pathlib import Path
 
-from . import config, metadata, paths, provenance, review, snapshot, staleness
+from . import canonical, chain, config, metadata, paths, provenance, review, snapshot, staleness
 from .provenance import SHA_PATTERN, SourceProvenanceError, is_placeholder
 
 READY = "READY_TO_SEND"
@@ -28,6 +28,8 @@ NEEDS_REVIEW = "NEEDS_REVIEW"
 BLOCKED = "BLOCKED"
 
 SNAPSHOT_RELATIVE = ("provenance", "source-snapshot.json")
+PACKAGE_V2 = "ApplicationPackage-v2"  # carries no verdict: its state is always computed
+UNEVALUATED = "UNEVALUATED"
 
 # Reasons that make a package unusable (BLOCKED) rather than merely unreviewed.
 HARD_REASONS = (
@@ -35,7 +37,7 @@ HARD_REASONS = (
     "CV_METADATA_INVALID", "CV_METADATA_MISSING", "CV_METADATA_UNREADABLE", "CV_METADATA_AMBIGUOUS",
     "CV_METADATA_OUT_OF_SCOPE", "CV_REFERENCE_MISMATCH",
     "SNAPSHOT_MISSING", "SNAPSHOT_INVALID", "SNAPSHOT_CONTRADICTORY",
-    "SOURCE_COMMIT_MISMATCH", "HUMAN_REVIEW_REJECTED",
+    "SOURCE_COMMIT_MISMATCH", "HUMAN_REVIEW_REJECTED", "CHAIN_INVALID",
 )
 
 
@@ -95,7 +97,11 @@ def _load_json(path):
 def _declared_checks(package, registry_path, verdict):
     declared = package["routing"]["workflow_state"]
     recorded = package["validation"]["gates"]
-    if declared != READY:
+    if package.get("schema") == PACKAGE_V2:
+        if declared != UNEVALUATED:
+            verdict.add("PACKAGE_JSON_INVALID", "PACKAGE_DECLARES_A_VERDICT",
+                        "an ApplicationPackage-v2 must not carry a verdict: its state is computed")
+    elif declared != READY:
         verdict.add("DECLARED_" + str(declared), "PACKAGE_DECLARES_NOT_READY",
                     "the package declares workflow_state %r" % (declared,))
     if not isinstance(recorded, dict):
@@ -211,8 +217,10 @@ def _evidence_checks(package, root, package_dir, files, verdict):
                     "%s is not inside %s" % (meta_entry["path"], applications))
         return
 
-    for problem in snapshot.verify_files(document, root):
+    file_problems = snapshot.verify_files(document, root)
+    for problem in file_problems:
         verdict.add(_file_reason(problem), problem.code, problem.message)
+    meta_dir = meta_entry["path"].rsplit("/", 1)[0]
 
     cv_metadata, meta_bytes, error = _load_json(paths.resolve_inside(root, meta_entry["path"]) or "")
     if error:
@@ -236,8 +244,14 @@ def _evidence_checks(package, root, package_dir, files, verdict):
         wanted = sorted(set(files) | {entry["path"] for entry in sources})
         _source_commit_checks(cv_metadata, root, wanted, verdict, sources)
 
+    if isinstance(cv_metadata, dict) and cv_metadata.get("schema_version") == metadata.CURRENT_VERSION \
+            and not metadata.problems(cv_metadata):
+        _v3_checks(package, document, cv_metadata, root, package_dir, meta_dir, file_problems, verdict)
+        return
+    if isinstance(cv_metadata, dict) and cv_metadata.get("schema_version") == metadata.CURRENT_VERSION:
+        return  # invalid version 3 metadata: already reported as CV_METADATA_INVALID
+
     # Identity: the plan beside the metadata names this package's CV.
-    meta_dir = meta_entry["path"].rsplit("/", 1)[0]
     plan_dir = plan_entry["path"].rsplit("/", 1)[0] if "/" in plan_entry["path"] else ""
     if cv_id is None:
         verdict.add("CV_REFERENCE_MISMATCH", "PACKAGE_HAS_NO_CV_ID", "the package names no tailored_cv_id")
@@ -276,6 +290,77 @@ def _evidence_checks(package, root, package_dir, files, verdict):
     if reason:
         verdict.add(reason, "REVIEW_DOES_NOT_MATCH" if reason == "HUMAN_REVIEW_MISMATCH" else "REVIEW_REJECTED",
                     "the review does not approve this exact CV identity and document")
+
+
+def _v3_checks(package, document, cv_metadata, root, package_dir, meta_dir, file_problems, verdict):
+    """The additional proof a version 3 package needs (M7-B): intact package file, the whole chain from the sources to the
+    exact PDF re-derived from the workspace, a final document, and a human approval of that exact PDF."""
+    cv_id = _cv_id(package)
+    settings = config.load(root)
+    if package.get("schema") != PACKAGE_V2:
+        verdict.add("CV_REFERENCE_MISMATCH", "PACKAGE_NOT_V2", "metadata version 3 belongs to an ApplicationPackage-v2")
+    else:
+        body = {key: value for key, value in package.items() if key != "package_fingerprint"}
+        if package.get("package_fingerprint") != canonical.fingerprint(body):
+            verdict.add("PACKAGE_JSON_INVALID", "PACKAGE_FINGERPRINT_INVALID", "package_fingerprint does not match package.json")
+        if package.get("snapshot_fingerprint") != document["snapshot_fingerprint"]:
+            verdict.add("SNAPSHOT_CONTRADICTORY", "SNAPSHOT_FINGERPRINT_DIFFERS_FROM_PACKAGE",
+                        "the snapshot is not the one this package.json names")
+        try:
+            named = package["artifacts"]["cv"]
+            for key, role in (("tex", "cv_tex"), ("pdf", "cv_pdf"), ("metadata", "cv_metadata"), ("plan", "tailoring_plan"),
+                              ("assembly", "assembly")):
+                entries = snapshot.entries_for(document, role)
+                if named.get(key) != (entries[0]["path"] if entries else None):
+                    verdict.add("CV_REFERENCE_MISMATCH", "PACKAGE_PATH_DIFFERS_FROM_SNAPSHOT",
+                                "package.json and the snapshot name different files for `%s`" % key)
+        except (KeyError, TypeError, AttributeError):
+            verdict.add("PACKAGE_JSON_INVALID", "PACKAGE_JSON_INVALID", "package.json does not hold artifacts.cv")
+
+    identity = None
+    if not file_problems:
+        problems, identity = chain.verify(root, document, cv_metadata, settings)
+        for problem in problems:
+            verdict.add(problem.reason, problem.code, problem.message)
+    if cv_id is None or cv_metadata["tailored_cv_id"] != cv_id or (identity is not None and identity != cv_id):
+        verdict.add("CV_REFERENCE_MISMATCH", "IDENTITY_DIFFERS",
+                    "the package, the metadata and the identity recomputed from the plan do not name the same CV")
+
+    pdf_entries = snapshot.entries_for(document, "cv_pdf")
+    if not pdf_entries:
+        verdict.add("FINAL_DOCUMENT_MISSING", "NO_PDF_IN_PACKAGE",
+                    "the package holds no PDF: a .tex is not a document that can be approved or sent")
+        return
+    pdf_path = paths.resolve_inside(root, pdf_entries[0]["path"])
+    try:
+        pdf_bytes = pdf_path.read_bytes() if pdf_path is not None and pdf_path.is_file() else None
+    except OSError:
+        pdf_bytes = None
+    if pdf_bytes is None:
+        return  # reported as ARTIFACT_MISSING by the file check
+
+    review_path = paths.resolve_inside(root, meta_dir + "/" + review.FILE_NAME)
+    if review_path is None or not review_path.is_file():
+        verdict.add("HUMAN_REVIEW_REQUIRED", "REVIEW_FILE_MISSING", "no %s beside the CV metadata" % review.FILE_NAME)
+        return
+    try:
+        raw = review_path.read_bytes()
+    except OSError as os_error:
+        verdict.add("HUMAN_REVIEW_INVALID", "REVIEW_UNREADABLE", str(os_error.strerror))
+        return
+    if review.schema_of(raw) == review.SCHEMA:
+        verdict.add("HUMAN_REVIEW_INVALID", "REVIEW_V1_NOT_APPLICABLE",
+                    "a version 3 package needs a %s that names the PDF, not a review of the source" % review.SCHEMA_V2)
+        return
+    approval, error = review.parse_v2(raw)
+    if error:
+        verdict.add("HUMAN_REVIEW_INVALID", "REVIEW_INVALID", error)
+        return
+    reviewed = {name: cv_metadata[name] for name in review.REVIEWED_FIELDS}
+    reason = review.judge_v2(approval, cv_id, canonical.sha256_bytes(pdf_bytes), reviewed, chain.acknowledgement(cv_metadata))
+    if reason:
+        verdict.add(reason, "REVIEW_DOES_NOT_MATCH" if reason == "HUMAN_REVIEW_MISMATCH" else "REVIEW_REJECTED",
+                    "the review does not approve this exact PDF, as presented now")
 
 
 def assess(package: dict, cv_metadata, registry_path, root=None, package_dir=None, files=None) -> dict:

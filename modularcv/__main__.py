@@ -24,6 +24,10 @@
                           generic LaTeX of the verified plan; exit 0 done, 1 refused, 2 unreadable or output refused,
                           4 .tex written but pdflatex absent, 5 .tex written but the compilation failed
     latex check           is the optional pdflatex available (exit 0 found, 1 absent)
+    package create --name N --plan P --offer FILE --tex T [--pdf F]   build a package (never an approval)
+    package status|review --name N      computed readiness (exit 0 READY_TO_SEND, 1 NEEDS_REVIEW, 3 BLOCKED, 2 unusable)
+                                        / what a person must review, with the exact PDF hash
+    package approve --name N --reviewer R   record a human decision on the exact PDF (interactive terminal required)
     privacy ...           scan a tree for personal data before publishing
 """
 from argparse import ArgumentParser
@@ -32,8 +36,8 @@ import os
 import sys
 from pathlib import Path
 
-from . import (assemble, config, content, docvalidate, facts, joboffer, latex, legacy, pdf, plan, privacy, profile, provenance,
-               readiness, snapshot, taxonomy)
+from . import (assemble, chain, config, content, docvalidate, facts, joboffer, latex, legacy, package, pdf, plan, privacy, profile,
+               provenance, readiness, snapshot, taxonomy)
 
 
 def _facts_report(name, result):
@@ -514,6 +518,94 @@ def _render_main(args) -> int:
     return exit_code
 
 
+PACKAGE_STATE_EXIT = {"READY_TO_SEND": 0, "NEEDS_REVIEW": 1, "BLOCKED": 3}
+PACKAGE_REFUSALS = ("PACKAGE_NAME_INVALID", "PACKAGE_PATH_UNSAFE", "PACKAGE_EXISTS", "INPUT_OUTSIDE_WORKSPACE", "INPUT_PATH_UNSAFE",
+                    "PACKAGE_UNREADABLE", "METADATA_UNREADABLE", "REVIEW_EXISTS", "OUTPUT_WRITE_FAILED", "PATH_UNSAFE",
+                    "ARTEFACT_TOO_LARGE", "REVIEWER_REQUIRED", "DECISION_INVALID")
+
+
+def _stdin_is_terminal():
+    """Whether a person is at a terminal. Separate so that tests can stand in for a person."""
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _read_input(path, what):
+    try:
+        with open(str(path), "rb") as handle:
+            return handle.read()
+    except OSError:
+        print(json.dumps({"status": "INPUT_UNREADABLE", "detail": "%s cannot be read" % what}), file=sys.stderr)
+        return None
+
+
+def _package_failure(error):
+    """Report a `PackageError`, `ChainError`, `AssemblyError` or provenance refusal without any document value."""
+    if isinstance(error, package.PackageError):
+        print(json.dumps({"status": error.code, "detail": str(error), **error.details}), file=sys.stderr)
+        return 2 if error.code in PACKAGE_REFUSALS else 1
+    if isinstance(error, chain.ChainError):
+        return _stage_failed(error.stage, error.errors)
+    if isinstance(error, assemble.AssemblyError):
+        _print_problems("plan", error.errors)
+        return 1
+    print(json.dumps({"status": error.status, "detail": str(error)}), file=sys.stderr)
+    return 1
+
+
+def _package_main(args) -> int:
+    try:
+        root = config.workspace_root(args.root)
+        config.load(root)
+    except config.ConfigError as error:
+        print(json.dumps({"status": "CONFIG_ERROR", "detail": str(error)}), file=sys.stderr)
+        return 2
+    failures = (package.PackageError, chain.ChainError, assemble.AssemblyError, provenance.SourceProvenanceError)
+    try:
+        if args.package_command == "create":
+            plan_bytes, tex_bytes = _read_input(args.plan, "the plan"), _read_input(args.tex, "the .tex")
+            pdf_bytes = _read_input(args.pdf, "the PDF") if args.pdf else None
+            if plan_bytes is None or tex_bytes is None or (args.pdf and pdf_bytes is None):
+                return 2
+            summary = package.create(root, args.name, args.offer, plan_bytes, tex_bytes, pdf_bytes)
+            summary.update({"ready_to_send": False, "note": "creating a package is never an approval; run `package review`, "
+                                                            "examine the PDF, then `package approve`"})
+            print(json.dumps(summary, indent=2, sort_keys=True))
+            return 0
+        if args.package_command == "status":
+            verdict = package.status(root, args.name)
+            report = {"package": args.name, "status": verdict["status"], "reasons": verdict["reasons"],
+                      "warnings": verdict["warnings"], "details": verdict["details"]}
+            try:
+                summary = package.review_summary(root, args.name)
+                report["to_acknowledge"] = summary["to_acknowledge"]
+                report["document"] = summary["document"]
+            except package.PackageError:
+                pass
+            print(json.dumps(report, indent=2, sort_keys=True))
+            return PACKAGE_STATE_EXIT[verdict["status"]]
+        summary = package.review_summary(root, args.name)
+        if args.package_command == "review":
+            print(json.dumps(summary, indent=2, sort_keys=True))
+            return 0
+        if not _stdin_is_terminal():
+            return _import_refusal("APPROVAL_REQUIRES_A_PERSON",
+                                   "an approval is a human act: run `package approve` yourself in an interactive terminal")
+        print(json.dumps(summary, indent=2, sort_keys=True))
+        document = summary["document"]
+        if document["sha256"] is None:
+            return _import_refusal("FINAL_DOCUMENT_MISSING", "the package holds no PDF: there is nothing to approve")
+        expected = document["sha256"][:12]
+        answer = input("Open and read %s. To record %s for the PDF with sha256 starting %s, type those 12 characters: "
+                       % (document["path"], args.decision, expected)).strip()
+        if answer != expected:
+            return _import_refusal("CONFIRMATION_MISMATCH", "the characters typed are not the start of the PDF's sha256")
+        result = package.record_review(root, args.name, args.decision, args.reviewer, args.note)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return PACKAGE_STATE_EXIT[result["state"]] if args.decision == "APPROVED" else 0
+    except failures as error:
+        return _package_failure(error)
+
+
 def _latex_main(args) -> int:
     environment = pdf.environment()
     print(json.dumps(dict(environment, optional_dependency=True, note="pdflatex is never installed by modularcv"), indent=2))
@@ -841,6 +933,22 @@ def main(argv=None) -> int:
             e.add_argument("--log", default=None, help="keep the compiler log in this new .log file (it can quote the CV)")
             e.add_argument("--paper", choices=latex.PAPERS, default=latex.DEFAULT_PAPER)
             e.add_argument("--timeout", type=int, default=pdf.DEFAULT_TIMEOUT, help="compiler time limit in seconds")
+    pk = sub.add_parser("package", help="create, inspect and approve a CV package (private workspace)")
+    pksub = pk.add_subparsers(dest="package_command", required=True)
+    pc = pksub.add_parser("create", help="build a package from a verified plan, its .tex and its PDF (never an approval)")
+    pc.add_argument("--plan", required=True, help="the TailoringPlan-v1 file")
+    pc.add_argument("--offer", required=True, help="the JobOffer-v1 file, inside the workspace")
+    pc.add_argument("--tex", required=True, help="the .tex written by `render`")
+    pc.add_argument("--pdf", default=None, help="the compiled PDF: without one the package can never be READY_TO_SEND")
+    ps = pksub.add_parser("status", help="the computed readiness: 0 READY_TO_SEND, 1 NEEDS_REVIEW, 3 BLOCKED, 2 unusable")
+    pr = pksub.add_parser("review", help="print what a person needs to review the exact PDF (writes nothing)")
+    pa = pksub.add_parser("approve", help="record a human decision on the exact PDF (interactive terminal only)")
+    pa.add_argument("--reviewer", required=True, help="who reviewed the PDF")
+    pa.add_argument("--decision", choices=("APPROVED", "REJECTED"), default="APPROVED")
+    pa.add_argument("--note", default=None)
+    for p in (pc, ps, pr, pa):
+        p.add_argument("--name", required=True, help="the package name (lowercase letters, digits, `.` and `-`)")
+        p.add_argument("--root", default=None)
     lt = sub.add_parser("latex", help="report whether the optional pdflatex dependency is available")
     ltsub = lt.add_subparsers(dest="latex_command", required=True)
     ltsub.add_parser("check", help="exit 0 when pdflatex is found, 1 when absent")
@@ -886,6 +994,8 @@ def main(argv=None) -> int:
         return _render_main(args)
     if args.command == "latex":
         return _latex_main(args)
+    if args.command == "package":
+        return _package_main(args)
     return 0
 
 

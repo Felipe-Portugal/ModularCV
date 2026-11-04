@@ -460,6 +460,35 @@ and the core never imports one.
   `REQUIREMENT_DUPLICATE_TERM`, `REQUIREMENT_ID_COLLISION`, `FILE_UNREADABLE`. Messages are fixed and carry a JSON path, never a value.
 - CLI: `offer check|fingerprint` (exit 0 valid, 1 invalid or `LANGUAGE_UNDECIDED`, 2 unreadable).
 
+### 4.2 Package, metadata version 3 and human review (M7-B)
+
+`modularcv/chain.py`, `package.py`, and the extensions of `metadata.py`, `review.py`, `snapshot.py`, `readiness.py`; user guide:
+[PACKAGE.md](../PACKAGE.md).
+
+- **Identity.** `tailored_cv_id` = canonical fingerprint of `{schema: TailoredCvIdentity-v1, engine_version, template_id, language,
+  plan_sha256, facts_source_sha256, factbase_sha256, content_sha256, profile_sha256, taxonomy_sha256, offer_sha256}`. It is a function of the
+  plan file and the engine version only (recomputable), so it contains no personal value, path or clock. `assembly_sha256` and the artefact
+  hashes are not part of it; they are bound by the metadata and the review.
+- **Metadata `schema_version` "3".** Exactly the fields listed in PACKAGE.md; strictly validated (`metadata.problems`); no `generated_at`.
+  Versions 1 and 2 remain readable and are never repaired; unknown versions are refused. Compatibility rule: a document of version 1 or 2 is
+  judged by the M3 rules and a v2 package may not carry version 3 metadata (and the reverse).
+- **`ApplicationPackage-v2`.** Carries no verdict: `routing.workflow_state` is `UNEVALUATED`; declaring any other state is `PACKAGE_JSON_INVALID`
+  (BLOCKED). The legacy package format keeps its M3 behaviour (a declared state other than `READY_TO_SEND` still yields `DECLARED_*`).
+- **Snapshot.** Roles `taxonomy` (source role, checked against the commit) and `assembly` (artefact role) added; no other change.
+- **`CVQualityReview-v2`.** `document_role` is always `cv_pdf`; the approved hash is that of the exact PDF bytes read at verification time.
+  `reviewed` and `acknowledged` must equal the values derived from the verified metadata, so a changed warning list, plan, assembly, `.tex`
+  or pagination voids the approval. `CVQualityReview-v1` (approval of a `.tex`) is accepted only for version 1 and 2 metadata.
+- **Readiness for version 3.** `readiness.assess` runs the M3 checks, then `chain.verify` re-derives the chain from the workspace files (plan
+  integrity, sources reload and validate, the plan re-verifies by the five layers of `assemble.verify_plan`, the stored assembly equals the fresh
+  assembly, the `.tex` equals the rendering of the assembly, the PDF is a complete PDF, the metadata equals what the chain implies) and the
+  identity, final-document and review checks. New reasons: `CHAIN_INVALID` (BLOCKED), `FINAL_DOCUMENT_MISSING` (NEEDS_REVIEW); existing
+  reasons are reused otherwise (`CV_REFERENCE_MISMATCH`, `SNAPSHOT_CONTRADICTORY`, `PACKAGE_JSON_INVALID`, `HUMAN_REVIEW_*`). The chain is only
+  re-derived when the snapshot files are unchanged (a changed file is reported on its own, `NEEDS_REVIEW`, without cascading).
+- **CLI.** `package create|status|review|approve`; exit codes of `status`: 0 `READY_TO_SEND`, 1 `NEEDS_REVIEW`, 3 `BLOCKED`, 2 unusable.
+  `approve` requires an interactive terminal and a typed confirmation; it writes a new file only.
+- **Deliberate limits.** No signature; the PDF-to-`.tex` derivation is not machine-verified; ATS and semantics are not verified;
+  the profile headline is not printed.
+
 ## 5. Plan and identity (outputs, for reference)
 
 - `RequirementMatrix-v1` and `TailoringPlan-v1` keep the semantics of the private engine's matrix and plan

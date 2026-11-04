@@ -204,7 +204,7 @@ def test_the_published_template_style_document_is_valid_v2():
     ({"recommended_length_pages": 3}, "METADATA_FIELD_TYPE"), ({"recommended_length_pages": True}, "METADATA_FIELD_TYPE"),
     ({"decision": []}, "METADATA_FIELD_TYPE"), ({"decision": {"selected_content": "x"}}, "METADATA_FIELD_TYPE"),
     ({"job_key": " "}, "METADATA_FIELD_TYPE"), ({"company": 3}, "METADATA_FIELD_TYPE"),
-    ({"schema_version": "3"}, "METADATA_SCHEMA_VERSION")])
+    ({"schema_version": "4"}, "METADATA_SCHEMA_VERSION")])
 def test_invalid_metadata_variants(ws, change, code):
     document = dict(ws.metadata, **change)
     assert code in [c for c, _ in metadata.problems(document)]
