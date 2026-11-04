@@ -485,6 +485,8 @@ and the core never imports one.
   reasons are reused otherwise (`CV_REFERENCE_MISMATCH`, `SNAPSHOT_CONTRADICTORY`, `PACKAGE_JSON_INVALID`, `HUMAN_REVIEW_*`). The chain is only
   re-derived when the snapshot files are unchanged (a changed file is reported on its own, `NEEDS_REVIEW`, without cascading).
 - **CLI.** `package create|status|review|approve`; exit codes of `status`: 0 `READY_TO_SEND`, 1 `NEEDS_REVIEW`, 3 `BLOCKED`, 2 unusable.
+  `create` takes `--pdf F` or (M8-A) `--compile [--timeout S]`, never both: the compiler is run on the `.tex` after it was verified against
+  the assembly and before anything is written (exit 4 `pdflatex` absent, 5 compilation failed, as `render`).
   `approve` requires an interactive terminal and a typed confirmation; it writes a new file only.
 - **Deliberate limits.** No signature; the PDF-to-`.tex` derivation is not machine-verified; ATS and semantics are not verified;
   the profile headline is not printed.

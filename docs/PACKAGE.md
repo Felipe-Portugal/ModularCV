@@ -18,6 +18,7 @@ python -m modularcv render --plan plans/job.json --offer offers/job.json \
                            --out out/job.tex --pdf out/job.pdf                          # 3. assemble, render, compile (M7-A)
 python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json \
                            --tex out/job.tex --pdf out/job.pdf                          # 4. the package (never an approval)
+#    or, to package the compiler's own output for the verified .tex:  package create ... --tex out/job.tex --compile
 python -m modularcv package review --name job                                          # 5. what to examine, and the exact PDF hash
 #    open applications/job/cv/resume.pdf and read it, all of it
 python -m modularcv package approve --name job --reviewer "Your Name"                  # 6. YOU, in a terminal: type the hash prefix
@@ -144,8 +145,13 @@ package whose chain is broken cannot be approved and loses readiness whatever a 
 - **Semantics.** A reference check proves that facts exist and are `CONFIRMED`, not that a sentence means what they say; FR and EN texts are
   paired by identifier and their equivalence is not checked. The headline of the profile is **not printed**: no fact backs it (open decision).
 - **ATS.** Compatibility with applicant tracking systems is not verified; only text order and accents were checked on the example.
-- **PDF provenance.** The PDF is compiled outside the package step; that it comes from the `.tex` is not machine-verified (PDFs are not
-  reproducible). The human review of the PDF is what binds the two.
+- **PDF provenance.** With `--pdf`, the PDF is a file compiled elsewhere: `package create` checks only that it looks like a complete
+  PDF (starts with `%PDF-`, ends with `%%EOF`), not that it comes from the `.tex` (a PDF of another CV is accepted; one without a readable
+  page tree is accepted with an unknown page count). With `--compile`, the package runs `pdflatex` itself on the `.tex` it has just
+  verified against the assembly and packages that output: the normal workflow has no gap between compilation and package. Neither
+  proves, once the files sit in the workspace, that the PDF is the compilation of the `.tex`: PDFs are not guaranteed reproducible (on one
+  machine with one engine, two compilations were identical, which is evidence but not a contract), and whoever can write to the workspace can
+  replace the PDF and rebuild every hash. The human review of the PDF is what binds the two.
 - **TeX.** `pdflatex` is not a sandbox. The compiler is run with no shell escape, a fixed command line and a time limit, but its isolation is
   not proven. MiKTeX on Windows was exercised; TeX Live and Linux were **not**.
 - **Page count** is read from the PDF's own page tree (standard library); when it cannot be established it is recorded as unknown.

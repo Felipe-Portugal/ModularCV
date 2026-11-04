@@ -12,7 +12,7 @@ Français : [README.fr.md](README.fr.md)
 | Piece | What it does |
 |---|---|
 | `modularcv.provenance` | A generated document must name a **real Git commit** that holds the exact sources it was built from. Placeholders (all zeros), a missing Git, an unknown SHA or a modified source all refuse the generation. |
-| `modularcv.readiness` | **Fail-closed** promotion: a package is "ready to send" only if its declared state, gates, staleness registry and CV metadata all agree. A secondary index can never promote it. |
+| `modularcv.readiness` | **Fail-closed** promotion: a package is "ready to send" only if its evidence (sources, snapshot, plan-to-PDF chain, gates, staleness registry, CV metadata and a human approval of the exact PDF) all agree, re-derived on every call. A secondary index can never promote it. |
 | `modularcv.profile` | **Profile-v1**: your identity (each field `public` or `private`), languages, CV families, policy and availability, kept in your workspace. An availability counts only if a `CONFIRMED` fact backs it. |
 | `modularcv.content` | **ResumeContent-v1**: your resume text as validated data (sections, blocks, bullets, skills, baselines), in French, English or both. Each bullet, skill and block heading names the facts that back it; it can be printed only if they are all `CONFIRMED`. Raw LaTeX is refused, and the check proves existence and status of the facts, never the meaning of a text. See [docs/CONTENT.md](docs/CONTENT.md). |
 | `modularcv.joboffer`, `taxonomy`, `matrix`, `plan` | **JobOffer-v1**, a small configurable **taxonomy**, the **requirement matrix** (`DIRECT`, `ADJACENT`, `ABSENT`, `FORBIDDEN_TO_CLAIM`) and a deterministic **tailoring plan**: which of your proven lines would answer an offer. Only confirmed facts count, a prohibition beats relevance, an unmet requirement stays explicit. The plan is not a CV and nothing is written by a model. See [docs/PLAN.md](docs/PLAN.md). |
@@ -24,7 +24,8 @@ Français : [README.fr.md](README.fr.md)
 | `skills/cv-panel` | A Claude Code skill: seven independent readers (ATS, recruiter, technical manager, ÉTS co-op advisor, rival candidate, teammate, fact checker) review a CV and its cover letter. **Review only: it never rewrites and never adds a fact.** |
 | `schemas/`, `templates/` | The traceability record and the analysis templates. |
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/GOVERNANCE.md](docs/GOVERNANCE.md) and
+**New here? Start with [docs/QUICKSTART.md](docs/QUICKSTART.md)** (a five-minute fictional example, what `READY_TO_SEND` means, troubleshooting;
+[français](docs/QUICKSTART.fr.md)). Then see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/GOVERNANCE.md](docs/GOVERNANCE.md) and
 [docs/WORKSPACE.md](docs/WORKSPACE.md).
 
 ## Your data stays private
@@ -37,7 +38,7 @@ similar folders are ignored by Git here on purpose. See [docs/WORKSPACE.md](docs
 
 ```bash
 git clone https://github.com/<your-user>/ModularCV && cd ModularCV
-python -m pip install -e ".[dev]"        # Python 3.9+
+python -m pip install -e ".[dev]"        # Python 3.9+, pip >= 21.3 and setuptools >= 64 (see docs/QUICKSTART.md; no `modularcv` command: use `python -m modularcv`)
 python -m pytest                         # all tests use synthetic data
 
 cd /path/to/your/private/workspace       # a Git repository with facts.md
@@ -52,7 +53,7 @@ python -m modularcv matrix --offer offers/backend-intern.json   # requirement st
 python -m modularcv plan --offer offers/backend-intern.json     # deterministic tailoring plan (PLAN_ONLY)
 python -m modularcv render --plan plans/p.json --offer offers/backend-intern.json --out out/cv.tex   # add --pdf out/cv.pdf if pdflatex is installed
 python -m modularcv facts import --mapping import-map.json --in legacy.md --dry-run   # classify, write nothing
-python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json --tex out/job.tex --pdf out/job.pdf   # then: package review, package approve (by you), package status
+python -m modularcv package create --name job --plan plans/job.json --offer offers/job.json --tex out/job.tex --pdf out/job.pdf   # or --compile instead of --pdf; then: package review, package approve (by you), package status
 python -m modularcv privacy --root . --deny-file ~/private-terms.txt --history
 ```
 
@@ -61,7 +62,7 @@ To use the skill, copy `skills/cv-panel/` into `~/.claude/skills/` and run
 
 ## Status
 
-`0.2.0` (unpublished): the persona-independent core, with fail-closed provenance and readiness, `Profile-v1` and a controlled legacy import (incompatible changes since `0.1.0`: `docs/design/PROVENANCE_READINESS.md` section 9). The CV generation engine from the original private project is
+`0.2.0` (unpublished; the pre-publication audit is in [docs/design/PREPUBLICATION_AUDIT.md](docs/design/PREPUBLICATION_AUDIT.md)): the persona-independent chain from fact base to a human-approved PDF (provenance, readiness, `Profile-v1`, controlled legacy import, `ResumeContent-v1`, offers, plan, assembly, generic LaTeX, packages; incompatible changes since `0.1.0`: `docs/design/PROVENANCE_READINESS.md` section 9). Not verified yet: installation from a distribution archive, TeX Live and Linux compilation, compatibility with applicant tracking systems. Nothing is sent anywhere and nothing is approved automatically. The CV generation engine from the original private project is
 not included here because it still embeds one person's content; porting it behind a configurable
 fact base is future work.
 

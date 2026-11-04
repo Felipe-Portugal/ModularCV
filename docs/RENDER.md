@@ -102,6 +102,16 @@ count is read from the compiler's own log. Diagnostics carry the code, the retur
 TeX error (kind from a closed list); the log can quote the CV and is written only with `--log` (a new `.log` file, flagged
 `may_contain_resume_text`).
 
+Environment and isolation, stated plainly: `-no-shell-escape` and `openout_any=p` stop a document from running a command or writing
+outside the temporary directory; they are **not a sandbox**. The compiler inherits the rest of your environment (only `TEX*` variables
+are removed), `openin_any` is left at the distribution's default (a document could read files if it could write a backslash), and the
+network and the system are not otherwise restricted. What keeps the compilation safe is the input, not the compiler: the template is
+fixed, every data text is escaped and restricted to a closed character set, and no backslash from your data reaches the file. The time
+limit stops the compiler, but on Windows a helper process started by MiKTeX is not guaranteed to be stopped with it (not verified).
+
+`package create --compile` (see [PACKAGE.md](PACKAGE.md)) runs the same compilation on a `.tex` already verified against the assembly of the
+plan, and packages the result directly.
+
 ## `page_target`
 
 Three different things are kept apart: the **target** the family asks for (`layout.page_target`), the **selection rules** the plan
@@ -112,8 +122,11 @@ profile's selection constants and build the plan again).
 
 ## Limits and not verified
 
-- ATS compatibility is **not verified**: the plain-text extraction order and accents were checked on the example with `pdftotext`
-  only, not against any applicant tracking system.
+- ATS compatibility is **not verified**: the plain-text extraction order, accents, bullets and spacing were checked on synthetic French and
+  English examples with poppler's `pdftotext` (correct, fonts embedded with a Unicode map), not against any applicant tracking system.
+  A second, simpler extractor (`pypdf`) merged words around bold text and separators (`accèsRESTen`) because `pdfTeX` encodes the space as
+  a position, not a character; `\pdfinterwordspaceon` repaired it in a test (not adopted: it would change `generic-v1`, see the audit).
+  The default paper is A4; for Canada use `--paper letterpaper`. French labels such as `Outils:` carry no space before the colon.
 - A reference check proves that facts exist and are `CONFIRMED`, not that a text means what they say; French and English texts are
   not checked for equivalence.
 - Only French and English have interface labels; other languages render if they have no skills section.

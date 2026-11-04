@@ -20,7 +20,7 @@ fact base, master and baselines equal the files used. Git missing, unknown SHA, 
 all-zero value means **no generation**. Old metadata is inventoried, never silently rewritten.
 
 ## 4. Fail-closed promotion
-A package may be sent only if the declared state, every recorded gate, the staleness registry and the CV
+A package may be sent only if its evidence (a package of version 2 declares no state: it is computed), every recorded gate, the staleness registry and the CV
 metadata all agree. Any objection downgrades it: stale or invalid means *blocked*, unreviewed means
 *needs review*. A secondary index can never promote a package. A registry that cannot be read blocks.
 

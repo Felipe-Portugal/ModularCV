@@ -8,9 +8,8 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: `py -3.9 -m pytest` gives 1285 passed and 1 skipped (a symlink test that only runs off Windows), 1286 collected; synthetic
-  data only. Before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`); after M7-B: 1286 (106 new in `tests/test_package.py`; two M3 tests moved from version "3" to "4" as the unknown version). Linux: no pytest run (not installed in WSL); a stdlib smoke test of the CLI passed on
-  Python 3.10 (see the M4-R1 report).
+- Tests: after M8-A, `py -3.9 -m pytest` gives 1293 passed and 1 skipped (a symlink test needing privileges on Windows), 1294 collected (before M8-A: 1285 passed, 1 skipped, 1286 collected); on Linux (Python 3.10.12, WSL, no `pdflatex`) 1285 passed and 9 skipped; synthetic
+  data only. (History: before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`); after M7-B: 1286 (106 new in `tests/test_package.py`; two M3 tests moved from version "3" to "4" as the unknown version; after M8-A: 1294, 8 new). Before M8-A, Linux had only a stdlib smoke test.)
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
 
@@ -26,9 +25,33 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
-| M8 | Public release preparation | Planned, not authorised |
+| M8 | Public release preparation | M8-A audit done, awaiting validation; M8-B not authorised |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
+
+## Last work (M8-A, pre-publication audit)
+
+- **Audit** written in `docs/design/PREPUBLICATION_AUDIT.md`: capabilities (implemented / documented / validated), installation, journey,
+  trust boundaries, PDF/LaTeX gap, approval options, compiler limits, portability, readability and ATS, documentation, privacy and licence,
+  blocking risks, proposed M8-A-R1, decisions. M8-B and any publication are not authorised.
+- **Installation from a clean source: NOT validated.** The tracked tree exports to 90 files, but no setuptools >= 61 and no `wheel` exist on
+  the machine and there is no network, so `pip install` could not be exercised (nothing was installed to get around it). A stand-in
+  `build_py` and runs from the build folder are not an installation test.
+- **Linux**: the full suite ran on Python 3.10.12 (WSL, pytest borrowed read-only from the Windows site-packages): 1285 passed, 9 skipped
+  (7 need `pdflatex`). It found a real defect (below). Windows py3.9: **1293 passed, 1 skipped**, 1294 collected (1286 + 8).
+  Identities (`plan_sha256`, assembly, `.tex`, `tailored_cv_id`) are identical on a Windows CRLF checkout and a Linux LF clone.
+- **Defect fixed**: on POSIX `Path.resolve()` follows a dangling symbolic link, so `facts import --out`, `plan|matrix|assemble|render --out`
+  and `package create` could write a new file through a link pointing inside the workspace; the path as written is checked too and a package
+  folder may not pass through a link (3 new tests, 4 failing before the fix on Linux, including the M4 test that was skipped on Windows).
+- **Added** `package create --compile` (compile the verified `.tex` and package that output; exclusive with `--pdf`): closes the file travel
+  between `render --pdf` and `package create`. It does not prove the PDF is the compilation of the `.tex` once the files sit in the workspace.
+- **Docs**: `docs/QUICKSTART.md` and `.fr.md` (every command executed), README and README.fr, ARCHITECTURE, GOVERNANCE, CONTENT (`protected`),
+  PACKAGE and RENDER (PDF provenance, compiler limits), CONTRACTS 4.2.
+- **Not done**: online build and install, TeX Live, any Linux compilation, Python versions other than 3.9 and 3.10, any ATS, the proposals
+  of M8-A-R1 (PDF reproduction check, `generic-v2`, environment allow-list, signed approvals, French guides).
+- **Open decisions added**: 10 default paper (A4 or Letter); 11 supported Python versions (3.9 is past its end of life); 12 approval
+  authenticity (see audit section 7); 13 whether `skills/cv-panel/normes-ets.md` may be redistributed; 14 whether a published repository
+  may carry the current history and the maintainer's account name in its address.
 
 ## Last work (M7-B)
 
@@ -202,4 +225,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M7-B and decision 7 above. Do not start M8 (public release preparation).
+Wait for the maintainer's validation of M8-A (`docs/design/PREPUBLICATION_AUDIT.md`) and for the decisions it lists. Do not start M8-B, M8-A-R1
+or any publication without an explicit go.

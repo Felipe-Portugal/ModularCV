@@ -1,0 +1,239 @@
+# Pre-publication audit (M8-A)
+
+Audit of product, security, installation, documentation and portability, made before any publication decision. Nothing was pushed,
+tagged, released or published; the repository visibility was not changed (it was read: private). Following `AGENTS.md` section 4,
+each statement is **Observed** (a command or test was run), **Hypothesis** (deduced, not verified) or **Planned** (not done).
+
+Baseline: `main` at `88756b9` (M7-B), version `0.2.0`, `origin/main` at `0a553e1`, 15 commits, one author identity (a no-reply
+address), `legacy_import.py` outside the repository with SHA-256 `5c73e936...2504106` unchanged.
+
+## 1. Environments actually used
+
+| Environment | Used for |
+|---|---|
+| Windows 11, Python 3.9.13, MiKTeX 26.5 (pdfTeX 1.40.29) | the reference suite, real compilation, the end-to-end journey |
+| WSL Ubuntu 22.04, Python 3.10.12, ext4, **no `pdflatex`** | the full suite (pytest 8.4.2 was imported read-only from the Windows `site-packages`: pure Python, nothing installed), parity of identities |
+| Python 3.14 | only `pypdf`, already installed, as a second text extractor |
+| MiKTeX's own `pdftotext`, `pdftoppm` (poppler) | text extraction and visual inspection of PDFs |
+
+Not available, therefore **not tested**: TeX Live, macOS, any Python other than 3.9, 3.10 (and 3.14 for `pypdf` only), a build backend able to
+read `pyproject.toml` (see section 3), a network.
+
+## 2. Capabilities: implemented, documented, validated
+
+All components are standard library only; Git is required for provenance, snapshots and packages; `pdflatex` is optional. "Tests" are
+files of the 1294 tests collected after M8-A.
+
+| Component | Commands that work today | Tests | Main limits |
+|---|---|---|---|
+| FactBase-v1 | `facts check`, `facts fingerprint` | `test_facts` 101, `test_facts_cli` 14, `test_canonical` 19 | The truth of the facts is the user's; nothing is inferred |
+| Profile-v1 | `profile check`, `profile fingerprint` | `test_profile` 142 | Public headline is validated but never printed (no fact backs it) |
+| Legacy import | `facts import` (`--dry-run`, mapping file) | `test_legacy` 153 | Proposes only; a mapping you write; `CONFIRMED` only if your mapping says so |
+| ResumeContent-v1 | `content check`, `content fingerprint` | `test_content` 276 | Existence and status of facts, never meaning; FR/EN parity by id only |
+| JobOffer-v1 | `offer check`, `offer fingerprint` | `test_offer` 66 | Keyword extraction via the taxonomy, no semantics |
+| Taxonomy-v1 | `taxonomy check`, `taxonomy fingerprint` | `test_taxonomy` 41 | One generic software taxonomy (13 capabilities, 12 technologies) |
+| Requirement matrix | `matrix` | in `test_plan` | `DIRECT`/`ADJACENT`/`ABSENT`/`FORBIDDEN_TO_CLAIM`; quality depends on the tags you give |
+| Deterministic plan | `plan` | `test_plan` 58 | Greedy ranking, `PAGE_TARGET_NOT_ENFORCED` |
+| Assembly | `assemble` | `test_render` 69 | `soften` directives are never applied; headline not printed |
+| LaTeX and PDF | `render`, `latex check`, `--paper` | `test_render` | One template `generic-v1`; optional `pdflatex`; MiKTeX only verified |
+| Package | `package create` (`--pdf` or `--compile`), `status`, `review` | `test_package` 114 | See sections 5 to 7 |
+| Human review | `package approve` (interactive terminal only) | `test_package` | Unsigned JSON file |
+| Readiness | `package status`, `check-packages`, `snapshot verify`, `provenance` | `test_readiness` 106, `test_snapshot` 93, `test_provenance` 22 | Proves the process, not the candidate |
+| Privacy scan | `privacy --root . [--deny-file F] [--history]` | `test_privacy` 8 | Patterns and your own terms; cannot find what it is not told |
+| Skill `cv-panel` | a Claude Code skill (no command) | `test_skill` 5 (structure only) | Review only; depends on a model, not exercised here |
+
+Observed: every command above ran during the audit on synthetic data, except `facts import` (covered by its tests only) and the skill
+(structure tests only). Not announced because not implemented: cover letters, other templates, a web or graphical interface, a
+`modularcv` console script, a `.docx` output, any sending mechanism, a signature.
+
+## 3. Installation from a clean source
+
+Observed. `git archive HEAD` gave a tree of 90 tracked files, no untracked file, no quarantined file. `python -m pip install` of that
+tree **could not be validated**:
+
+- In a fresh Python 3.9 venv (pip 22.0.4, setuptools 58.1.0, no `wheel`): with build isolation the build requirement `setuptools>=61`
+  could not be fetched (no network); without isolation, `setuptools` 58 does not read the `[project]` table (the project is named
+  `UNKNOWN`) and fails on `bdist_wheel`. Python 3.14 has neither `setuptools` nor `wheel`; Python 3.8 and WSL have setuptools 56 and 59.6.
+  No setuptools >= 61 and no `wheel` exist on this machine, and nothing was installed to get around that.
+- What could be checked, and is **not equivalent to an installation**: `build_py` with a stand-in `setup()` lists exactly the 27 files
+  of `modularcv/*.py` (no `_quarantine`, no test, no example); the code reads no data file from the package (no `__file__`, no
+  `importlib.resources`; the generic taxonomy is built in), so the package needs no resource; the CLI ran from that build folder, from an
+  unrelated directory, with the right exit codes (`latex check`, `taxonomy check`, `provenance` outside Git exits 2).
+- Hypothesis, to verify online in M8-B: `pip install .` and `python -m build` with a current setuptools. Two points to check there:
+  `license = {text = "MIT"}` (a TOML table, deprecated in recent setuptools in favour of an SPDX string) and `requires = ["setuptools>=61"]`
+  (an editable install needs >= 64).
+- Observed: without `pdflatex` on `PATH`, `latex check` exits 1, `render --pdf` exits 4 with the `.tex` written, `package create` without a PDF
+  gives `NEEDS_REVIEW` (`FINAL_DOCUMENT_MISSING`) and `package approve` refuses. With MiKTeX: 1-page PDFs, real compilation.
+
+## 4. End-to-end journey (new user, fictional data)
+
+Observed, on a workspace written from scratch from the documentation (a new fictional person, two families, English and French content,
+accents, `& % #`, two offers) and on the shipped `examples/workspace`: Git workspace, facts, profile, content, offer, matrix, plan,
+assembly, `.tex`, PDF, package, inspection of the warnings and of the unsatisfied required requirements, `package review`, a **synthetic**
+approval (library call, reviewer named "SYNTHETIC TEST ONLY", temporary workspace; no real approval was ever recorded), `READY_TO_SEND`,
+then one appended byte in the PDF: `NEEDS_REVIEW` (`ARTIFACT_CHANGED_SINCE_PACKAGING`, `HUMAN_REVIEW_MISMATCH`), restored: `READY_TO_SEND`.
+A 40-bullet file with a zero minimum gain gave a 2-page PDF recorded as `TARGET_EXCEEDED`. A source not committed was refused
+(`SOURCE_NOT_AT_COMMIT`).
+
+Difficulties met by a new user, and what was done:
+
+| Difficulty | Action |
+|---|---|
+| No install, prerequisite or troubleshooting page | `docs/QUICKSTART.md` and `QUICKSTART.fr.md` added; every command in them was executed |
+| A multi-family profile needs `--family`; the README never says so | documented (QUICKSTART, troubleshooting) |
+| `PLAN_CAPABILITY_UNKNOWN` does not list the valid identifiers | documented where they are (`examples/taxonomy.generic-v1.json` is `builtin:generic-v1`, same fingerprint) |
+| A block with no bullet (typically the degree) silently vanishes from the CV unless `protected: true`; never explained for a beginner | `CONTENT.md`, QUICKSTART |
+| Default paper A4 in a product aimed at Canada | documented (`--paper letterpaper`); the default itself is a maintainer decision |
+| `provenance` prints an absolute path in its error (local output) | noted, not changed |
+| The matrix tagged "REST APIs" as `ABSENT` although a bullet says REST: tags are what the matrix reads | documented as how the matrix works; the unsatisfied requirement stays visible |
+| `package approve` prints the whole summary before the prompt | acceptable, left |
+
+## 5. Trust boundaries
+
+| Boundary | Controlled by the software | Not controlled (relies on the person) |
+|---|---|---|
+| Source -> FactBase | strict grammar, status per fact; an import only proposes | that a fact is true |
+| FactBase -> content | each bullet, skill and heading names facts that must exist and be `CONFIRMED` | that a sentence means what its facts say; FR/EN equivalence |
+| Content + offer -> plan | deterministic; pool limited to proven lines; a prohibition beats relevance; unsatisfied required stays explicit | the quality of the capability tags |
+| Plan -> assembly | five layers re-derive the plan from the current sources: an edited plan with a recomputed hash is refused (`PLAN_NOT_REPRODUCIBLE`) | - |
+| Assembly -> LaTeX | one escaping table, closed character set, and `package create` and `chain.verify` require the `.tex` to equal the rendering of the assembly | - |
+| **LaTeX -> PDF** | with `--pdf`: only that the file looks like a PDF. With `--compile`: the compiler's own output for the verified bytes | that a PDF supplied by hand comes from that `.tex` |
+| PDF -> package | exact-byte hash in the snapshot and the metadata; page count read from the PDF | - |
+| Package -> review | the review names the exact PDF hash and what the reviewer was shown (plan, assembly, `.tex`, warnings, page verdict) | who wrote the review; that the text is faithful |
+| Review -> READY | recomputed on every call; any later change loses it | - |
+
+## 6. The PDF / LaTeX gap
+
+The risk: a PDF unrelated to the verified `.tex` enters before the review, with every hash and metadata recomputed.
+
+Observed, on the pre-audit code:
+
+- `package create --pdf` accepted a PDF compiled from **another** CV (the French one for the English `.tex`) and a 3-line file
+  `%PDF-1.4 ... %%EOF` with no page (`pdf_pages: null`, `page_verdict: NOT_COMPILED`). Both gave a valid `NEEDS_REVIEW` package.
+- Between `render --pdf` and `package create --pdf` a file travels: nothing links the compilation to the package.
+- Any change to the PDF **after** packaging is detected (snapshot, metadata hash, approval mismatch), as is a substituted plan,
+  assembly or `.tex` even with recomputed hashes (the chain is re-derived from the sources). A PDF changed after the approval loses
+  `READY_TO_SEND`.
+- A person who can write to the workspace can create a package with their own PDF through the tool itself (`package create --pdf`) or
+  rebuild the snapshot, metadata and `package.json` by hand, and write the review file. Only hashes are involved, no secret.
+  The one step bound to a person is the approval, and a file is not authenticated (section 7).
+- On this machine, with `SOURCE_DATE_EPOCH=0` as set by the compiler wrapper, three compilations and the `render` output were
+  **byte-identical**, and the French PDF differed from the English recompilation. Observed once, on one engine: evidence, not a contract.
+
+Corrected (minimal, testable, additive): `package create --compile` (`package.create(..., compile_timeout=)`) compiles **after** the `.tex`
+is verified against the assembly of the plan and **before** anything is written, then packages that output; it is exclusive with `--pdf`,
+leaves nothing on failure, exits 4 or 5 like `render`. Tests: real MiKTeX compilation (skipped without `pdflatex`), compiler absent,
+compilation failing, an unverified `.tex` never reaching the compiler, both sources refused.
+
+What this does not give: once the files sit in the workspace, nothing proves the PDF is the compilation of the `.tex`. No
+cryptographic equivalence is claimed. What rests only on a person's reading: that the PDF read is the PDF packaged (the typed hash
+prefix), that its content is what the `.tex` says, and that it is faithful to the facts.
+
+Not done, proposed for M8-A-R1 (**Planned**): (a) an advisory reproduction check in `package review`: recompile when `pdflatex` is present;
+identical bytes is positive evidence, different bytes is "inconclusive", never a failure; (b) require a readable page tree
+(`pdf_pages` not null) before an approval can be recorded (changes a documented contract: decision needed; fail-closed but
+unverified on TeX Live); (c) extracting text from the PDF and comparing it with the assembly (rejected for now: fragile with a
+stdlib-only parser and defeated by invisible text).
+
+## 7. The human approval
+
+The file is unsigned JSON. Distinguish:
+
+| Property | Today |
+|---|---|
+| Integrity of the document | none: no checksum or signature inside it |
+| Binding to a review | strong: it names `tailored_cv_id`, the exact PDF hash, and the plan, assembly, `.tex`, warnings and page verdict shown; any change voids it |
+| Authenticity of the reviewer | none: `reviewer` is free text |
+| Resistance to an attacker who can write to the workspace | none: they can write the file; the typed prefix only stops an honest script |
+
+Options and trade-offs: **(0)** keep it, documented (current). **(1)** a checksum or HMAC inside the file: stops accidents only, the key
+would sit beside the data. **(2)** have the review committed in the workspace Git repository and report, as information, whether that
+commit is signed with the user's own Git signing key (`git verify-commit`): no new dependency, real authenticity if the user already
+signs, history as audit trail; readiness would not depend on it. **(3)** a detached signature (`ssh-keygen -Y`, minisign, GPG) verified
+against a public key in the profile: strongest, but key management and an external tool, disproportionate for one person's local tool.
+
+Recommendation: keep (0) for `0.2.0` and say so (done in `PACKAGE.md`, `review`), plan (2) as an optional, informational line, and
+revisit (3) only if several people share a workspace. No signature system was added.
+
+## 8. The compiler
+
+Observed in `pdf.py`: fixed command line, `-no-shell-escape`, `-halt-on-error`, `--disable-installer` on MiKTeX, fresh temporary directory
+(no leftover after the runs), no standard input, a time limit, `TEX*` variables removed, `shell_escape=f`, `openout_any=p`,
+`SOURCE_DATE_EPOCH=0`, the log kept out of diagnostics (it can quote the CV; `--log` writes it).
+Not a sandbox, and not claimed to be: the process inherits the rest of the environment; `openin_any` is the default; the network and the
+system are not restricted; output is read fully into memory before being truncated (bounded by the time limit); the stopping of a helper
+process on timeout under MiKTeX was **not verified**. What keeps the compilation safe is the input (fixed template, escaping, closed
+character set), tested with a hostile-document test. Planned for R1: an allow-list environment, `openin_any=p`, an output size bound.
+
+## 9. Portability
+
+Observed: **the full suite on Linux (Python 3.10.12, ext4): 1285 passed, 9 skipped, 0 failed** (the 9: 7 need `pdflatex`, 2 are
+Windows-only or case-insensitive-filesystem cases); on Windows (Python 3.9.13, MiKTeX): **1293 passed, 1 skipped** (a symbolic-link test
+that needs privileges). The 1294 collected tests are the 1286 of M7-B plus 8 added here. Identities were
+compared on a Windows CRLF checkout and a Linux LF clone, with accents and French text: plan, assembly, `.tex` hashes and `tailored_cv_id`
+**identical**. Text is normalised before hashing; PDFs are hashed as bytes.
+
+The Linux run found a **real defect**, never seen on Windows because its test was skipped there: `Path.resolve()` follows a dangling
+symbolic link on POSIX, so `facts import --out alias.md`, `plan|matrix|assemble|render --out`, and `package create` could write a new file
+through a dangling link pointing inside the workspace (never over an existing file, never outside the workspace). Corrected: the path as
+written is checked too, and a package folder may not be or pass through a link; 4 tests fail on the old code and pass on the new, on Linux.
+
+Not tested: TeX Live, any Linux compilation, macOS, Python 3.11 to 3.14 for the suite, case-insensitive macOS file systems beyond the
+existing tests, a non-ASCII user name in the workspace path, paths with spaces in the end-to-end journey.
+
+## 10. Readability and ATS
+
+Observed with poppler: one column, correct reading order, accents, bullets, spacing, section titles, fonts embedded with a Unicode map,
+English and French, one and two pages, `& % #` printed correctly; the two-page CV is recorded as `TARGET_EXCEEDED`; page images
+were inspected (clean, plain, legible; a short CV leaves most of the page empty). With `pypdf`, words around bold text and separators
+were merged (`accèsRESTen`): a property of that extractor (pdfTeX stores the space as a position); `\pdfinterwordspaceon` fixed it in a
+test with MiKTeX. Not adopted: it would change `generic-v1` bytes, hence every hash; a guarded `\ifdefined` form or a `generic-v2` is an R1
+decision. Other limits of `generic-v1`: A4 default, French labels without the space before a colon, no hyperlink, no right-aligned dates,
+Latin Modern fonts, pdfLaTeX only. No ATS was tested: nothing is claimed about any ATS.
+
+## 11. Documentation
+
+Audited: README and README.fr, WORKSPACE, CONTENT, PLAN, RENDER, PACKAGE, IMPORT, ARCHITECTURE, GOVERNANCE. Fixed: stale "declared state"
+wording (README, README.fr, GOVERNANCE), an ARCHITECTURE that predated everything after M3, a README status claiming the generation engine
+was absent, README.fr without the package commands, no install/quick start/troubleshooting (new), `protected` unexplained, `--family`
+unexplained, `--compile` and the compiler limits. Remaining: the guides in `docs/` other than the quick start exist in English only (the
+design documents' French translation is planned before publication, `AGENTS.md` section 7).
+
+## 12. Privacy, licence, distribution
+
+Observed: the scanner reports 0 finding on the tree and on the history (with an outside deny list); all 15 commits carry one no-reply
+identity; no tracked PDF, log, archive or binary; `.gitignore` excludes workspace folders and generated documents; the licence is MIT
+("ModularCV contributors"); `cv-panel` carries the attribution and the MIT notice of its upstream author. Inspected by hand beyond the
+scanner: `LICENSE`, `NOTICE.md`, `SKILL.md`, `normes-ets.md`, the examples (fictional, `example.com`/`example.org`), the templates, the
+schema. Points for a human decision: `normes-ets.md` summarises two documents of a school's co-op service (the notice says examples are not
+reproduced; the right to redistribute a summary is not established); the maintainer's account name appears in the remote URL of the local
+Git configuration only (not tracked), and a published repository would carry it in its address. The Git history is small (110 KiB packed)
+and was scanned; a published history would expose the commit messages and the 15 commits' content.
+
+## 13. Defects found and corrected in this audit
+
+1. Dangling symbolic link written through on POSIX (above). Corrected, 4 tests that fail before and pass after on Linux.
+2. A PDF of any origin accepted without a link to the `.tex`: gap documented, `--compile` added (5 tests), rest proposed. (Tests that
+   fail before and pass after: the dangling-link ones, on Linux. The `--compile` tests cover new behaviour.)
+3. Documentation gaps and stale statements (section 11).
+
+Tests added: 8 (`test_package.py`: 2 dangling-link cases and 5 for `--compile`; `test_render.py`: 1 dangling-link case).
+
+## 14. Risks that block a public release (to settle before M8-B)
+
+1. Installation from a distribution is **unverified** (section 3): build and install must be tried online, with a current setuptools.
+2. TeX Live and Linux compilation are **unverified**: the supported-platform statement must say so or this must be tested.
+3. The right to distribute `normes-ets.md` is not established.
+4. Python 3.9 reached its end of life: decide the supported versions (`requires-python`), and test the newer ones.
+5. The unsigned approval and the PDF/LaTeX gap are documented limits, not defects; a publication must keep saying so.
+
+## 15. Proposed M8-A-R1 and decisions for the maintainer
+
+Proposals: advisory PDF reproduction check; `generic-v2` (guarded `\pdfinterwordspaceon`, French colon, paper default); compiler
+environment allow-list and `openin_any=p`; optional informational Git-signature line for approvals; online build and install check
+(wheel, sdist, `pip install`, console script decision); Python version matrix; French translation of the user guides; an `examples`
+walkthrough script.
+
+Decisions: default paper (A4 or Letter); whether to require a readable page count for approval; approval authenticity (section 7);
+supported Python versions; whether `normes-ets.md` stays; whether the published repository may carry the current history and
+the account name in its address; the fate of the quarantined file (open decision 7).

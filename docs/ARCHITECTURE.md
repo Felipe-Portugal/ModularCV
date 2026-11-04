@@ -17,6 +17,27 @@ facts.md ──► master CV ──► family baselines ──► tailored CV �
 | **Package** | CV + cover letter + provenance for one application. | Every gate passes, or it is not ready. |
 | **Readiness** | Decides if a package may be sent. | Fail-closed (see `GOVERNANCE.md`). |
 
+## The chain as implemented (M2 to M7)
+
+The diagram above is the original idea. What the code does today, one module per step, every arrow a verification:
+
+```
+facts.md (FactBase-v1)  ─►  content/resume.json (ResumeContent-v1, each line tied to CONFIRMED facts)
+        │                           │
+        └──── profile.json (Profile-v1) ──┐
+offers/*.json (JobOffer-v1) + taxonomy ─► requirement matrix ─► TailoringPlan-v1 (deterministic, not a CV)
+                                                                   │
+        assembly (AssembledResume-v1, five verification layers) ◄──┘
+                │
+            .tex (generic-v1, escaped, byte-deterministic) ─► PDF (optional pdflatex)
+                │                                                │
+                └──────── package (metadata v3, snapshot, package.json) ─► your review of the exact PDF ─► READY_TO_SEND (computed)
+```
+
+Modules: `facts`, `profile`, `content`, `joboffer`, `taxonomy`, `matrix`, `plan`, `assemble`, `latex`, `pdf`, `chain`, `package`, `review`,
+`snapshot`, `metadata`, `provenance`, `readiness`, `staleness`, `privacy`, `legacy`. Start with [QUICKSTART.md](QUICKSTART.md). The
+pre-publication audit (trust boundaries, limits, open decisions) is [design/PREPUBLICATION_AUDIT.md](design/PREPUBLICATION_AUDIT.md).
+
 ## What this repository contains
 
 The persona-independent parts, with tests:
