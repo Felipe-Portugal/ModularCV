@@ -76,8 +76,10 @@ Complete examples with a fictional fact base: `examples/workspace/content/` (`re
   selection use, so do not reuse one for something else. Bullet ids are unique across the whole file.
 - **Protected blocks.** A block is kept on a CV only when the plan selects at least one of its bullets, except when it has
   `"protected": true`: a protected block always keeps its proven heading, even with no bullet. Give it to a block that must always
-  appear, typically your degree (a block with no bullet and no `protected` flag is silently left out; the plan warns
-  `PROTECTED_BLOCK_NOT_KEPT` only for a protected block that was dropped).
+  appear, typically your degree. A block with no bullet and no `protected` flag can never be printed: `content check` says so with the
+  warning `CONTENT_BLOCK_NEVER_PRINTED` (a block whose bullets are all `never_publish` is a deliberate reminder and is not flagged).
+  The plan warns `PROTECTED_BLOCK_NOT_KEPT` for a protected block that was dropped (excluded by its family, a precedence rule, a
+  blocking baseline or a heading that is not proven in the language).
 - **Order.** `order` places a block inside its section (unique there). The order of sections, of bullets inside a block, and of
   a baseline's `items` is the order written. The order of blocks in the file does not matter.
 - **Links.** `follows` names a bullet of the same block that must be printed first; `condenses` lists bullets of the same block that

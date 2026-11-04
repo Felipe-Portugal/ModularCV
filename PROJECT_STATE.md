@@ -8,7 +8,7 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
 - Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: after M8-A, `py -3.9 -m pytest` gives 1293 passed and 1 skipped (a symlink test needing privileges on Windows), 1294 collected (before M8-A: 1285 passed, 1 skipped, 1286 collected); on Linux (Python 3.10.12, WSL, no `pdflatex`) 1285 passed and 9 skipped; synthetic
+- Tests: after M8-A-R1, `py -3.9 -m pytest` gives 1304 passed and 1 skipped (1305 collected), as does Python 3.14; before that, after M8-A, `py -3.9 -m pytest` gave 1293 passed and 1 skipped (a symlink test needing privileges on Windows), 1294 collected (before M8-A: 1285 passed, 1 skipped, 1286 collected); on Linux (Python 3.10.12, WSL, no `pdflatex`) 1285 passed and 9 skipped; synthetic
   data only. (History: before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`); after M7-B: 1286 (106 new in `tests/test_package.py`; two M3 tests moved from version "3" to "4" as the unknown version; after M8-A: 1294, 8 new). Before M8-A, Linux had only a stdlib smoke test.)
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -25,11 +25,35 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
-| M8 | Public release preparation | M8-A audit done, awaiting validation; M8-B not authorised |
+| M8 | Public release preparation | M8-A audit and M8-A-R1 stabilisation done, awaiting validation; M8-B not authorised |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (M8-A, pre-publication audit)
+## Last work (M8-A-R1, stabilisation and verification of the blockers)
+
+Details and evidence: `docs/design/PREPUBLICATION_AUDIT.md` section 16. Nothing pushed, tagged, released or published; version `0.2.0`.
+
+- **Distribution verified (Windows, online, temporary virtual environments only)**: wheel and sdist build with `python -m build` (setuptools 84.2.1
+  in the isolated build environment); the wheel installs on Python 3.14, the sdist on 3.9, editable on 3.14; the commands run from outside the
+  clone with the identities of the source tree. Fixed: deprecated `license = {text}` (now SPDX `license = "MIT"`, `setuptools>=77`), and a source
+  archive whose tests could not run (`MANIFEST.in`; its tests pass unpacked: 1304 passed, 1 skipped on 3.9).
+- **PDF supplied from outside**: `package create` refuses a PDF with no readable page (`PDF_NO_PAGE`, and `package status` blocks one with
+  `CHAIN_PDF_NO_PAGE`); the create output declares `pdf_origin` (`COMPILED_FROM_VERIFIED_TEX` with `--compile`, `SUPPLIED_PROVENANCE_NOT_VERIFIED`
+  with `--pdf`); the review limits say so. A supplied PDF of another CV or language is still accepted (documented, not provable). `--compile` is the
+  recommended path. Approval (`CVQualityReview-v2`, unsigned) unchanged.
+- **Python**: full suite on 3.9 (Windows), 3.14 (Windows) and 3.10 (Linux); identical fingerprints and `.tex` hashes. 3.14 exposed a crash on deeply
+  nested JSON (fixed: `canonical.loads`, one limit on every interpreter). 3.12, 3.13, 3.15 were not available: **not claimed**; metadata unchanged.
+- **Linux compilation**: not tested (no TeX distribution; none installed). Prerequisites and commands documented.
+- **`normes-ets.md`**: no licence or permission recorded; tracked since the initial commit, hence in the whole history including `origin/main`;
+  not needed by the engine; not in the wheel; excluded from the sdist. Blocking for publication; no file or history touched.
+- **Ergonomics**: `content check` warns `CONTENT_BLOCK_NEVER_PRINTED` (block with no bullet and no `protected`); Letter paper verified and documented;
+  A4 stays the default; no `generic-v2`.
+- **Tests**: 1305 collected (1294 + 11): Windows 3.9 and 3.14: 1304 passed, 1 skipped.
+- **Open decisions added**: 15 strategy for `normes-ets.md` and the history (authorisation, cleaned history, or a clean-source publication);
+  16 supported Python range and permission to install interpreters or a CI for 3.12, 3.13, 3.15; 17 whether to store the PDF origin in the package
+  (contract change); 18 permission to install TeX Live (WSL or container) to test Linux compilation.
+
+## Earlier work (M8-A, pre-publication audit)
 
 - **Audit** written in `docs/design/PREPUBLICATION_AUDIT.md`: capabilities (implemented / documented / validated), installation, journey,
   trust boundaries, PDF/LaTeX gap, approval options, compiler limits, portability, readability and ATS, documentation, privacy and licence,
@@ -225,5 +249,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M8-A (`docs/design/PREPUBLICATION_AUDIT.md`) and for the decisions it lists. Do not start M8-B, M8-A-R1
-or any publication without an explicit go.
+Wait for the maintainer's validation of M8-A-R1 (`docs/design/PREPUBLICATION_AUDIT.md` section 16) and for the decisions it lists (notably the
+strategy for `skills/cv-panel/normes-ets.md` and the history). Do not start M8-B or any publication without an explicit go.

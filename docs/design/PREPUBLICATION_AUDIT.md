@@ -221,6 +221,8 @@ Tests added: 8 (`test_package.py`: 2 dangling-link cases and 5 for `--compile`; 
 
 ## 14. Risks that block a public release (to settle before M8-B)
 
+Status after M8-A-R1: see section 16 (risk 1 verified on Windows; risks 2 to 5 remain, risk 3 characterised).
+
 1. Installation from a distribution is **unverified** (section 3): build and install must be tried online, with a current setuptools.
 2. TeX Live and Linux compilation are **unverified**: the supported-platform statement must say so or this must be tested.
 3. The right to distribute `normes-ets.md` is not established.
@@ -237,3 +239,133 @@ walkthrough script.
 Decisions: default paper (A4 or Letter); whether to require a readable page count for approval; approval authenticity (section 7);
 supported Python versions; whether `normes-ets.md` stays; whether the published repository may carry the current history and
 the account name in its address; the fate of the quarantined file (open decision 7).
+
+## 16. M8-A-R1: stabilisation and verification of the blockers
+
+M8-A-R1 resolves or characterises the blockers of section 14 without a new major feature. Nothing was pushed, tagged, released or published;
+the version stays `0.2.0`. Baseline: `main` at `72543a8`, `origin/main` at `0a553e1`. Same convention: Observed / Hypothesis / Planned.
+
+### 16.1 Installation from a distribution (blocker 1 of section 14)
+
+Observed, Windows 11, with network access, PyPI as the only source, **only in temporary virtual environments** (the global Python was not
+modified): `python -m build` 1.6.1 (with `pyproject_hooks` 1.3.3, `packaging` 26.3, `colorama` 0.4.6, pip 26.2.1) in a Python 3.14.7
+environment; the isolated build environment of `build` fetched `setuptools` 84.2.1 (the wheel records `Generator: setuptools (84.2.1)`).
+The runtime has no dependency and none was added.
+
+- The wheel and the sdist build from the files tracked by Git (`git archive`).
+- **Wheel**: 27 modules of `modularcv/`, `LICENSE`, `METADATA`, `WHEEL`, `RECORD`, `top_level.txt`; nothing else (no test, example, template,
+  schema, skill, PDF, log, quarantine file). The engine reads no data file of the package (templates and taxonomy are in the code).
+  There is no console script: `python -m modularcv` is the only entry point (documented since M8-A).
+- **Metadata**: `Name: modularcv`, `Version: 0.2.0`, `Requires-Python: >=3.9`, no `Requires-Dist` outside the `dev` extra (`pytest>=7`).
+- Wheel installed in a fresh Python 3.14.7 environment, source archive installed in a fresh Python 3.9.13 environment (pip 22.0.4, whose
+  isolated build downloaded a setuptools compatible with 3.9); editable installation (`pip install -e .`) also works on 3.14. In each, from a
+  folder outside the clone and with `python -I`, `import modularcv` resolves to `site-packages`, and the whole quick-start sequence
+  (provenance, facts, profile, content, offer, matrix, plan, render with a real PDF, package create with `--pdf` and with `--compile`,
+  review, status, an A4 and a Letter package) gave the exit codes and identities of the source tree.
+- Python 3.8 is refused by pip (`requires a different Python: 3.8.10 not in '>=3.9'`).
+
+Defects found and fixed (packaging only):
+
+1. `license = {text = "MIT"}` is deprecated: setuptools warned that the build would break after 2027-02-18. Now `license = "MIT"` and
+   `license-files = ["LICENSE"]` with `setuptools>=77` (the metadata become `License-Expression: MIT`; the warning is gone).
+2. The source archive carried `tests/` but none of the files the tests read (`examples/`, `schemas/`, `templates/`, `skills/`, `docs/`):
+   10 test modules failed at collection. A `MANIFEST.in` now adds those folders, so the suite runs from the unpacked source archive
+   (1304 passed there on Python 3.9, see 16.3), **except** `skills/cv-panel/normes-ets.md`, excluded on purpose (16.5); the one test that reads it
+   is skipped when the file is absent.
+
+Not verified: installation on Linux or macOS, any index other than PyPI, a build without network (`--no-build-isolation` with setuptools >= 77).
+
+### 16.2 PDF supplied from outside, `--compile` and the approval (P0)
+
+Scenarios run on the shipped synthetic workspace, with and without a **synthetic** approval (a library call in a temporary folder, reviewer
+"SYNTHETIC TEST ONLY"; no real approval was simulated):
+
+| Scenario | Before R1 | After R1 |
+|---|---|---|
+| `--pdf` with the PDF of another CV | accepted; `READY_TO_SEND` after approval | **unchanged**: accepted, declared `SUPPLIED_PROVENANCE_NOT_VERIFIED` |
+| `--pdf` with a PDF of another language | same | **unchanged**, same declaration |
+| `--pdf` with only the PDF markers (`%PDF-` ... `%%EOF`), no page | accepted, `pages: null`, `READY_TO_SEND` after approval | **refused** `PDF_NO_PAGE`, nothing written; a hand-forged package with consistent hashes is `BLOCKED` (`CHAIN_PDF_NO_PAGE`) |
+| `--pdf` with the right PDF modified (bytes appended) before packaging | accepted | **unchanged** (it is a different, supplied document) |
+| PDF modified after the approval | `NEEDS_REVIEW` (`ARTIFACT_CHANGED_SINCE_PACKAGING`, `HUMAN_REVIEW_MISMATCH`); restoring the bytes restores `READY_TO_SEND` | unchanged |
+| `--compile` | PDF made by the tool from the verified `.tex`; same readiness path | same, declared `COMPILED_FROM_VERIFIED_TEX` |
+
+Decisions applied: `package create --compile` is the recommended path; a supplied PDF is never given the guarantees of the integrated
+compilation (the output says so, the review's limits say so, `PACKAGE.md` says so); a file without a recognised page cannot be packaged or
+approved; the approval mechanism (`CVQualityReview-v2`, unsigned) is unchanged. The origin is **not** stored in the package (it would change the
+metadata or package contract): it is reported when the package is created and in the permanent limits of every review. Limits of the page reader
+(`pdf.count_pages`): it reads the page tree written in the file with the standard library; a counted page is not necessarily legible, and a PDF
+whose page tree it cannot read is refused (workaround: `--compile`). Tests: 6 added in `test_package.py` (refusal and no residue, forged
+consistent package, origin declaration in the output and in the review limits, compiled output without a readable page, stand-in compiler); a
+mutation run (page checks disabled) is caught by 4 of them.
+
+### 16.3 Python versions (P1)
+
+Proposed public support: 3.12, 3.13, 3.14, 3.15. **Available and tested**: 3.9.13 (Windows), 3.10.12 (Linux, WSL), 3.14.7 (Windows); 3.8.10 only
+to check that pip refuses it. **Not available**: 3.12, 3.13, 3.15; no interpreter was installed (not authorised).
+
+| Python | Platform | Full suite | Wheel / sdist | Identities |
+|---|---|---|---|---|
+| 3.9.13 | Windows | 1304 passed, 1 skipped | sdist install, sdist tests: 1304 passed, 1 skipped | reference |
+| 3.10.12 | Linux (WSL), no `pdflatex` | see `PROJECT_STATE.md` (7 tests need `pdflatex`) | not built there | identical |
+| 3.14.7 | Windows | 1304 passed, 1 skipped | wheel and editable install | identical |
+
+Identities compared (value-free, from the shipped example, EN and FR): fact base, profile and content fingerprints, `plan_sha256`, SHA-256 of the
+`.tex`: identical on 3.9, 3.10 (Linux) and 3.14.
+
+Defect found by 3.14 and fixed: `json` goes much deeper than on 3.9 before failing, so a deeply nested value inside an `x-` field made
+`canonical_json` overflow the stack and the command crash with a traceback (3.9 refused it earlier, by luck of the limit). All JSON readers now go
+through `canonical.loads`, which refuses more than 100 nested levels with the same error on every interpreter (a document is a few levels
+deep). Two tests of M8-A (a 5000-level array) also failed on 3.14 for this reason and now pass. Tests added: 4.
+
+**Recommendation** (not applied; metadata unchanged): do not declare 3.12, 3.13 and 3.15 supported until they are run; the evidence supports
+"3.9 to 3.14 as tested, the newest tested being 3.14". A restricted public statement could be `>=3.9` (as declared) with 3.14 and the oldest
+declared version tested, or `>=3.12` once 3.12 and 3.13 are tested. The choice, and the end-of-life policy for 3.9, is the maintainer's.
+
+### 16.4 Compilation on Linux (P1)
+
+Observed: the Linux test machine (WSL Ubuntu 22.04) has no `pdflatex` and no TeX Live package; none was installed. Therefore **no PDF compilation,
+page count, text extraction or `package create --compile` was tested on Linux**, and PDF compatibility on Linux is not claimed. Reproducible
+commands for whoever has a Linux machine with TeX Live (expected packages on Debian/Ubuntu, not verified): `sudo apt install
+texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended`, then `python -m modularcv latex check`, then the quick
+start of `docs/QUICKSTART.md` with `package create --compile`, then `pdftotext -layout` on the result. Hypothesis: the page reader may need
+attention with TeX Live's default object-stream compression (it reads Flate-compressed object streams, but this was only exercised with MiKTeX's output).
+
+### 16.5 `skills/cv-panel/normes-ets.md` (P0 for publication)
+
+Observed, without extrapolation:
+
+- **Provenance**: a French summary (4.7 KB) of two documents of the co-operative education service of a school ("PRE811 - CV, Gabarit et modeles"
+  and "Redaction d'une lettre de presentation"), written for the `cv-panel` skill. The file says it summarises them; it names no author, licence or permission.
+- **Licence / authorisation references**: none in the repository. `skills/cv-panel/NOTICE.md` covers only the upstream `hiring-panel-skill` (MIT,
+  an unrelated source).
+- **Tracked by Git**: yes, `skills/cv-panel/normes-ets.md`.
+- **History**: added by the initial commit `0a553e1` and never modified since; present in every commit of the history, **including `origin/main`** (the
+  private remote). Any publication that keeps that history publishes the file.
+- **Distributions**: not in the wheel (only the package). The first R1 `MANIFEST.in` would have put it in the source archive; it is now excluded
+  (`exclude skills/cv-panel/normes-ets.md`) and checked absent from the built archive.
+- **Needed to run the engine**: no. No module of `modularcv/` reads it; only `SKILL.md` (the review skill, a separate prompt) refers to it and one test reads it
+  (skipped when absent).
+
+Nothing was deleted, moved or rewritten, and the history is untouched. **Blocking for publication until a decision is taken.** Options, each
+needing a separate human decision: (a) obtain the school's authorisation to redistribute the summary (or its written statement that the summary is
+free to share) and keep the file; (b) exclude the file and publish a **cleaned** history (rewriting history, to be decided and executed separately);
+(c) publish from a clean source **without the private history** (a new repository from a single clean commit, the file left out or replaced by a
+neutral checklist written from the user's own knowledge). In all cases `SKILL.md` must stop depending on the file or say that the user supplies it.
+
+### 16.6 Ergonomics
+
+- The block without a bullet and without `protected` (the degree) used to vanish silently. `content check` now warns `CONTENT_BLOCK_NEVER_PRINTED`
+  (path of the block); the selection algorithm, the plan and the fingerprints are unchanged. A block whose bullets are all `never_publish` is a
+  deliberate reminder and is not flagged. 1 test; documented in `CONTENT.md`, `CONTRACTS.md` 3.2 and the quick starts.
+- A4 stays the default. Letter checked with a real compilation: PDF page box 612 x 792 pt (A4: 595.3 x 841.9 pt); `package create` recognises
+  the paper from the `.tex` and records it in the metadata; documented in `RENDER.md`.
+- `generic-v2` was **not** created. The unprinted `headline` is unchanged.
+
+### 16.7 Remaining blockers and decisions
+
+Blockers for a publication: (1) the right to distribute `normes-ets.md`, and the fact that it is in the history (16.5); (2) the supported-Python statement
+(only 3.9, 3.10 and 3.14 were run; 3.12, 3.13 and 3.15 were not available); (3) compilation on Linux and TeX Live are unverified; (4) installation was verified
+on Windows only and never through an index; (5) the documented limits (unsigned approval, a supplied PDF is not proven to come from the `.tex`).
+Decisions for the maintainer, in addition to section 15: the strategy for `normes-ets.md` and the history (16.5); the supported Python range
+and whether to authorise installing interpreters (or a CI) to test 3.12, 3.13 and 3.15; whether to store the PDF origin in the package (a contract change);
+whether to authorise a TeX Live installation (WSL or a container) for the Linux compilation test.

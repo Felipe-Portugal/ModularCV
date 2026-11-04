@@ -126,7 +126,10 @@ profile's selection constants and build the plan again).
   English examples with poppler's `pdftotext` (correct, fonts embedded with a Unicode map), not against any applicant tracking system.
   A second, simpler extractor (`pypdf`) merged words around bold text and separators (`accèsRESTen`) because `pdfTeX` encodes the space as
   a position, not a character; `\pdfinterwordspaceon` repaired it in a test (not adopted: it would change `generic-v1`, see the audit).
-  The default paper is A4; for Canada use `--paper letterpaper`. French labels such as `Outils:` carry no space before the colon.
+  The default paper is A4 (kept); for Canada and the United States use `--paper letterpaper`: checked with a real MiKTeX
+  compilation (the PDF page box is 612 x 792 pt instead of A4's 595.3 x 841.9 pt), and `package create` recognises the paper from the
+  `.tex` and records it in the metadata, so the Letter package is a verified chain like the A4 one. The paper is part of the `.tex`
+  and therefore of its hash: a Letter and an A4 document of the same plan are two different documents. French labels such as `Outils:` carry no space before the colon.
 - A reference check proves that facts exist and are `CONFIRMED`, not that a text means what they say; French and English texts are
   not checked for equivalence.
 - Only French and English have interface labels; other languages render if they have no skills section.

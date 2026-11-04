@@ -798,9 +798,8 @@ def test_an_over_target_pdf_is_shown_to_the_reviewer_and_is_part_of_what_is_appr
     ws = tmp_path / "ws"
     shutil.copytree(str(template), str(ws))
     summary = package.review_summary(ws, NAME)
-    assert summary["document"]["page_target"] == 1 and summary["to_acknowledge"]["page_verdict"] in ("TARGET_MET", "NOT_COMPILED")
-    if not REAL_PDFLATEX:
-        assert summary["to_acknowledge"]["page_verdict"] == "NOT_COMPILED"
+    # the stand-in PDF (no compiler) has one readable page, like the real one: both meet the target of 1 page
+    assert summary["document"]["page_target"] == 1 and summary["to_acknowledge"]["page_verdict"] == "TARGET_MET"
 
 
 # --- invariants ---------------------------------------------------------------------------------------------------------------------
