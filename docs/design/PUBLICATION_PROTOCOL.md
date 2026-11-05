@@ -4,6 +4,11 @@ Status: **written, not executed.** PUB-0 authorised read-only audits and local s
 tagged, released or made public; no GitHub setting was changed. Every gate below needs the human authorisation named in "Authorisations".
 This document is a maintainer document: it is listed in `PUBLIC_EXCLUDE.txt` and is not part of the public tree.
 
+**Update (PUB-1 and PUB-1-R1):** the governance chose to continue on the existing repository with a normal fast-forward push of `main`, not with
+the single-commit snapshot of strategy B, and accepted that the school summary stays in the repository. The gates for that route are in the
+maintainer's private notes outside the repository. The snapshot route below stays valid as a fallback; its tree hash and inventory
+(`PUBLIC_INVENTORY.sha256`) were regenerated in PUB-1-R1 because `normes-ets.md` is no longer in `PUBLIC_EXCLUDE.txt`.
+
 ## 1. Facts observed (read-only, PUB-0)
 
 Observed on GitHub with GET requests and `git ls-remote` / a mirror clone into a temporary folder:
@@ -84,7 +89,7 @@ These backups contain the school summary and the private history: keep them priv
 
 Conventions: `DEV` is the development repository; `WORK` a new empty temporary folder; commands run in `bash`; `OWNER` is the GitHub account that owns the repositories (kept out of this file so that the tree holds no handle); `SSH_USER=git` (the SSH user of GitHub remotes, written as a variable so that the privacy scan does not read the URL as an e-mail address). `OLD_ID=1441249060`,
 `OLD_COMMIT=0a553e11520bd672f1c0068e4ddc012511a4e292`, `OLD_BLOB=128616d76ff9f65a09457aa3edbc6a52afb6937e`,
-`SNAP_TREE=11f9c27a5026605e5f1fa52be6af9fbab17875ce`. **Never run a push, a rename or a creation from `DEV`**: `DEV` still carries the private history.
+`SNAP_TREE=91ebaeebea5eee4abf16633a7b554170a0e63748`. **Never run a push, a rename or a creation from `DEV`**: `DEV` still carries the private history.
 
 ### G0. Final verification (read-only; no authorisation beyond running it)
 

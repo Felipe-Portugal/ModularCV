@@ -25,11 +25,24 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
-| M8 | Public release preparation | M8-A, M8-A-R1, M8-A-R2 validated; M8-B release candidate done, awaiting validation; nothing published |
+| M8 | Public release preparation | M8-A, M8-A-R1, M8-A-R2, M8-B validated; PUB-0 validated; PUB-1 NEEDS_REVIEW, PUB-1-R1 done (local cleanup), awaiting validation; nothing pushed or published |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (PUB-0, publication protocol; nothing executed)
+## Last work (PUB-1-R1, final local cleanup before synchronisation; nothing pushed)
+
+Local corrections only: no push, no GitHub change, remote still private at `0a553e1`. Backups of PUB-1 (bundles, mirror, checksums) are kept outside the repository.
+
+- **D1 done**: the four unpublished PUB-0 commits (`cfd16f3`, `10be3e0`, `4051f44`, `93429ce`) were squashed into one (`79cb876`); the 25 earlier commits keep
+  their hashes; the tree differs from `93429ce` only by two wording lines that removed an unnecessary mention of the maintainer's private repository.
+  Rollback: `93429ce` is in the reflog (`ORIG_HEAD`) and in the PUB-1 bundle. No remote ref touched.
+- **D5 done**: a repository-local Git identity (the no-reply address); the global configuration is unchanged; a commit made without any `GIT_*` variable uses it.
+- **D2 done**: the school summary `skills/cv-panel/normes-ets.md` stays in the repository and its history (maintainer's decision). Statements were made
+  consistent: in the repository and in the source archive (no more `exclude` in `MANIFEST.in`), not in the wheel (engine only), optional, never used by
+  the engine; `README.md`, `SKILL.md` and the tests say so; no legal claim is made. `PUBLIC_EXCLUDE.txt` no longer lists it.
+- **Next**: the push itself (gate G2) needs an explicit authorisation; then verification of the private remote, then a separate decision for visibility.
+
+## Earlier work (PUB-0, publication protocol; nothing executed)
 
 Details: `docs/design/PUBLICATION_PROTOCOL.md` (facts, GitHub documentation, strategies A/B/C, gates G0 to G6) and `docs/design/PUBLIC_INVENTORY.sha256`.
 Read-only GitHub audit and local simulations only: no push, rename, creation, deletion, tag, release or visibility change; the maintainer's private personal repository was not opened.
@@ -298,5 +311,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's decisions listed in `docs/design/PUBLICATION_PROTOCOL.md` section 6. Do not rename, create, push, tag, release or change a
-visibility without an explicit go for that exact action (PUB-1 is not authorised).
+Wait for the maintainer's explicit authorisation of the push (gate G2 of the private PUB-1 notes) and of each later gate. Do not push, tag, release or
+change a visibility without an explicit go for that exact action.

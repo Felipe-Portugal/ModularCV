@@ -1,5 +1,8 @@
 # Publishing from a clean snapshot (procedure, M8-A-R2)
 
+Update (PUB-1-R1): the route chosen is a fast-forward push of the existing history, so this procedure is a fallback; the school summary is no longer
+excluded (the list of `PUBLIC_EXCLUDE.txt` now holds only the maintainer documents).
+
 Status: **a procedure, a local simulation (M8-A-R2) and a release-candidate snapshot (M8-B, `PREPUBLICATION_AUDIT.md` section 18). Nothing was published**, no GitHub repository was created, no remote was configured and nothing
 was pushed. Whether, when and how to publish is a human decision (see "Decisions" below).
 
