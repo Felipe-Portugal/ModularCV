@@ -34,8 +34,7 @@ def test_the_skill_reviews_and_never_rewrites_or_invents():
 
 def test_the_ets_norms_are_complete():
     if not (SKILL / "normes-ets.md").exists():
-        # The source archive (sdist) leaves this summary out: the right to redistribute it is not established (M8-A-R1).
-        pytest.skip("normes-ets.md is not part of this distribution")
+        pytest.skip("normes-ets.md is optional: the user may have removed or replaced it")
     norms = text("normes-ets.md")
     for item in ("Connaissances particulières", "Projets d'études", "une page", "3 ou 4 cm",
                  "Objet :", "p.j. Curriculum vitae", "infinitif"):

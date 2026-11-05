@@ -49,7 +49,6 @@ def test_the_exclusion_list_is_well_formed():
     skip = excluded()
     if not skip:
         pytest.skip("PUBLIC_EXCLUDE.txt is not part of this distribution")
-    assert "skills/cv-panel/normes-ets.md" in skip
     assert "PROJECT_STATE.md" in skip and "PUBLIC_EXCLUDE.txt" in skip
     for rel in skip:
         assert not rel.startswith(("/", "..")) and "\\" not in rel and ".." not in rel.split("/"), rel
@@ -76,7 +75,7 @@ def test_every_relative_link_of_a_public_document_resolves_to_a_public_file():
 
 
 def test_no_public_document_depends_on_the_school_summary_file():
-    """The summary of the school's documents is not distributed: no public file may need it."""
+    """The optional summary of the school's guidance is never required: the engine, the templates, the schemas and the examples must not depend on it."""
     for rel in ("modularcv", "templates", "schemas", "examples"):
         for p in (ROOT / rel).rglob("*"):
             if p.is_file() and p.suffix in {".py", ".json", ".md"}:
@@ -110,3 +109,16 @@ def test_the_readmes_state_the_limits_they_must_not_hide():
         text = read(rel)
         for needle in needles:
             assert needle.lower() in text.lower() or (needle == "certified" and "nothing is certified" in text), (rel, needle)
+
+
+def test_the_status_of_the_optional_school_summary_is_stated_consistently():
+    """PUB-1-R1: in the repository and the source archive, not in the wheel, never required by the engine (statements and packaging agree)."""
+    if not (ROOT / "skills" / "cv-panel" / "normes-ets.md").exists():
+        pytest.skip("the optional summary is not in this tree")
+    manifest = read("MANIFEST.in")
+    assert "graft skills" in manifest and "normes-ets" not in manifest  # the source archive carries it
+    assert re.search(r'^packages = \["modularcv"\]$', read("pyproject.toml"), re.M)  # the wheel holds the engine only
+    readme = read("README.md")
+    assert "not in the wheel" in readme and "engine does not use it" in readme and "source archive" in readme
+    skill = read("skills/cv-panel/SKILL.md")
+    assert "cette distribution ne le contient pas" not in skill and "s'il existe" in skill

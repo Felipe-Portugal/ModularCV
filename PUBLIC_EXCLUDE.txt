@@ -6,6 +6,5 @@ PUBLIC_EXCLUDE.txt
 PROJECT_STATE.md
 docs/design/PREPUBLICATION_AUDIT.md
 docs/design/PUBLIC_SNAPSHOT.md
-skills/cv-panel/normes-ets.md
 docs/design/PUBLICATION_PROTOCOL.md
 docs/design/PUBLIC_INVENTORY.sha256

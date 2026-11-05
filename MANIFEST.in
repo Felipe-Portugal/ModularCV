@@ -5,4 +5,3 @@ graft schemas
 graft templates
 graft skills
 graft tests
-exclude skills/cv-panel/normes-ets.md

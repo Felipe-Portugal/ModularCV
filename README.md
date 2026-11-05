@@ -91,5 +91,6 @@ you meet the job's requirements. `pdflatex` is not a sandbox. The privacy scan i
 
 MIT. `skills/cv-panel` is adapted from
 [hiring-panel-skill](https://github.com/alexyc9381/hiring-panel-skill) by Alex Chen (MIT); see
-`skills/cv-panel/NOTICE.md`. The skill's co-op advisor uses school norms that *you* supply in a file
-next to it; none are distributed.
+`skills/cv-panel/NOTICE.md`. The skill's co-op advisor can read `skills/cv-panel/normes-ets.md`, an optional summary of the school's co-op guidance: it is in this Git
+repository and in the source archive, it is not in the wheel, and the engine does not use it. It is a convenience, may be out of date and does not
+replace the school's own documents, which are not included here; replace it with your own norms if yours differ.
