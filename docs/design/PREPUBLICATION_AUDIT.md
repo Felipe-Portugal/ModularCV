@@ -464,3 +464,90 @@ Human decisions: (1) route for the public repository: single-commit snapshot (17
 (2) which working-tree documents are public; (3) public identity, repository name, visibility; (4) supported Python range and `Requires-Python`
 (and what to do with 3.9 to 3.11); (5) whether to keep the weaker `--pdf` path at all or to reject it (today it is accepted and never ready);
 (6) the earlier open decisions (default paper, approval authenticity, quarantined file).
+
+## 18. M8-B: release candidate and final audit before publication
+
+Nothing was pushed, merged, tagged, released or published; no remote or GitHub repository was created; the version stays `0.2.0`. Baseline: `main` at
+`f5435e7`, `origin/main` at `0a553e1`, clean tree, no tag, quarantine intact; 3.9 reference suite 1311 passed / 1 skipped as expected.
+
+### 18.1 Python policy (governance decision applied)
+
+Target: Python 3.12 to 3.14 inclusive. `pyproject.toml`: `requires-python = ">=3.12,<3.15"` and classifiers 3.12, 3.13, 3.14 (no licence classifier:
+SPDX `license = "MIT"`). `README`, `README.fr`, both quick starts and `AGENTS.md` announce the same range; 3.9 and 3.10 are described as regression
+environments of the source tree with no announced support; 3.11 and 3.15 are not tested. `tests/test_public_tree.py` fails if the metadata, the
+classifiers and the four user documents disagree. Observed: both archives carry `Requires-Python: <3.15,>=3.12`; `pip` on 3.9.13 refuses both with
+"requires a different Python"; the specifier excludes 3.9 to 3.11 and 3.15.0. Not claimed: every combination of version and platform. What ran:
+3.12.14 and 3.14.7 on Windows, 3.13.18 on Linux (offline container), regression 3.9.13 (Windows) and 3.10.12 (Linux, WSL).
+
+### 18.2 Content of the public tree
+
+`PUBLIC_EXCLUDE.txt` (root, itself excluded) is the exact list of what the public snapshot leaves out: itself, `PROJECT_STATE.md`
+(working log), `docs/design/PREPUBLICATION_AUDIT.md` (this journal), `docs/design/PUBLIC_SNAPSHOT.md` (maintainer procedure) and
+`skills/cv-panel/normes-ets.md` (rights not established). Distributed: `AGENTS.md` (contributor rules, now independent of `PROJECT_STATE.md`),
+the user guides (FR/EN), the contracts and architecture documents, `MILESTONES.md`, examples, templates, schemas, the engine, the tests, the
+skill `cv-panel` and its attribution (`NOTICE.md`), `LICENSE`. Corrections made so that exclusion breaks nothing: links from `README`,
+`ARCHITECTURE`, `MILESTONES`, `ENGINE` to excluded documents removed; `SKILL.md` no longer tells the agent to read the school file and its
+description no longer cites a school template code; `README` no longer claims that school conventions are summarised in the distribution;
+`MANIFEST.in` no longer ships `PROJECT_STATE.md`. No absolute user path, private name, remote or collaborator name was found in the tracked tree
+(`git grep` and the outside deny list: 0 finding). Licences: MIT (`LICENSE`, copy in the wheel as `License-File`); the attribution to
+`hiring-panel-skill` (MIT, Alex Chen) is in `skills/cv-panel/NOTICE.md` and is shipped in the sdist and the snapshot; the wheel contains no
+skill. The wheel does not contain the examples, so the quick start needs a clone or the sdist.
+
+### 18.3 Defects found and corrected
+
+| Defect | Found by | Fix | Test |
+|---|---|---|---|
+| `package status` printed a traceback and exited `1` (the code of `NEEDS_REVIEW`) when `metadata.json` was readable JSON of the wrong shape (`{}`, `[]`, ...); `package review|approve` crashed the same way | replaying the journeys on the built archives, then a malformed-file sweep (216 runs: 10 crashes before, 0 after) | `review_summary` raises `METADATA_UNREADABLE`; `status` reports `BLOCKED` (exit 3) | `test_metadata_that_is_not_a_cv_metadata_is_blocked_cleanly_by_every_command` (4 cases, fail without the fix) |
+| `package create --help` said a package with a `--pdf` could become ready | reading `--help` against the policy of M8-A-R2 | help text corrected | `tests/test_docs_commands.py` reads every documented command |
+| Skill description cited a school template code; skill told the agent to read the excluded file; README attributed summaries to the school | inventory of the public tree | reworded | `test_public_tree.py` |
+
+A second sweep over the source files (facts, profile, content FR and EN, offer, import map, legacy notes replaced by 10 malformed contents, 9 commands:
+630 runs): 0 crash.
+
+### 18.4 Public snapshot (from the candidate HEAD)
+
+Built in a temporary folder by `git archive` of the committed HEAD, removal of the paths of `PUBLIC_EXCLUDE.txt`, `git init`, one commit (no remote,
+no tag, identity: the no-reply address). 93 tracked files. Observed: no excluded path in the tree or in any object of the history; the blob of
+`normes-ets.md` is absent from the object store; its distinctive text is absent from every file of every commit; no PDF, log, cache, quarantine
+file; privacy scan of the tree and of the history: 0 finding; the same on the built wheel and sdist. The tested snapshot tree is
+`11f9c27a5026605e5f1fa52be6af9fbab17875ce`; the snapshot built from the final HEAD must have the same tree (see the report).
+
+### 18.5 Distributions and journeys (built from the snapshot)
+
+Wheel (27 modules + `dist-info`, 32 entries) and sdist (113 entries: engine, tests, docs, examples, schemas, templates, skills, licence; no excluded or
+generated-private file) build without warning. Each installs in a clean virtual environment on 3.12.14 and on 3.14.7; `python -I -m modularcv` runs
+from outside the source tree; name, version `0.2.0` and `Requires-Python` are read back from the installed metadata. From each of the four installations,
+a script runs the synthetic example (French and English, A4 and Letter) through plan, render, `package create --compile`, status, a refused script
+approval, a **synthetic** approval (reviewer `SYNTHETIC TEST ONLY`, written by the engine's API in a throw-away workspace; no real approval exists
+anywhere), substitution of the PDF (READY lost, restored: READY again), a source edited after packaging, a PDF supplied with `--pdf`
+(`SUPPLIED_PROVENANCE_NOT_VERIFIED`, `PDF_ORIGIN_NOT_VERIFIED`, approval refused with `PACKAGE_NOT_REVIEWABLE`), a package without PDF, a page-less
+PDF (`PDF_NO_PAGE`), a recorded rejection (`BLOCKED`) and emptied metadata (`BLOCKED`): 49 checks each, 49/49 on all four installations.
+`READY_TO_SEND`, `NEEDS_REVIEW` and `BLOCKED` were all observed. The A4 page box is 595.276 x 841.89 pt and the Letter one 612 x 792 pt.
+
+### 18.6 Test matrix (snapshot, tests run from the unpacked sdist unless stated)
+
+| Python | Platform | Result | Identity digest |
+|---|---|---|---|
+| 3.12.14 | Windows (MiKTeX) | 1406 passed, 3 skipped | `c84146783d031172` |
+| 3.14.7 | Windows (MiKTeX) | 1406 passed, 3 skipped | identical |
+| 3.13.18 | Linux, offline container (no TeX) | 1398 passed, 11 skipped | identical |
+| 3.9.13 (regression) | Windows | 1406 passed, 3 skipped | identical |
+| 3.10.12 (regression) | Linux, WSL (no TeX) | 1398 passed, 11 skipped | identical |
+| 3.9.13, private tree | Windows | 1408 passed, 1 skipped (1409 collected) | n/a |
+
+Skips: a symbolic-link test on Windows, the two tests that need files absent from the snapshot (`PUBLIC_EXCLUDE.txt`, `normes-ets.md`), and on Linux
+the tests that need `pdflatex`. Nothing failed.
+
+### 18.7 Portability and limits
+
+Engine and `.tex` generation: identical on 3.9, 3.10, 3.12, 3.13, 3.14. PDF compilation: **MiKTeX on Windows only**. **TeX Live on Linux: not tested**:
+the environments available (WSL Ubuntu 22.04, the local images `ubuntu`, `debian`, `python`) were probed again and none has `pdflatex`; nothing was
+installed. A Linux 3.12 container was tried and abandoned (the image has no git). The reproducible procedure of section 17.4 is unchanged. Not
+claimed: ATS compatibility, authentication of the PDF origin or of the reviewer (both are statements in unsigned files), support for 3.11, 3.15, macOS.
+
+### 18.8 Remaining blockers and decisions
+
+No technical blocker for a first release restricted to what was verified. Human decisions: route of the public repository (single-commit snapshot,
+rewritten history, or authorisation for the school summary); acceptance of the list of `PUBLIC_EXCLUDE.txt`; public identity, repository name,
+visibility; version number; whether TeX Live may be tested in a throw-away container; whether to keep accepting `--pdf`; the earlier open decisions
+(default paper, authenticity of approvals, quarantined file).

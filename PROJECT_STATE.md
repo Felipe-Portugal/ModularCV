@@ -7,8 +7,8 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 - Branch: `main`. M5 (`20979f9`) and M5-R1 are committed locally on top of `5585c42` (M4 final closure; see `git log`). Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
 - Remote: `origin` (private). Nothing is published; no tag, no release.
-- Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged.
-- Tests: after M8-A-R2, `py -3.9 -m pytest` gives 1311 passed and 1 skipped (1312 collected); after M8-A-R1 it gave 1304 passed and 1 skipped (1305 collected), as did Python 3.14; before that, after M8-A, `py -3.9 -m pytest` gave 1293 passed and 1 skipped (a symlink test needing privileges on Windows), 1294 collected (before M8-A: 1285 passed, 1 skipped, 1286 collected); on Linux (Python 3.10.12, WSL, no `pdflatex`) 1285 passed and 9 skipped; synthetic
+- Version: `0.2.0` (proposed in M3, unpublished; M4 adds features without a version change); not tagged. Python: `>=3.12,<3.15` (M8-B).
+- Tests: after M8-B, `py -3.9 -m pytest` gives 1408 passed and 1 skipped (1409 collected); after M8-A-R2, `py -3.9 -m pytest` gives 1311 passed and 1 skipped (1312 collected); after M8-A-R1 it gave 1304 passed and 1 skipped (1305 collected), as did Python 3.14; before that, after M8-A, `py -3.9 -m pytest` gave 1293 passed and 1 skipped (a symlink test needing privileges on Windows), 1294 collected (before M8-A: 1285 passed, 1 skipped, 1286 collected); on Linux (Python 3.10.12, WSL, no `pdflatex`) 1285 passed and 9 skipped; synthetic
   data only. (History: before M4: 376; after M4: 612; after M4-R1: 653; after the final closure: 671; after M5: 919 (248 new in `tests/test_content.py`); after M5-R1: 947 (276 in that file); after M6: 1112 (165 new); after M7-A: 1180 (68 new in `tests/test_render.py`, 2 of them skipped without `pdflatex`); after M7-B: 1286 (106 new in `tests/test_package.py`; two M3 tests moved from version "3" to "4" as the unknown version; after M8-A: 1294, 8 new). Before M8-A, Linux had only a stdlib smoke test.)
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
@@ -25,11 +25,27 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
-| M8 | Public release preparation | M8-A audit, M8-A-R1 and M8-A-R2 done, awaiting validation; M8-B not authorised |
+| M8 | Public release preparation | M8-A, M8-A-R1, M8-A-R2 validated; M8-B release candidate done, awaiting validation; nothing published |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (M8-A-R2, final pre-publication checks)
+## Last work (M8-B, release candidate and final audit)
+
+Details: `docs/design/PREPUBLICATION_AUDIT.md` section 18. Nothing pushed, tagged, released or published; no remote; version `0.2.0`.
+
+- **Python policy applied**: `requires-python = ">=3.12,<3.15"`, classifiers 3.12 to 3.14, documents aligned; 3.9/3.10 = regression only. Tests guard consistency.
+- **Public inventory**: `PUBLIC_EXCLUDE.txt` lists the files left out of the public snapshot (itself, this file, the audit, the snapshot procedure,
+  `normes-ets.md`); links and `SKILL.md`/README wording fixed so that exclusion breaks nothing (`tests/test_public_tree.py`).
+- **Defect fixed**: `package status` crash (exit 1) on metadata of the wrong shape; now `BLOCKED` (3) / `METADATA_UNREADABLE`.
+  `tests/test_docs_commands.py` checks every documented command and option.
+- **Snapshot, archives, installs, journeys**: snapshot of the candidate HEAD (93 files, one commit, no remote, privacy 0 finding, excluded file and
+  internal documents absent); wheel and sdist installed on 3.12 and 3.14 (pip refuses 3.9); 49/49 journey checks on 4 installations (FR/EN, A4/Letter,
+  READY/NEEDS_REVIEW/BLOCKED, supplied PDF refused, substitution).
+- **Matrix**: snapshot suite 3.12 and 3.14 (Windows) 1406 passed / 3 skipped, 3.13 (Linux container) and 3.10 (WSL) 1398 / 11, 3.9 1406 / 3; identical
+  identity digest everywhere. TeX Live on Linux: not tested (no environment, nothing installed).
+- **Open decisions added**: 23 acceptance of `PUBLIC_EXCLUDE.txt` and the public documents; 24 first public version number.
+
+## Earlier work (M8-A-R2, final pre-publication checks)
 
 Details: `docs/design/PREPUBLICATION_AUDIT.md` section 17 and `docs/design/PUBLIC_SNAPSHOT.md`. Nothing pushed, tagged, released or published; no remote.
 
@@ -254,7 +270,9 @@ Details and evidence: `docs/design/PREPUBLICATION_AUDIT.md` section 16. Nothing 
 5. Whether a signed or otherwise authenticated approval is wanted instead of the plain `cv-quality-review.json`.
 6. Whether the first release tags `0.2.0` or `0.3.0` now that `Profile-v1` and the import are in (M4 changed no version).
 7. Final fate of the quarantined `legacy_import.py` (keep outside the repository, delete, or restore); isolated, not deleted.
-Settled: strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`; the
+23. (M8-B) Acceptance of `PUBLIC_EXCLUDE.txt` (what the public tree leaves out) and of the documents it keeps, among them `AGENTS.md` and `MILESTONES.md`.
+24. (M8-B) The number of the first public version (`0.2.0` as it stands, or another) and the scope announced for it.
+Settled: Python 3.12 to 3.14 (M8-B, governance); strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`; the
 import never confirms by itself (M4); decision 9, factual headings are tied to the fact base through `supports` (M5-R1);
 decision 10, `supports` is required on skills; decision 11, parity binds the `en`/`fr` pair only, other languages carry no
 obligation; decision 12, the capability vocabulary and taxonomy belong to M6 (done: Taxonomy-v1, `vocabulary_problems`).
@@ -265,5 +283,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M8-A-R2 (`docs/design/PREPUBLICATION_AUDIT.md` sections 16 and 17) and for the decisions it lists (notably the
-strategy for `skills/cv-panel/normes-ets.md` and the history). Do not start M8-B or any publication without an explicit go.
+Wait for the maintainer's validation of M8-B (`docs/design/PREPUBLICATION_AUDIT.md` section 18) and for the decisions it lists (route of the public
+repository, public documents, identity, version). Do not publish, push, tag or create a repository without an explicit go for that exact action.

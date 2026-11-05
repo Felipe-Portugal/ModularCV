@@ -1,6 +1,6 @@
 # Publishing from a clean snapshot (procedure, M8-A-R2)
 
-Status: **a procedure and a local simulation. Nothing was published**, no GitHub repository was created, no remote was configured and nothing
+Status: **a procedure, a local simulation (M8-A-R2) and a release-candidate snapshot (M8-B, `PREPUBLICATION_AUDIT.md` section 18). Nothing was published**, no GitHub repository was created, no remote was configured and nothing
 was pushed. Whether, when and how to publish is a human decision (see "Decisions" below).
 
 ## Why a snapshot
