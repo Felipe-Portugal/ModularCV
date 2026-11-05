@@ -29,7 +29,20 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (M8-B, release candidate and final audit)
+## Last work (PUB-0, publication protocol; nothing executed)
+
+Details: `docs/design/PUBLICATION_PROTOCOL.md` (facts, GitHub documentation, strategies A/B/C, gates G0 to G6) and `docs/design/PUBLIC_INVENTORY.sha256`.
+Read-only GitHub audit and local simulations only: no push, rename, creation, deletion, tag, release or visibility change; the maintainer's private personal repository was not opened.
+
+- **Remote**: `<owner>/ModularCV` (id 1441249060), private, one commit `0a553e1` (30 files, with `normes-ets.md`), `main` only, no PR, fork, tag,
+  release, workflow, Pages; never public; no branch protection available (free plan, private).
+- **Finding**: a force-push moves a ref but does not delete objects (shown locally); GitHub documents that old commits stay reachable by SHA in cached views
+  until Support purges them, and that Support removes only sensitive data that cannot be mitigated by rotating credentials: strategy A gives no guarantee.
+- **Recommendation**: strategy B (rename the old repository to a private archive, create a new empty private `ModularCV`, push the one-commit snapshot,
+  verify a fresh mirror clone, then ask for a separate go before any visibility change). Snapshot tree to publish: `11f9c27a5026605e5f1fa52be6af9fbab17875ce`.
+- **Open decisions added**: 25 strategy and rename authorisation; 26 public commit identity; 27 who may push the local commits (to the archive only).
+
+## Earlier work (M8-B, release candidate and final audit)
 
 Details: `docs/design/PREPUBLICATION_AUDIT.md` section 18. Nothing pushed, tagged, released or published; no remote; version `0.2.0`.
 
@@ -272,6 +285,8 @@ Details and evidence: `docs/design/PREPUBLICATION_AUDIT.md` section 16. Nothing 
 7. Final fate of the quarantined `legacy_import.py` (keep outside the repository, delete, or restore); isolated, not deleted.
 23. (M8-B) Acceptance of `PUBLIC_EXCLUDE.txt` (what the public tree leaves out) and of the documents it keeps, among them `AGENTS.md` and `MILESTONES.md`.
 24. (M8-B) The number of the first public version (`0.2.0` as it stands, or another) and the scope announced for it.
+25. (PUB-0) Publication strategy (recommended B) and the rename of the old repository; 26. the public commit identity; 27. who may push the local
+    commits of the development repository (to the private archive only, never to the public repository).
 Settled: Python 3.12 to 3.14 (M8-B, governance); strict `facts.md` grammar with optional `confirmed_on` (M2); M3 is a breaking `0.2.0` correction of `readiness`; the
 import never confirms by itself (M4); decision 9, factual headings are tied to the fact base through `supports` (M5-R1);
 decision 10, `supports` is required on skills; decision 11, parity binds the `en`/`fr` pair only, other languages carry no
@@ -283,5 +298,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of M8-B (`docs/design/PREPUBLICATION_AUDIT.md` section 18) and for the decisions it lists (route of the public
-repository, public documents, identity, version). Do not publish, push, tag or create a repository without an explicit go for that exact action.
+Wait for the maintainer's decisions listed in `docs/design/PUBLICATION_PROTOCOL.md` section 6. Do not rename, create, push, tag, release or change a
+visibility without an explicit go for that exact action (PUB-1 is not authorised).
