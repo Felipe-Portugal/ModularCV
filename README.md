@@ -38,7 +38,7 @@ similar folders are ignored by Git here on purpose. See [docs/WORKSPACE.md](docs
 
 ```bash
 git clone https://github.com/<your-user>/ModularCV && cd ModularCV
-python -m pip install -e ".[dev]"        # Python 3.9+, pip >= 21.3 and setuptools >= 64 (see docs/QUICKSTART.md; no `modularcv` command: use `python -m modularcv`)
+python -m pip install -e ".[dev]"        # Python 3.12 to 3.14, pip >= 21.3 (see docs/QUICKSTART.md; no `modularcv` command: use `python -m modularcv`)
 python -m pytest                         # all tests use synthetic data
 
 cd /path/to/your/private/workspace       # a Git repository with facts.md
@@ -60,15 +60,36 @@ python -m modularcv privacy --root . --deny-file ~/private-terms.txt --history
 To use the skill, copy `skills/cv-panel/` into `~/.claude/skills/` and run
 `/cv-panel resume.pdf cover-letter.pdf <job posting>` in Claude Code.
 
-## Status
+## Status, supported platforms and limits
 
-`0.2.0` (unpublished; the pre-publication audit is in [docs/design/PREPUBLICATION_AUDIT.md](docs/design/PREPUBLICATION_AUDIT.md)): the persona-independent chain from fact base to a human-approved PDF (provenance, readiness, `Profile-v1`, controlled legacy import, `ResumeContent-v1`, offers, plan, assembly, generic LaTeX, packages; incompatible changes since `0.1.0`: `docs/design/PROVENANCE_READINESS.md` section 9). Not verified yet: installation from a distribution archive, TeX Live and Linux compilation, compatibility with applicant tracking systems. Nothing is sent anywhere and nothing is approved automatically. The CV generation engine from the original private project is
-not included here because it still embeds one person's content; porting it behind a configurable
-fact base is future work.
+`0.2.0`, **not published** (release candidate): the persona-independent chain from fact base to a human-approved PDF (provenance, readiness,
+`Profile-v1`, controlled legacy import, `ResumeContent-v1`, offers, plan, assembly, generic LaTeX, packages). Nothing is sent anywhere and
+nothing is approved automatically. The CV generation engine from the original private project is not included here because it still embeds
+one person's content; porting it behind a configurable fact base is future work.
+
+| Subject | Status |
+|---|---|
+| Python | **3.12, 3.13, 3.14** (`Requires-Python: >=3.12,<3.15`). Full test suite run on 3.12 and 3.14 (Windows) and 3.13 (Linux container); not every combination of version and platform. 3.9 and 3.10 were regression environments only: no support. 3.15 untested. |
+| The engine and the `.tex` | Standard library only. The same synthetic example gives the same plan and the same `.tex` on the interpreters above. |
+| PDF with MiKTeX (Windows) | Exercised. |
+| PDF with TeX Live (Linux) | **Not tested.** Without a TeX distribution you get the `.tex` and no PDF. |
+| macOS | Not tested. |
+| Applicant tracking systems | **Not verified, nothing is certified.** Only the order and the accents of the extracted text were looked at on the example. |
+
+**Guarantees.** Everything printed comes from a `CONFIRMED` fact; a generated document names the real Git commit of its sources; the chain
+plan, assembly, `.tex` and PDF is re-derived on every call; `READY_TO_SEND` is computed, never stored, and is lost as soon as a source, a
+file of the package or the PDF changes.
+
+**Limits.** The checks prove that facts exist and are confirmed, not that a sentence means what they say. An approval is an unsigned JSON
+file that binds a decision to the exact bytes of a PDF: the reviewer is **not authenticated**. Only a PDF compiled by
+`package create --compile` can become `READY_TO_SEND`; the recorded origin of the PDF is a statement in a file, **not a cryptographic proof**,
+and whoever can write your workspace can forge it, as they can forge an approval. `READY_TO_SEND` means the process is consistent, not that
+you meet the job's requirements. `pdflatex` is not a sandbox. The privacy scan is best-effort pattern matching. Details:
+[docs/PACKAGE.md](docs/PACKAGE.md) ("Limits that are not hidden").
 
 ## Credits and license
 
 MIT. `skills/cv-panel` is adapted from
 [hiring-panel-skill](https://github.com/alexyc9381/hiring-panel-skill) by Alex Chen (MIT); see
-`skills/cv-panel/NOTICE.md`. The ÉTS conventions are summarised from the school's public guidance
-for students; examples from that guidance are not reproduced.
+`skills/cv-panel/NOTICE.md`. The skill's co-op advisor uses school norms that *you* supply in a file
+next to it; none are distributed.

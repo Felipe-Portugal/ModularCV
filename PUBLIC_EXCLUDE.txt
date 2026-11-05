@@ -1,0 +1,9 @@
+# Files of this private working tree that are NOT part of the public distribution (M8-B).
+# One path per line, relative to the root. Lines starting with # are comments.
+# Used to build the public snapshot (docs/design/PUBLIC_SNAPSHOT.md) and checked by tests/test_public_tree.py.
+# This file itself is excluded, and so are the working logs below: they are maintainer documents, not user or contributor documents.
+PUBLIC_EXCLUDE.txt
+PROJECT_STATE.md
+docs/design/PREPUBLICATION_AUDIT.md
+docs/design/PUBLIC_SNAPSHOT.md
+skills/cv-panel/normes-ets.md

@@ -11,7 +11,7 @@ page vous conduit de zéro à un paquet que vous pouvez relire, avec l'exemple f
 
 | Besoin | Détail |
 |---|---|
-| Python | Bibliothèque standard seulement (aucune dépendance à installer). Les métadonnées déclarent `>= 3.9` ; toute la suite de tests a été exécutée sur 3.9, 3.10 (Linux) et 3.14. Les versions *prises en charge* restent à décider par le mainteneur. |
+| Python | **3.12, 3.13 ou 3.14** (`Requires-Python : >=3.12,<3.15` ; pip refuse les autres versions). Bibliothèque standard seulement : aucune dépendance à installer. Toute la suite de tests a été exécutée sur 3.12 et 3.14 (Windows) et sur 3.13 (conteneur Linux) ; les autres combinaisons de version et de plateforme n'ont pas été testées. 3.9 et 3.10 n'ont servi que d'environnements de régression de l'arbre source : aucun support n'est annoncé pour elles. |
 | Git | Votre espace de travail est un dépôt Git : un CV n'est construit qu'à partir de sources validées (commit) dedans. Git doit connaître votre nom et votre courriel (`git config user.name`, `user.email`). |
 | `pdflatex` | **Facultatif.** MiKTeX (Windows) ou TeX Live. Sans lui, vous obtenez le `.tex` mais pas de PDF : le paquet reste `NEEDS_REVIEW` (jamais prêt). `python -m modularcv latex check` le dit. Seul MiKTeX sous Windows a été éprouvé ; **TeX Live et la compilation sous Linux ne sont pas testés**. Le gabarit utilise `fontenc`, `inputenc`, `lmodern`, `geometry` et `enumitem` ; sous Debian/Ubuntu ils devraient provenir de `texlive-latex-base`, `texlive-latex-recommended`, `texlive-latex-extra` et `texlive-fonts-recommended` (attendu, non vérifié : lancez `latex check`, puis compilez l'exemple). |
 | Un espace de travail privé | Un dépôt Git privé distinct pour vos faits, CV et paquets. **Ne mettez jamais vos données dans ce dépôt-ci** (voir `docs/WORKSPACE.md`). |
@@ -28,10 +28,9 @@ python -m modularcv --help
 Il n'y a pas de commande `modularcv` : lancez toujours `python -m modularcv ...`. Sans installer, indiquez le clone à Python :
 `PYTHONPATH=/chemin/vers/ModularCV python -m modularcv ...` (PowerShell : `$env:PYTHONPATH = "C:\chemin\vers\ModularCV"`).
 
-> Vérifié (M8-A-R1, Windows) : `python -m build` produit un wheel et une archive source ; chacun s'installe dans un environnement
-> virtuel neuf (wheel et mode éditable sur Python 3.14, archive source sur 3.9) et les commandes ci-dessus s'exécutent hors du clone.
-> L'archive source contient les tests, exemples et la documentation, mais pas `skills/cv-panel/normes-ets.md` (droits de
-> distribution non établis). Non vérifié : installation sous Linux et macOS, et PyPI (rien n'est publié).
+> Vérifié (Windows) : `python -m build` produit un wheel et une archive source ; chacun s'installe dans un environnement virtuel neuf
+> (Python 3.12 et 3.14) et les commandes ci-dessus s'exécutent hors du clone. L'archive source contient les tests, exemples et la
+> documentation. Non vérifié : macOS, installation sous Linux depuis une archive source, et PyPI (rien n'est publié).
 
 ## Essayer l'exemple fictif (environ cinq minutes)
 

@@ -36,7 +36,7 @@ offers/*.json (JobOffer-v1) + taxonomy ─► requirement matrix ─► Tailorin
 
 Modules: `facts`, `profile`, `content`, `joboffer`, `taxonomy`, `matrix`, `plan`, `assemble`, `latex`, `pdf`, `chain`, `package`, `review`,
 `snapshot`, `metadata`, `provenance`, `readiness`, `staleness`, `privacy`, `legacy`. Start with [QUICKSTART.md](QUICKSTART.md). The
-pre-publication audit (trust boundaries, limits, open decisions) is [design/PREPUBLICATION_AUDIT.md](design/PREPUBLICATION_AUDIT.md).
+guarantees and the limits that are not hidden are in [PACKAGE.md](PACKAGE.md) ("Limits that are not hidden").
 
 ## What this repository contains
 

@@ -36,7 +36,7 @@ volontairement.
 ## Démarrage rapide
 
 ```bash
-python -m pip install -e ".[dev]"     # Python 3.9+, pip >= 21.3 et setuptools >= 64 (voir docs/QUICKSTART.fr.md ; pas de commande `modularcv` : `python -m modularcv`)
+python -m pip install -e ".[dev]"     # Python 3.12 à 3.14, pip >= 21.3 (voir docs/QUICKSTART.fr.md ; pas de commande `modularcv` : `python -m modularcv`)
 python -m pytest                      # tous les tests utilisent des données synthétiques
 python -m modularcv profile check     # depuis votre espace de travail (exemple : examples/workspace/)
 python -m modularcv content check     # ResumeContent-v1 et ses références aux faits (exemple : examples/workspace/content/)
@@ -50,6 +50,33 @@ python -m modularcv privacy --root . --deny-file ~/termes-prives.txt --history  
 ```
 
 Pour le skill : copiez `skills/cv-panel/` dans `~/.claude/skills/`, puis `/cv-panel cv.pdf lettre.pdf <offre>`.
+
+## Statut, plateformes prises en charge et limites
+
+`0.2.0`, **non publiée** (version candidate) : la chaîne indépendante de toute personne, de la base de faits à un PDF approuvé par un humain
+(provenance, readiness, `Profile-v1`, import historique contrôlé, `ResumeContent-v1`, offres, plan, assemblage, LaTeX générique, paquets).
+Rien n'est envoyé nulle part et rien n'est approuvé automatiquement. Le moteur de génération du projet privé d'origine n'est pas inclus : il
+contient encore le contenu d'une personne ; le porter derrière une base de faits configurable reste à faire.
+
+| Sujet | Statut |
+|---|---|
+| Python | **3.12, 3.13, 3.14** (`Requires-Python : >=3.12,<3.15`). Suite complète exécutée sur 3.12 et 3.14 (Windows) et 3.13 (conteneur Linux) ; pas toutes les combinaisons de version et de plateforme. 3.9 et 3.10 : environnements de régression seulement, aucun support. 3.15 non testée. |
+| Le moteur et le `.tex` | Bibliothèque standard seulement. Le même exemple synthétique donne le même plan et le même `.tex` sur les interpréteurs ci-dessus. |
+| PDF avec MiKTeX (Windows) | Éprouvé. |
+| PDF avec TeX Live (Linux) | **Non testé.** Sans distribution TeX, vous obtenez le `.tex` et pas de PDF. |
+| macOS | Non testé. |
+| Systèmes de suivi de candidatures (ATS) | **Non vérifiés, rien n'est certifié.** Seuls l'ordre et les accents du texte extrait ont été regardés sur l'exemple. |
+
+**Garanties.** Tout ce qui est imprimé vient d'un fait `CONFIRMED` ; un document généré cite le vrai commit Git de ses sources ; la chaîne plan,
+assemblage, `.tex` et PDF est recalculée à chaque appel ; `READY_TO_SEND` est calculé, jamais stocké, et se perd dès qu'une source, un fichier du
+paquet ou le PDF change.
+
+**Limites.** Les contrôles prouvent que les faits existent et sont confirmés, pas qu'une phrase dit ce qu'ils disent. Une approbation est un
+fichier JSON non signé qui lie une décision aux octets exacts d'un PDF : le relecteur n'est **pas authentifié**. Seul un PDF compilé par
+`package create --compile` peut devenir `READY_TO_SEND` ; l'origine enregistrée du PDF est une déclaration dans un fichier, **pas une preuve
+cryptographique**, et qui peut écrire dans votre espace de travail peut la falsifier, comme une approbation. `READY_TO_SEND` signifie que le
+processus est cohérent, pas que vous remplissez les exigences du poste. `pdflatex` n'est pas un bac à sable. L'analyse de confidentialité est
+une recherche de motifs au mieux. Détails : [docs/PACKAGE.md](docs/PACKAGE.md) (« Limits that are not hidden », en anglais).
 
 ## Licence
 

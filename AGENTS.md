@@ -4,8 +4,9 @@ This file is authoritative. Tool-specific files (for example `CLAUDE.md`) only a
 
 ## 1. Before a session
 
-1. Read `PROJECT_STATE.md`: active milestone, last work, blockers, next action.
-2. Check the real state: `git status`, `git log -1 --oneline`, current branch. Report any gap with `PROJECT_STATE.md` before acting.
+1. Read `PROJECT_STATE.md` when the maintainers keep one (a working log that is not part of the public distribution): active
+   milestone, last work, blockers, next action.
+2. Check the real state: `git status`, `git log -1 --oneline`, current branch. Report any gap with `PROJECT_STATE.md` (if any) before acting.
 3. Read the contracts of the active milestone in `docs/design/`.
 4. Work only on the active milestone. Never start the next one without the maintainer's explicit validation.
 
@@ -36,7 +37,8 @@ what is missing, or `BLOCKED` with the cause. A test that was not run is never d
 
 ## 5. Code conventions
 
-- Python 3.9+, standard library only (`dependencies = []`); a new dependency needs an ADR and the maintainer's approval.
+- Python 3.12 to 3.14 (`requires-python = ">=3.12,<3.15"`), standard library only (`dependencies = []`); a new dependency needs an ADR and
+  the maintainer's approval. Python 3.9 and 3.10 were only regression environments of the source tree: no support is announced for them.
 - Deterministic by construction: no timestamp, random value or environment-dependent path in an identity or fingerprint.
 - Text is LF-normalised before hashing; a Windows checkout must not change a fingerprint.
 - Fail closed: an unreadable, missing or ambiguous input is an error with a stable machine code, never an empty result.
@@ -62,6 +64,6 @@ translation of the design documents is prepared before any publication (mileston
 
 ## 8. End of a session
 
-Update `PROJECT_STATE.md` before stopping, even when interrupted: branch and last commit, active milestone and status, work done,
+Update `PROJECT_STATE.md` (if the maintainers keep one) before stopping, even when interrupted: branch and last commit, active milestone and status, work done,
 tests run **with their real result**, blockers and open decisions, and the next precise action, so another agent can resume
 without reading the conversation.

@@ -94,7 +94,7 @@ packages/<package>/{package.json, provenance/source-snapshot.json}   packages/pa
 ## 4. Cover letters
 
 Out of scope until after the first public engine release: the private letter generator embeds a library of person-specific
-paragraphs. A generic letter would need its own content contract. This is a decision for the maintainer (see `PROJECT_STATE.md`).
+paragraphs. A generic letter would need its own content contract. This is a decision for the maintainer.
 
 ## 5. Non-goals
 

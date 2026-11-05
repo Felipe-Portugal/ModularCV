@@ -17,7 +17,7 @@ empty temporary folder, `<deny>` a file **outside** both, holding your private t
 
 ```bash
 git -C <private> archive HEAD | tar -x -C <out>          # tracked files only: no .git, no untracked file, no cache, no quarantine
-rm <out>/skills/cv-panel/normes-ets.md                    # the one exclusion decided so far
+grep -vE '^(#|$)' <out>/PUBLIC_EXCLUDE.txt | while read -r f; do rm -f "<out>/$f"; done   # the exclusions of the candidate, one path per line
 cd <out>
 git init -b main                                          # a new history; no remote is ever configured here
 git add -A
@@ -38,10 +38,16 @@ Then verify, in `<out>`:
 | tests | `python -m pytest` | all pass; the one test that reads the excluded file is skipped |
 | quick start | `docs/QUICKSTART.md` with the installed wheel, from outside the folder | as in the private repository |
 
+**M8-B inventory.** `PUBLIC_EXCLUDE.txt` (at the root of the private tree, itself excluded) lists what is left out: itself, `PROJECT_STATE.md`
+(working log), `docs/design/PREPUBLICATION_AUDIT.md` (audit journal), this document (maintainer procedure) and `skills/cv-panel/normes-ets.md`
+(rights not established). `tests/test_public_tree.py` checks that no distributed Markdown file links to a missing or excluded file and that
+the Python policy, the classifiers and the documents agree; it runs unchanged in the snapshot. `AGENTS.md`, the contracts, the architecture
+documents, the guides, the examples and the skills are distributed.
+
 `SKILL.md` was changed (M8-A-R2) so that the skill no longer depends on the excluded file: without it the skill must not quote any norm from
 memory. `MANIFEST.in` already excludes the file from source archives. A few documents (`PREPUBLICATION_AUDIT.md`, `PROJECT_STATE.md`, the quick
 starts, `MANIFEST.in`, `tests/test_skill.py`) **name** the file to explain the exclusion; they reproduce nothing of its content. Whether to keep
-`PROJECT_STATE.md`, `AGENTS.md` and the audit in a public tree is a maintainer decision.
+`PROJECT_STATE.md`, `AGENTS.md` and the audit in a public tree is a maintainer decision (M8-B proposes the list above).
 
 ## What the snapshot does not change
 

@@ -11,7 +11,7 @@ metadata:
 
 # /cv-panel
 
-Relecture critique d'un CV étudiant de l'ÉTS postulant au Québec et au Canada. Tu ne flattes pas le document. Tu **ne réécris pas** le CV et tu **n'ajoutes aucun fait** : tu signales, tu cites, tu proposes des corrections de forme ou de choix de contenu, et tu laisses l'humain décider. Les règles de contenu détaillées sont dans `normes-ets.md` (même dossier) : lis-le avant de commencer.
+Relecture critique d'un CV étudiant de l'ÉTS postulant au Québec et au Canada. Tu ne flattes pas le document. Tu **ne réécris pas** le CV et tu **n'ajoutes aucun fait** : tu signales, tu cites, tu proposes des corrections de forme ou de choix de contenu, et tu laisses l'humain décider. Si l'utilisateur a placé ses propres règles de l'école dans `normes-ets.md` (même dossier ; cette distribution ne le contient pas), lis-le avant de commencer ; sinon, n'en cite aucune de mémoire.
 
 ## 1. Entrées
 Tout ce qui suit `/cv-panel` est le CV (chemin de fichier à lire, PDF accepté, ou texte collé). S'il y a une lettre de motivation et/ou une offre, utilise-les. Sans offre ni poste, pose UNE seule question : à quel poste ou stage postule la personne ? Détermine la **langue du document** et la **langue de l'offre** : un poste au Québec se postule en français, sauf offre rédigée en anglais.

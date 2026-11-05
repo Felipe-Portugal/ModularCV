@@ -10,7 +10,7 @@ you from nothing to a package you can review, using the fictional example shippe
 
 | Need | Detail |
 |---|---|
-| Python | Standard library only (no dependency to install). The metadata declare `>= 3.9`; the whole test suite was run on 3.9, 3.10 (Linux) and 3.14. Which versions are *supported* is a maintainer decision not taken yet. |
+| Python | **3.12, 3.13 or 3.14** (`Requires-Python: >=3.12,<3.15`; pip refuses other versions). Standard library only: no dependency to install. The whole test suite was run on 3.12 and 3.14 (Windows) and on 3.13 (Linux container); other combinations of version and platform were not tested. 3.9 and 3.10 were only regression environments of the source tree: no support is announced for them. |
 | Git | Your workspace is a Git repository: a CV can only be built from sources committed in it. Git must know your name and e-mail (`git config user.name`, `user.email`) so you can commit. |
 | `pdflatex` | **Optional.** MiKTeX (Windows) or TeX Live. Without it you still get the `.tex`; you cannot get a PDF, so a package stays `NEEDS_REVIEW` (never ready). `python -m modularcv latex check` tells you. MiKTeX on Windows is the only distribution exercised so far; **TeX Live and compilation on Linux are untested**. The template uses `fontenc`, `inputenc`, `lmodern`, `geometry` and `enumitem`; on Debian/Ubuntu these should come from `texlive-latex-base`, `texlive-latex-recommended`, `texlive-latex-extra` and `texlive-fonts-recommended` (expected, not verified: run `latex check`, then compile the example). |
 | A private workspace | A separate private Git repository for your facts, CVs and packages. **Never put your data in this repository.** See [WORKSPACE.md](WORKSPACE.md). |
@@ -27,10 +27,9 @@ python -m modularcv --help
 There is no `modularcv` command: always run `python -m modularcv ...`. Without installing, point Python at the clone instead:
 `PYTHONPATH=/path/to/ModularCV python -m modularcv ...` (PowerShell: `$env:PYTHONPATH = "C:\path\to\ModularCV"`).
 
-> Verified (M8-A-R1, Windows): `python -m build` produces a wheel and a source archive; each installs in a fresh virtual environment
-> (wheel and editable on Python 3.14, source archive on 3.9) and the commands above run from outside the clone. The source archive
-> carries the tests, examples and documentation but not `skills/cv-panel/normes-ets.md` (distribution rights not established). Not
-> verified: Linux and macOS installations, and PyPI (nothing is published).
+> Verified (Windows): `python -m build` produces a wheel and a source archive; each installs in a fresh virtual environment (Python 3.12
+> and 3.14) and the commands above run from outside the clone. The source archive carries the tests, examples and documentation. Not
+> verified: macOS, installation on Linux from a source archive, and PyPI (nothing is published).
 
 ## Try the fictional example (about five minutes)
 

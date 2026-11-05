@@ -12,7 +12,7 @@ passes the privacy scan, and ends without a push, tag or release unless explicit
 | M5 | ResumeContent-v1 and reservoir, implemented, awaiting validation | content parser, per-entity FR/EN parity, explicit support, baselines, reservoir | parity only where both versions exist; unsupported bullet refused |
 | M6 | JobOffer-v1, taxonomy, matrix and plan, implemented, awaiting validation | offer parser, `generic-v1` taxonomy, requirement matrix, greedy ranking, plan fingerprints | same inputs give same plan fingerprint; unconfirmed claim never selected |
 | M7 | Rendering, optional PDF, metadata v3, package (M7-A validated; M7-B packaging, review and readiness implemented, awaiting validation) | templates, escaped deterministic `.tex`, `pdflatex` wrapper, schema `3`, package builder, human review gate | end-to-end synthetic run to a package; readiness gives the expected state |
-| M8 | Public release preparation (M8-A audit, M8-A-R1 and M8-A-R2 (final checks) done, awaiting validation: [PREPUBLICATION_AUDIT.md](PREPUBLICATION_AUDIT.md); M8-B not authorised) | CLI polish, docs FR/EN, full privacy audit with history, decision on letters, version and tag proposal | independent clone passes tests and scan; maintainer decides publication |
+| M8 | Public release preparation (M8-A audit, M8-A-R1 and M8-A-R2 (final checks) validated; M8-B release candidate: audit and artefacts prepared, awaiting the maintainer's decision; nothing published) | CLI polish, docs FR/EN, full privacy audit with history, decision on letters, version and tag proposal | independent clone passes tests and scan; maintainer decides publication |
 
 ## M2 in detail (the first increment, deliberately small)
 
