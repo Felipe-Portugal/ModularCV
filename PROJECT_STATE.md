@@ -25,11 +25,23 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
-| M8 | Public release preparation | M8-A, M8-A-R1, M8-A-R2, M8-B validated; PUB-0 validated; PUB-1 NEEDS_REVIEW, PUB-1-R1 done (local cleanup), awaiting validation; nothing pushed or published |
+| M8 | Public release preparation | M8-A, M8-A-R1, M8-A-R2, M8-B validated; PUB-0 validated; PUB-1-R1 validated; `main` pushed to the private repository (G2, G3 verified); PUB-3-PRE (documentation corrections) done locally, awaiting validation; repository still private, no tag, no release |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (PUB-1-R1, final local cleanup before synchronisation; nothing pushed)
+## Last work (PUB-3-PRE, documentation corrections before the visibility change; nothing pushed)
+
+Documentation and metadata wording only; no code behaviour changed. Remote tip still `7f12d1c`, repository still private, no tag, no release.
+
+- README clone URL: the `<your-user>` placeholder is replaced by the repository address (also added to the French Quick start).
+- Scope: both READMEs now say ModularCV generates CVs, not cover letters; the `cv-panel` skill may review a cover letter the user wrote and never writes one.
+  The same inaccurate claim was removed from `docs/ARCHITECTURE.md` (Package row), the `pyproject.toml` description and the `modularcv/__init__.py` docstring.
+- Status: the source code is public in the repository; `0.2.0` is a release candidate and no versioned release (tag, GitHub release, archive, package index) exists
+  until gate G5 is authorised. `AGENTS.md` section 3 excepts the repository's own address from the "handle" prohibition.
+- Expected scan result: the privacy scan with the maintainer's private deny list reports the handle on the clone URL line of each README (two lines); it reports 0 without
+  the handle-derived terms. This is the only place the handle appears in tracked files.
+
+## Earlier work (PUB-1-R1, final local cleanup before synchronisation; nothing pushed)
 
 Local corrections only: no push, no GitHub change, remote still private at `0a553e1`. Backups of PUB-1 (bundles, mirror, checksums) are kept outside the repository.
 
@@ -311,5 +323,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's explicit authorisation of the push (gate G2 of the private PUB-1 notes) and of each later gate. Do not push, tag, release or
+Wait for the maintainer's explicit authorisation of the visibility change (gate G4) and then of the release (gate G5). Do not push, tag, release or
 change a visibility without an explicit go for that exact action.

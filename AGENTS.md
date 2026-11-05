@@ -20,6 +20,7 @@ dedicated session.
 
 - Putting personal data in this repository: a name, e-mail, phone, address, employer, school, handle, profile URL, real CV text,
   real job posting, real fact, absolute user path, or any identifier taken from a private project.
+  The one exception is the repository's own public address (the clone URL in the READMEs), which is how the project is found.
 - Copying code, fixtures, documents or history from a private repository. Interfaces and algorithms may be studied read-only and
   re-implemented against the contracts in `docs/design/`.
 - Pushing, creating a remote, tagging, releasing or publishing without the maintainer's explicit authorisation for that exact action.

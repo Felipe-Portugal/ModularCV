@@ -14,7 +14,7 @@ facts.md ──► master CV ──► family baselines ──► tailored CV �
 | **Master CV** | The most complete, validated document. | Reviewed by a human; changes are milestones. |
 | **Baselines** | One short CV per family and language, derived from the master. | Validated once, then frozen. |
 | **Tailored CV** | A baseline reordered and trimmed for one offer. | Deterministic, never adds a fact; carries a metadata record. |
-| **Package** | CV + cover letter + provenance for one application. | Every gate passes, or it is not ready. |
+| **Package** | The CV (plan, assembled CV, `.tex`, PDF, metadata) and its provenance for one application; no cover letter is generated. | Every gate passes, or it is not ready. |
 | **Readiness** | Decides if a package may be sent. | Fail-closed (see `GOVERNANCE.md`). |
 
 ## The chain as implemented (M2 to M7)

@@ -1,12 +1,16 @@
 # ModularCV
 
-Une chaîne **modulaire, traçable et fondée sur les faits** pour produire des CV et des lettres de motivation,
+Une chaîne **modulaire, traçable et fondée sur les faits** pour produire des CV,
 avec des garde-fous qui empêchent un pipeline automatisé d'inventer des faits, d'expédier un document périmé
 ou de laisser fuiter des données personnelles. Pensé pour les étudiants et les développeurs en début de carrière
 qui postulent au Canada et au Québec (documents en français et en anglais, conventions du coop de l'ÉTS) ;
 rien dans le code n'est lié à une personne en particulier.
 
 English: [README.md](README.md)
+
+**Périmètre.** ModularCV génère des **CV** (en français ou en anglais). Il ne génère ni ne réécrit de lettres de motivation (voir
+[docs/design/ENGINE.md](docs/design/ENGINE.md), section 4, en anglais). La skill facultative `cv-panel` peut *relire* une lettre que vous avez
+écrite et en signaler les problèmes ; elle n'en écrit jamais.
 
 ## Contenu
 
@@ -21,7 +25,7 @@ English: [README.md](README.md)
 | `modularcv.package`, `chain` | Construit un **paquet** (plan, CV assemblé, `.tex`, PDF, métadonnées, snapshot) dans votre espace de travail privé, enregistre une **approbation humaine du PDF exact** et calcule `READY_TO_SEND` à partir des preuves à chaque appel. Rien n'est envoyé, rien n'est approuvé automatiquement (voir [docs/PACKAGE.md](docs/PACKAGE.md), en anglais). |
 | `modularcv.legacy` | `facts import` : transforme un document Markdown historique en base de faits *proposée*, selon une correspondance que vous écrivez. Une ligne inconnue n'est jamais importée et rien ne devient `CONFIRMED` tout seul (voir [docs/IMPORT.md](docs/IMPORT.md), en anglais). |
 | `modularcv.privacy` | Analyse un répertoire (et l'historique) à la recherche de courriels, téléphones, NAS, chemins d'utilisateur, URL de profil, identifiants et de vos propres termes privés, **avant** publication. |
-| `skills/cv-panel` | Skill Claude Code : sept lecteurs indépendants (ATS, recruteur RH, gestionnaire technique, conseiller en stage ÉTS, candidat concurrent, coéquipier, vérificateur de faits) relisent un CV et sa lettre. **Relecture seulement : il ne réécrit rien et n'ajoute aucun fait.** |
+| `skills/cv-panel` | Skill Claude Code : sept lecteurs indépendants (ATS, recruteur RH, gestionnaire technique, conseiller en stage ÉTS, candidat concurrent, coéquipier, vérificateur de faits) relisent un CV et, si vous en fournissez une, une lettre que vous avez écrite. **Relecture seulement : il ne réécrit rien et n'ajoute aucun fait.** |
 
 **Vous débutez ? Commencez par [docs/QUICKSTART.fr.md](docs/QUICKSTART.fr.md)** (un exemple fictif en cinq minutes, ce que signifie
 `READY_TO_SEND`, dépannage). Voir ensuite [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/GOVERNANCE.md](docs/GOVERNANCE.md) et
@@ -36,6 +40,7 @@ volontairement.
 ## Démarrage rapide
 
 ```bash
+git clone https://github.com/Felipe-Portugal/ModularCV && cd ModularCV
 python -m pip install -e ".[dev]"     # Python 3.12 à 3.14, pip >= 21.3 (voir docs/QUICKSTART.fr.md ; pas de commande `modularcv` : `python -m modularcv`)
 python -m pytest                      # tous les tests utilisent des données synthétiques
 python -m modularcv profile check     # depuis votre espace de travail (exemple : examples/workspace/)
@@ -53,7 +58,8 @@ Pour le skill : copiez `skills/cv-panel/` dans `~/.claude/skills/`, puis `/cv-pa
 
 ## Statut, plateformes prises en charge et limites
 
-`0.2.0`, **non publiée** (version candidate) : la chaîne indépendante de toute personne, de la base de faits à un PDF approuvé par un humain
+Le code source est public dans ce dépôt. **Aucune version n'a été publiée** : ni tag, ni release GitHub, ni archive à télécharger, ni dépôt sur un
+index de paquets ; installez donc depuis un clone (ci-dessus). `0.2.0` est la **version candidate** : la chaîne indépendante de toute personne, de la base de faits à un PDF approuvé par un humain
 (provenance, readiness, `Profile-v1`, import historique contrôlé, `ResumeContent-v1`, offres, plan, assemblage, LaTeX générique, paquets).
 Rien n'est envoyé nulle part et rien n'est approuvé automatiquement. Le moteur de génération du projet privé d'origine n'est pas inclus : il
 contient encore le contenu d'une personne ; le porter derrière une base de faits configurable reste à faire.

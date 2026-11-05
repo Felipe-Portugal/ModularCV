@@ -208,8 +208,7 @@ curl -s -o /dev/null -w "%{http_code}\n" https://api.github.com/repos/$OWNER/Mod
 ```
 
 After the change, in the web UI (human): enable private vulnerability reporting, secret scanning and push protection, and protect `main` (these are available on a
-public repository on the free plan); keep Actions without workflows. Note the README clone URL still reads `<your-user>`; changing it is a normal commit
-and a normal push to the new repository, after the publication.
+public repository on the free plan); keep Actions without workflows. (PUB-3-PRE: the README clone URL placeholder was replaced by the repository address before the visibility change.)
 **Irreversibility:** once public, any copy (clone, mirror, search index, archive service) may persist. Going back to private is **not** an erasure.
 This is why every earlier gate must PASS first, and why nothing may be made public "to test".
 Reversal: `gh repo edit ... --visibility private` stops new access only.

@@ -1,11 +1,15 @@
 # ModularCV
 
-A modular, traceable and **fact-first** workflow for building CVs and cover letters, with guard
+A modular, traceable and **fact-first** workflow for building CVs, with guard
 rails that stop an automated pipeline from inventing facts, shipping stale documents, or leaking
 personal data. Built for students and early-career developers applying in Canada and Québec
 (French and English documents, ÉTS co-op conventions), but nothing in the code is tied to one person.
 
 Français : [README.fr.md](README.fr.md)
+
+**Scope.** ModularCV generates **CVs** (French or English). It does not generate or rewrite cover letters (see
+[docs/design/ENGINE.md](docs/design/ENGINE.md), section 4). The optional `cv-panel` skill can *review* a cover letter that you wrote and list
+its problems; it never writes one.
 
 ## What it gives you
 
@@ -21,7 +25,7 @@ Français : [README.fr.md](README.fr.md)
 | `modularcv.legacy` | `facts import`: turns a historical Markdown document into a *proposed* fact base under a mapping you write. Unknown lines are never imported, nothing becomes `CONFIRMED` by itself. See [docs/IMPORT.md](docs/IMPORT.md). |
 | `modularcv.privacy` | Scans a tree (and optionally commit history) for e-mails, phones, SINs, user paths, profile URLs, credentials and your own private terms, **before** you publish. |
 | `modularcv.config`, `external` | A workspace configuration and clear diagnostics when an external input directory is missing. |
-| `skills/cv-panel` | A Claude Code skill: seven independent readers (ATS, recruiter, technical manager, ÉTS co-op advisor, rival candidate, teammate, fact checker) review a CV and its cover letter. **Review only: it never rewrites and never adds a fact.** |
+| `skills/cv-panel` | A Claude Code skill: seven independent readers (ATS, recruiter, technical manager, ÉTS co-op advisor, rival candidate, teammate, fact checker) review a CV and, if you give one, a cover letter you wrote. **Review only: it never rewrites and never adds a fact.** |
 | `schemas/`, `templates/` | The traceability record and the analysis templates. |
 
 **New here? Start with [docs/QUICKSTART.md](docs/QUICKSTART.md)** (a five-minute fictional example, what `READY_TO_SEND` means, troubleshooting;
@@ -37,7 +41,7 @@ similar folders are ignored by Git here on purpose. See [docs/WORKSPACE.md](docs
 ## Quick start
 
 ```bash
-git clone https://github.com/<your-user>/ModularCV && cd ModularCV
+git clone https://github.com/Felipe-Portugal/ModularCV && cd ModularCV
 python -m pip install -e ".[dev]"        # Python 3.12 to 3.14, pip >= 21.3 (see docs/QUICKSTART.md; no `modularcv` command: use `python -m modularcv`)
 python -m pytest                         # all tests use synthetic data
 
@@ -62,7 +66,8 @@ To use the skill, copy `skills/cv-panel/` into `~/.claude/skills/` and run
 
 ## Status, supported platforms and limits
 
-`0.2.0`, **not published** (release candidate): the persona-independent chain from fact base to a human-approved PDF (provenance, readiness,
+The source code is public in this repository. **No versioned release has been published**: there is no tag, no GitHub release, no downloadable
+archive and no package-index upload yet, so install from a clone (above). `0.2.0` is the **release candidate**: the persona-independent chain from fact base to a human-approved PDF (provenance, readiness,
 `Profile-v1`, controlled legacy import, `ResumeContent-v1`, offers, plan, assembly, generic LaTeX, packages). Nothing is sent anywhere and
 nothing is approved automatically. The CV generation engine from the original private project is not included here because it still embeds
 one person's content; porting it behind a configurable fact base is future work.
