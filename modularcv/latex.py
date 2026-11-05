@@ -163,4 +163,3 @@ def tex_bytes(text):
 def tex_sha256(data):
     """The fingerprint of the exact bytes of the `.tex` file (what packages and identities refer to)."""
     return canonical.sha256_bytes(data)
-
