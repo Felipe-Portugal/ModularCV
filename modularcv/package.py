@@ -241,22 +241,26 @@ def review_summary(root, name):
     if pdf_relative:
         target = paths.resolve_inside(root, pdf_relative)
         pdf_bytes = target.read_bytes() if target is not None and target.is_file() else None
-    acknowledged = chain.acknowledgement(metadata_document)
-    return {
-        "package": name, "tailored_cv_id": metadata_document["tailored_cv_id"], "job_key": metadata_document["job_key"],
-        "language": metadata_document["language"], "family": metadata_document["family"],
-        "document": {"role": review.DOCUMENT_ROLE, "path": pdf_relative,
-                     "sha256": None if pdf_bytes is None else canonical.sha256_bytes(pdf_bytes),
-                     "bytes": None if pdf_bytes is None else len(pdf_bytes), "pages": metadata_document["pdf_pages"],
-                     "origin": metadata_document.get("pdf_origin"),
-                     "page_target": metadata_document["page_target"], "page_verdict": acknowledged["page_verdict"]},
-        "reviewed": {name_: metadata_document[name_] for name_ in review.REVIEWED_FIELDS},
-        "to_acknowledge": acknowledged,
-        "state_now": {"status": verdict["status"], "reasons": verdict["reasons"]},
-        "limits": list(LIMITS),
-        "approval_file": "%s/%s" % (package["artifacts"]["cv"]["metadata"].rsplit("/", 1)[0], review.FILE_NAME),
-        "metadata": metadata_relative,
-    }
+    try:
+        acknowledged = chain.acknowledgement(metadata_document)
+        return {
+            "package": name, "tailored_cv_id": metadata_document["tailored_cv_id"], "job_key": metadata_document["job_key"],
+            "language": metadata_document["language"], "family": metadata_document["family"],
+            "document": {"role": review.DOCUMENT_ROLE, "path": pdf_relative,
+                         "sha256": None if pdf_bytes is None else canonical.sha256_bytes(pdf_bytes),
+                         "bytes": None if pdf_bytes is None else len(pdf_bytes), "pages": metadata_document["pdf_pages"],
+                         "origin": metadata_document.get("pdf_origin"),
+                         "page_target": metadata_document["page_target"], "page_verdict": acknowledged["page_verdict"]},
+            "reviewed": {name_: metadata_document[name_] for name_ in review.REVIEWED_FIELDS},
+            "to_acknowledge": acknowledged,
+            "state_now": {"status": verdict["status"], "reasons": verdict["reasons"]},
+            "limits": list(LIMITS),
+            "approval_file": "%s/%s" % (package["artifacts"]["cv"]["metadata"].rsplit("/", 1)[0], review.FILE_NAME),
+            "metadata": metadata_relative,
+        }
+    except (KeyError, TypeError, AttributeError, ValueError):
+        # Readable JSON that is not the metadata of a CV (missing or mistyped fields): a refusal with a code, never a traceback.
+        raise PackageError("METADATA_UNREADABLE", "the CV metadata of this package is incomplete or malformed")
 
 
 def build_review(summary, decision, reviewer, note=None):

@@ -98,6 +98,8 @@ Si votre profil a plusieurs familles, nommez celle à utiliser : `matrix --famil
 | `PLAN_CAPABILITY_UNKNOWN` | Un fait ou une puce utilise une capacité absente de la taxonomie. | Utilisez un identifiant de la taxonomie (par exemple `data-analysis`, pas `data`) ou fournissez la vôtre. |
 | Une rubrique (par exemple Formation) manque au CV | Son bloc n'a aucune puce et n'est pas protégé (`content check` avertit `CONTENT_BLOCK_NEVER_PRINTED`). | Ajoutez `"protected": true` au bloc. |
 | `PDF_NO_PAGE` | Le PDF donné à `package create --pdf` n'a aucune page lisible dans son arbre de pages. | Recompilez-le, ou utilisez `package create --compile`. |
+| `METADATA_UNREADABLE` (`package review`, `package approve`) ou `BLOCKED` avec `CV_METADATA_INVALID` (`package status`) | Le fichier de métadonnées du paquet a été modifié, vidé ou abîmé. | Un paquet ne se modifie jamais : créez-en un nouveau. |
+| `PDF_ORIGIN_NOT_VERIFIED` | Le PDF a été donné avec `--pdf` (ou le paquet précède l'enregistrement de l'origine) : l'outil ne peut pas montrer qu'il vient de ce `.tex`. | Recréez le paquet avec `--compile` ; une approbation ne remplace pas cette preuve. |
 | `ASSEMBLY_SOURCE_MISMATCH`, `ASSEMBLY_PLAN_FINGERPRINT` | Une source a changé après le plan, ou le plan a été modifié. | Refaites un plan (`plan --out` avec un nouveau nom de fichier). |
 | `OUTPUT_EXISTS`, `PACKAGE_EXISTS` | Rien n'est jamais écrasé. | Choisissez un nouveau nom de fichier ou de paquet. |
 | `render` sort avec `4` | `pdflatex` introuvable. | Installez MiKTeX ou TeX Live, ou continuez sans PDF (le paquet sera `NEEDS_REVIEW` / `FINAL_DOCUMENT_MISSING`). |

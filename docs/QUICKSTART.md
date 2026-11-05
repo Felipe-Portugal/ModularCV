@@ -97,6 +97,8 @@ Importing an old document: [IMPORT.md](IMPORT.md).
 | `PLAN_CAPABILITY_UNKNOWN` | A fact or bullet uses a capability that is not in the taxonomy. | Use an identifier of the taxonomy (for example `data-analysis`, not `data`) or provide your own taxonomy. |
 | A section (for example Education) is missing from the CV | Its block has no bullet and is not protected (`content check` warns `CONTENT_BLOCK_NEVER_PRINTED`). | Set `"protected": true` on the block. |
 | `PDF_NO_PAGE` | The PDF given to `package create --pdf` has no page that can be read from its page tree. | Compile it again, or use `package create --compile`. |
+| `METADATA_UNREADABLE` (`package review`, `package approve`) or `BLOCKED` with `CV_METADATA_INVALID` (`package status`) | The metadata file of the package was edited, emptied or damaged. | Packages are never edited: create a new one. |
+| `PDF_ORIGIN_NOT_VERIFIED` | The PDF was handed over with `--pdf` (or the package predates the origin record): the tool cannot show it comes from this `.tex`. | Create the package again with `--compile`; an approval cannot replace this. |
 | `ASSEMBLY_SOURCE_MISMATCH`, `ASSEMBLY_PLAN_FINGERPRINT` | A source changed after the plan, or the plan was edited. | Build a new plan (`plan --out` with a new file name). |
 | `OUTPUT_EXISTS`, `PACKAGE_EXISTS` | Nothing is ever overwritten. | Choose a new file or package name. |
 | `render` exits `4` | `pdflatex` not found. | Install MiKTeX or TeX Live, or continue without a PDF (the package will be `NEEDS_REVIEW` / `FINAL_DOCUMENT_MISSING`). |

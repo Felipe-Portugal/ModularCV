@@ -609,6 +609,22 @@ def test_an_origin_edited_without_resealing_is_detected_and_an_invalid_one_is_re
     assert status == readiness.BLOCKED and "CV_METADATA_INVALID" in reasons
 
 
+@pytest.mark.parametrize("content", ["{}", '{"schema_version": "3"}', "[]", '{"unsatisfied_required": 7, "pending_directives": null}'])
+def test_metadata_that_is_not_a_cv_metadata_is_blocked_cleanly_by_every_command(ws, capsys, content):
+    """M8-B: readable JSON of the wrong shape was a KeyError traceback with exit 1 (the code of NEEDS_REVIEW) in `package status`."""
+    (ws / "applications" / NAME / "cv" / "metadata.json").write_text(content, encoding="utf-8")
+    code, out, err = run(capsys, "package", "status", "--name", NAME, "--root", str(ws))
+    verdict = json.loads(out)
+    assert code == 3 and verdict["status"] == "BLOCKED" and "Traceback" not in err
+    assert {"CV_METADATA_INVALID", "CV_METADATA_UNREADABLE"} & set(verdict["reasons"])
+    for command in ("review", "approve"):
+        code, out, err = run(capsys, "package", command, "--name", NAME, "--root", str(ws), *(["--reviewer", "SYNTHETIC TEST ONLY"] if command == "approve" else []))
+        assert code == 2 and "METADATA_UNREADABLE" in err and "Traceback" not in err
+    with pytest.raises(package.PackageError) as caught:
+        package.record_review(ws, NAME, "APPROVED", "SYNTHETIC TEST ONLY")
+    assert caught.value.code == "METADATA_UNREADABLE"
+
+
 def test_an_origin_without_a_pdf_is_invalid_metadata(template, tmp_path):
     document = read_json(template / "applications" / NAME / "cv" / "metadata.json")
     assert metadata.problems(document) == []
