@@ -960,7 +960,7 @@ def main(argv=None) -> int:
     pc.add_argument("--plan", required=True, help="the TailoringPlan-v1 file")
     pc.add_argument("--offer", required=True, help="the JobOffer-v1 file, inside the workspace")
     pc.add_argument("--tex", required=True, help="the .tex written by `render`")
-    pc.add_argument("--pdf", default=None, help="the compiled PDF: without one the package can never be READY_TO_SEND")
+    pc.add_argument("--pdf", default=None, help="a PDF made elsewhere: its origin is recorded as not verified and the package can never be READY_TO_SEND (use --compile)")
     pc.add_argument("--compile", action="store_true",
                     help="compile the verified .tex now with pdflatex and package that very output (instead of --pdf)")
     pc.add_argument("--timeout", type=int, default=pdf.DEFAULT_TIMEOUT, help="compiler time limit in seconds (with --compile)")

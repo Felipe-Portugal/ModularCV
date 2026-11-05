@@ -1,7 +1,7 @@
 ---
 name: cv-panel
 description: >-
-  Fait relire un CV (et sa lettre de motivation) par un panel de sept lecteurs indépendants adaptés au contexte canadien, québécois et étudiant à l'ÉTS : filtre automatique (ATS), recrutement RH, gestionnaire technique, conseiller en stage de l'ÉTS (gabarit PRE811), candidat concurrent de l'ÉTS, coéquipier et vérificateur de faits. Relecture seulement : ne réécrit jamais le CV. À utiliser quand l'utilisateur tape /cv-panel suivi d'un CV (PDF ou texte), éventuellement d'une lettre et d'une offre.
+  Fait relire un CV (et sa lettre de motivation) par un panel de sept lecteurs indépendants adaptés au contexte canadien, québécois et étudiant à l'ÉTS : filtre automatique (ATS), recrutement RH, gestionnaire technique, conseiller en stage de l'ÉTS, candidat concurrent de l'ÉTS, coéquipier et vérificateur de faits. Relecture seulement : ne réécrit jamais le CV. À utiliser quand l'utilisateur tape /cv-panel suivi d'un CV (PDF ou texte), éventuellement d'une lettre et d'une offre.
 argument-hint: "<CV pdf ou texte> [lettre] [offre ou poste]  — ajouter --rapide pour 3 lecteurs"
 license: MIT
 metadata:
