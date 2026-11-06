@@ -124,5 +124,5 @@ agreement to sign.
 
 ## Releases
 
-No versioned release has been published yet: `0.2.0` is a release candidate (see [CHANGELOG.md](CHANGELOG.md)). Releases, tags and
-publication are decided by the maintainer; please do not open pull requests that change the version number.
+Whether `0.2.0` has been released is shown on the Releases page of the GitHub repository and in [CHANGELOG.md](CHANGELOG.md). Releases, tags
+and publication are decided by the maintainer; please do not open pull requests that change the version number.

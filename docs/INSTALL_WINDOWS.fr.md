@@ -5,8 +5,8 @@ English: [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md)
 Cette page vous mène d'une machine Windows vierge à un premier essai sur l'exemple fictif, avec PowerShell. Elle complète
 [QUICKSTART.fr.md](QUICKSTART.fr.md), qui explique ce que fait chaque commande et ce que signifie `READY_TO_SEND`.
 
-ModularCV s'installe **depuis un clone du dépôt**. Aucune version n'a été publiée : il n'y a ni installateur, ni `.exe`, ni dépôt sur un
-index de paquets, ni application de bureau. Une application de bureau ne fait pas partie de ce projet aujourd'hui et aucune n'est promise.
+ModularCV s'installe **depuis un clone du dépôt**. Il n'y a ni installateur, ni `.exe`, ni dépôt sur un index de paquets (PyPI), ni
+application de bureau. Une application de bureau ne fait pas partie de ce projet aujourd'hui et aucune n'est promise.
 
 **Ce qui a réellement été essayé.** Les commandes ci-dessous ont été exécutées sous Windows 11 avec Windows PowerShell 5.1, Git, Python 3.14 et
 MiKTeX (la seule distribution TeX éprouvée à ce jour). Python 3.12 et 3.13 sont pris en charge mais n'ont pas servi à cette page. PowerShell 7,

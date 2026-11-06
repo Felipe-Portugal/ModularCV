@@ -67,8 +67,9 @@ To use the skill, copy `skills/cv-panel/` into `~/.claude/skills/` and run
 
 ## Status, supported platforms and limits
 
-The source code is public in this repository. **No versioned release has been published**: there is no tag, no GitHub release, no downloadable
-archive and no package-index upload yet, so install from a clone (above). `0.2.0` is the **release candidate**: the persona-independent chain from fact base to a human-approved PDF (provenance, readiness,
+The source code is public in this repository: install from a clone (above). Versioned releases, if there are any, are listed on the Releases page of the
+GitHub repository and described in [CHANGELOG.md](CHANGELOG.md). ModularCV is **not on PyPI** or any other package index, and there is no installer and no
+desktop application. `0.2.0` is the version of this source tree: the persona-independent chain from fact base to a human-approved PDF (provenance, readiness,
 `Profile-v1`, controlled legacy import, `ResumeContent-v1`, offers, plan, assembly, generic LaTeX, packages). Nothing is sent anywhere and
 nothing is approved automatically. The CV generation engine from the original private project is not included here because it still embeds
 one person's content; porting it behind a configurable fact base is future work.
@@ -96,7 +97,7 @@ you meet the job's requirements. `pdflatex` is not a sandbox. The privacy scan i
 ## Contributing, security and changelog
 
 [CONTRIBUTING.md](CONTRIBUTING.md) explains how to propose a change; report a suspected vulnerability privately as described in
-[SECURITY.md](SECURITY.md), not in a public issue; [CHANGELOG.md](CHANGELOG.md) lists what `0.2.0` (not yet released) contains and its known limits.
+[SECURITY.md](SECURITY.md), not in a public issue; [CHANGELOG.md](CHANGELOG.md) lists what `0.2.0` contains, its status and its known limits.
 
 ## Credits and license
 

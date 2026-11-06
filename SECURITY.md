@@ -61,8 +61,8 @@ If you can show that the tool **claims more than the documentation says it does*
 
 ## Supported versions
 
-No versioned release has been published. `0.2.0` is a **release candidate**, not a release, and there are no older versions. Fixes are
-made on the `main` branch. Python 3.12, 3.13 and 3.14 are the supported interpreters (see [README.md](README.md)); no support is announced
+Security fixes are made on the `main` branch. The only version that exists is `0.2.0`, the version of the source tree; whether it has been
+published as a release is shown on the Releases page of the GitHub repository. There are no older versions. Python 3.12, 3.13 and 3.14 are the supported interpreters (see [README.md](README.md)); no support is announced
 for older ones.
 
 ## How reports are handled

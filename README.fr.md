@@ -61,8 +61,9 @@ Pour le skill : copiez `skills/cv-panel/` dans `~/.claude/skills/`, puis `/cv-pa
 
 ## Statut, plateformes prises en charge et limites
 
-Le code source est public dans ce dépôt. **Aucune version n'a été publiée** : ni tag, ni release GitHub, ni archive à télécharger, ni dépôt sur un
-index de paquets ; installez donc depuis un clone (ci-dessus). `0.2.0` est la **version candidate** : la chaîne indépendante de toute personne, de la base de faits à un PDF approuvé par un humain
+Le code source est public dans ce dépôt : installez depuis un clone (ci-dessus). Les versions publiées, s'il y en a, sont listées sur la page Releases du
+dépôt GitHub et décrites dans [CHANGELOG.md](CHANGELOG.md) (en anglais). ModularCV n'est **pas sur PyPI** ni sur aucun autre index de paquets, et il n'y a
+ni installateur ni application de bureau. `0.2.0` est la version de cet arbre source : la chaîne indépendante de toute personne, de la base de faits à un PDF approuvé par un humain
 (provenance, readiness, `Profile-v1`, import historique contrôlé, `ResumeContent-v1`, offres, plan, assemblage, LaTeX générique, paquets).
 Rien n'est envoyé nulle part et rien n'est approuvé automatiquement. Le moteur de génération du projet privé d'origine n'est pas inclus : il
 contient encore le contenu d'une personne ; le porter derrière une base de faits configurable reste à faire.
@@ -90,7 +91,7 @@ une recherche de motifs au mieux. Détails : [docs/PACKAGE.md](docs/PACKAGE.md) 
 ## Contribuer, sécurité et journal des changements
 
 [CONTRIBUTING.md](CONTRIBUTING.md) (en anglais) explique comment proposer une modification ; signalez une faille présumée en privé comme le décrit
-[SECURITY.md](SECURITY.md) (en anglais), pas dans une issue publique ; [CHANGELOG.md](CHANGELOG.md) (en anglais) liste le contenu de `0.2.0` (pas encore publiée) et ses
+[SECURITY.md](SECURITY.md) (en anglais), pas dans une issue publique ; [CHANGELOG.md](CHANGELOG.md) (en anglais) liste le contenu de `0.2.0`, son statut et ses
 limites connues.
 
 ## Licence

@@ -5,8 +5,8 @@ Français : [INSTALL_WINDOWS.fr.md](INSTALL_WINDOWS.fr.md)
 This page takes you from a bare Windows machine to a first run on the fictional example, using PowerShell. It complements
 [QUICKSTART.md](QUICKSTART.md), which explains what each command does and what `READY_TO_SEND` means.
 
-ModularCV is installed **from a clone of the repository**. No version has been released: there is no installer, no `.exe`, no
-package-index upload and no desktop application. A desktop application is not part of this project today and none is promised.
+ModularCV is installed **from a clone of the repository**. There is no installer, no `.exe`, no package-index (PyPI) upload and no
+desktop application. A desktop application is not part of this project today and none is promised.
 
 **What was actually tried.** The commands below were run on Windows 11 with Windows PowerShell 5.1, Git, Python 3.14 and MiKTeX (the
 only TeX distribution exercised so far). Python 3.12 and 3.13 are supported but were not used for this page. PowerShell 7, other

@@ -29,7 +29,14 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (DOC-1-PACKAGE, packaging check of the documentation; local commit, not pushed)
+## Last work (G5-PRE, preparation of the first release `v0.2.0`; local commit, not pushed)
+
+Nothing is tagged, released or pushed. `origin/main` was `2f8e466` at the start. The documents whose wording does not depend on the act of publication now say where
+releases are listed (the GitHub Releases page) and that there is no package index, which stays true before and after a release (README EN/FR, SECURITY, CONTRIBUTING,
+the Windows guides, `tests/test_doc_set.py`). The wording that does depend on it (the `CHANGELOG.md` introduction and heading, the changelog test) is kept for a
+separate release patch applied at G5 with the real date. The release notes, the build strategy, the candidate archives and the exact G5 procedure are in the G5-PRE report.
+
+## Earlier work (DOC-1-PACKAGE, packaging check of the documentation; local commit, not pushed)
 
 Built from a clean export of `2734b33`: wheel (32 entries, engine and licence only, identical to the earlier wheel layout) and sdist (the three community
 files, `docs/CLI.md`, both Windows guides, the new tests and `NOTICE.md` are inside; `MANIFEST.in` needed no further change). Both installed in fresh Python 3.14

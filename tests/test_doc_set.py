@@ -44,20 +44,27 @@ def test_the_source_archive_carries_the_community_files():
         assert name in manifest, name
 
 
-def test_no_document_announces_a_published_release():
-    """Public repository, unpublished release: no document may point at a release, a tag, an archive or a package index entry."""
-    for rel in ("README.md", "README.fr.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "docs/INSTALL_WINDOWS.md", "docs/INSTALL_WINDOWS.fr.md"):
+def test_the_entry_documents_stay_true_before_and_after_a_release():
+    """State-independent wording: the documents say where releases are listed and that there is no package index, never that none exists."""
+    for rel in ("README.md", "README.fr.md", "SECURITY.md", "CONTRIBUTING.md", "docs/INSTALL_WINDOWS.md", "docs/INSTALL_WINDOWS.fr.md"):
         text = read(rel)
-        assert not re.search(r"/releases/(tag|download|latest)", text), rel
+        assert not re.search(r"/releases/(tag|download|latest)", text), rel  # no link to one release: the Releases page is named, not linked
         assert not re.search(r"pypi\.org/project/modularcv|pip install modularcv\b|pip install --upgrade modularcv", text, re.I), rel
-    assert "No versioned release has been published" in read("README.md")
-    assert "Aucune version n'a été publiée" in read("README.fr.md")
+        assert not re.search(r"release candidate|version candidate|not (yet )?released|aucune version|no versioned release", text, re.I), rel
+    assert "Releases page" in read("README.md") and "not on PyPI" in read("README.md")
+    assert "page Releases" in read("README.fr.md") and "pas sur PyPI" in read("README.fr.md")
+    assert "Releases page" in read("SECURITY.md") and "Releases page" in read("CONTRIBUTING.md")
+    assert "0.2.0" in read("pyproject.toml")  # the version is unchanged
+
+
+def test_the_changelog_matches_the_release_state():
+    """Before the release: `0.2.0` is an unreleased candidate with no date. The release commit of the publication procedure replaces this test."""
     changelog = read("CHANGELOG.md")
     assert "No version of ModularCV has been released yet" in changelog
     assert "not a public release" in changelog  # the first commit's `0.1.0` is an internal state, never presented as a release
     heading = re.search(r"^## \[0\.2\.0\][^\n]*$", changelog, re.M)
     assert heading and "not released" in heading.group(0) and not re.search(r"\d{4}-\d{2}-\d{2}", heading.group(0))
-    assert "0.2.0" in read("pyproject.toml")  # the version is unchanged
+    assert not re.search(r"/releases/(tag|download|latest)", changelog)
 
 
 def test_the_security_policy_uses_private_reporting_and_promises_nothing_it_cannot_keep():
@@ -114,8 +121,8 @@ def test_the_readmes_link_the_same_documents():
 
 def test_the_readmes_keep_the_scope_and_the_release_status():
     for rel, needles in (
-        ("README.md", ("generates **CVs**", "does not generate or rewrite cover letters", "No versioned release has been published", "release candidate")),
-        ("README.fr.md", ("génère des **CV**", "ne génère ni ne réécrit de lettres", "Aucune version n'a été publiée", "version candidate")),
+        ("README.md", ("generates **CVs**", "does not generate or rewrite cover letters", "Releases page", "not on PyPI")),
+        ("README.fr.md", ("génère des **CV**", "ne génère ni ne réécrit de lettres", "page Releases", "pas sur PyPI")),
     ):
         text = read(rel)
         for needle in needles:
