@@ -5,7 +5,7 @@ comes from one place.
 
 ```
 facts.md ──► master CV ──► family baselines ──► tailored CV ──► application package ──► readiness check
- (truth)      (full)        (software, ...)       (per offer)     (CV + letter + proof)     (fail-closed)
+ (truth)      (full)        (software, ...)       (per offer)     (CV + proof)            (fail-closed)
 ```
 
 | Layer | Role | Rule |

@@ -93,6 +93,7 @@ Importing an old document: [IMPORT.md](IMPORT.md).
 |---|---|---|
 | `GIT_REPOSITORY_UNAVAILABLE` | The workspace is not a Git repository. | `git init`, add and commit your sources. |
 | `SOURCE_NOT_AT_COMMIT` / `SOURCE_COMMIT_UNVERIFIABLE` | A source differs from the last commit, or the commit is unknown. | Commit your sources, then build the plan again. |
+| `WORKSPACE_NOT_REPOSITORY_ROOT` | The workspace folder is inside another Git repository instead of being the top level of its own. | Run `git init` in the workspace folder itself, or move the workspace out of the other repository. |
 | `PLAN_FAMILY_REQUIRED` | Several families in the profile. | Add `--family NAME`. |
 | `PLAN_CAPABILITY_UNKNOWN` | A fact or bullet uses a capability that is not in the taxonomy. | Use an identifier of the taxonomy (for example `data-analysis`, not `data`) or provide your own taxonomy. |
 | A section (for example Education) is missing from the CV | Its block has no bullet and is not protected (`content check` warns `CONTENT_BLOCK_NEVER_PRINTED`). | Set `"protected": true` on the block. |

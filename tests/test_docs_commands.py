@@ -9,9 +9,12 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-DOCS = ["README.md", "README.fr.md"] + [
+DOCS = ["README.md", "README.fr.md", "CONTRIBUTING.md", "SECURITY.md"] + [
     "docs/" + n
-    for n in ("QUICKSTART.md", "QUICKSTART.fr.md", "WORKSPACE.md", "PACKAGE.md", "RENDER.md", "PLAN.md", "CONTENT.md", "IMPORT.md")
+    for n in (
+        "QUICKSTART.md", "QUICKSTART.fr.md", "WORKSPACE.md", "PACKAGE.md", "RENDER.md", "PLAN.md", "CONTENT.md", "IMPORT.md",
+        "CLI.md", "INSTALL_WINDOWS.md", "INSTALL_WINDOWS.fr.md",
+    )
 ]
 
 
@@ -42,7 +45,7 @@ def commands(rel):
             i += 1
             line = line.rstrip()[:-1] + " " + lines[i].strip()
         i += 1
-        for m in re.finditer(r"python -m modularcv((?: [^`#|\n]+)?)", line):
+        for m in re.finditer(r"(?:python|\$py) -m modularcv((?: [^`#|\n]+)?)", line):  # `$py` is the interpreter variable of the Windows guides
             tail = m.group(1).split()
             if tail and tail[0] not in {"...", "…"}:
                 yield rel, tail

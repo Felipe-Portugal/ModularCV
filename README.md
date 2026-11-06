@@ -29,7 +29,8 @@ its problems; it never writes one.
 | `schemas/`, `templates/` | The traceability record and the analysis templates. |
 
 **New here? Start with [docs/QUICKSTART.md](docs/QUICKSTART.md)** (a five-minute fictional example, what `READY_TO_SEND` means, troubleshooting;
-[français](docs/QUICKSTART.fr.md)). Then see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/GOVERNANCE.md](docs/GOVERNANCE.md) and
+[français](docs/QUICKSTART.fr.md)). On Windows, see [docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md) first. Every command and option is
+listed in [docs/CLI.md](docs/CLI.md). Then see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/GOVERNANCE.md](docs/GOVERNANCE.md) and
 [docs/WORKSPACE.md](docs/WORKSPACE.md).
 
 ## Your data stays private
@@ -91,6 +92,11 @@ file that binds a decision to the exact bytes of a PDF: the reviewer is **not au
 and whoever can write your workspace can forge it, as they can forge an approval. `READY_TO_SEND` means the process is consistent, not that
 you meet the job's requirements. `pdflatex` is not a sandbox. The privacy scan is best-effort pattern matching. Details:
 [docs/PACKAGE.md](docs/PACKAGE.md) ("Limits that are not hidden").
+
+## Contributing, security and changelog
+
+[CONTRIBUTING.md](CONTRIBUTING.md) explains how to propose a change; report a suspected vulnerability privately as described in
+[SECURITY.md](SECURITY.md), not in a public issue; [CHANGELOG.md](CHANGELOG.md) lists what `0.2.0` (not yet released) contains and its known limits.
 
 ## Credits and license
 

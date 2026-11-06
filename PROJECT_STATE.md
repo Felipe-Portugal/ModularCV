@@ -25,11 +25,26 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 | M5 | ResumeContent-v1 and reservoir | Rated PARTIAL; M5-R1 done, awaiting validation |
 | M6 | JobOffer-v1, taxonomy, requirement matrix and plan | Done, awaiting validation |
 | M7 | Rendering, optional PDF, metadata v3, package | M7-A validated; M7-B done, awaiting validation; M8 not authorised |
-| M8 | Public release preparation | M8-A, M8-A-R1, M8-A-R2, M8-B validated; PUB-0 validated; PUB-1-R1 validated; `main` pushed to the private repository (G2, G3 verified); PUB-3-PRE (documentation corrections) done locally, awaiting validation; repository still private, no tag, no release |
+| M8 | Public release preparation | M8-A, M8-A-R1, M8-A-R2, M8-B validated; PUB-0 validated; PUB-1-R1 validated; `main` pushed to the private repository (G2, G3 verified); PUB-3-PRE, G2-bis (push), G4 (public) and SEC-1 (ruleset, secret scanning, push protection, private vulnerability reporting, Dependabot alerts) validated; DOC-1 (public documentation) done locally, awaiting validation; repository public, no tag, no release |
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (PUB-3-PRE, documentation corrections before the visibility change; nothing pushed)
+## Last work (DOC-1, public documentation and release preparation; local commit, not pushed)
+
+Documentation, tests of the documentation and `MANIFEST.in` only; the engine, the contracts and the version (`0.2.0`) are unchanged. The repository is public;
+`origin/main` was `0269f5d` when the work started. No tag, no release, no GitHub setting changed.
+
+- New: `CONTRIBUTING.md`, `SECURITY.md` (private vulnerability reporting, no invented address, no promised delay), `CHANGELOG.md` (`0.2.0` as an unreleased
+  candidate, known limits), `docs/INSTALL_WINDOWS.md` and `.fr.md` (commands run on Windows 11, PowerShell 5.1, Python 3.14, MiKTeX), `docs/CLI.md`
+  (every command, argument and option).
+- New tests: `tests/test_cli_reference.py` (CLI.md against `--help`, both directions) and `tests/test_doc_set.py` (release status, EN/FR parity, community files).
+  `tests/test_docs_commands.py` also reads the new documents and the `$py` commands of the Windows guides.
+- Corrected: the `README.fr.md` gaps (two table rows, the optional school summary), the leftover "letter" in the `ARCHITECTURE.md` diagram, the missing
+  `WORKSPACE_NOT_REPOSITORY_ROOT` row of the troubleshooting tables, `MANIFEST.in` (the three community files go in the source archive).
+- Open before G5: the release notes, the archives (the README is embedded in the wheel metadata, so they must be rebuilt), and the choice of the
+  tag-protection ruleset and of immutable releases (see the SEC-PRE notes). Nothing was run on Python 3.12 or 3.13 for the Windows guide.
+
+## Earlier work (PUB-3-PRE, documentation corrections before the visibility change; nothing pushed)
 
 Documentation and metadata wording only; no code behaviour changed. Remote tip still `7f12d1c`, repository still private, no tag, no release.
 
@@ -323,5 +338,5 @@ None.
 
 ## Next action
 
-Wait for the maintainer's explicit authorisation of the visibility change (gate G4) and then of the release (gate G5). Do not push, tag, release or
+Wait for the maintainer's validation of DOC-1, the authorisation to push it, and then the authorisation of the release (gate G5). Do not push, tag or release without an explicit go for that exact action. Do not push, tag, release or
 change a visibility without an explicit go for that exact action.

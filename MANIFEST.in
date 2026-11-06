@@ -1,4 +1,4 @@
-include LICENSE README.md README.fr.md AGENTS.md pyproject.toml
+include LICENSE README.md README.fr.md AGENTS.md CONTRIBUTING.md SECURITY.md CHANGELOG.md pyproject.toml
 graft docs
 graft examples
 graft schemas

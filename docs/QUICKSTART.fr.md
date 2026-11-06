@@ -94,6 +94,7 @@ Si votre profil a plusieurs familles, nommez celle à utiliser : `matrix --famil
 |---|---|---|
 | `GIT_REPOSITORY_UNAVAILABLE` | L'espace de travail n'est pas un dépôt Git. | `git init`, ajoutez et validez vos sources. |
 | `SOURCE_NOT_AT_COMMIT` / `SOURCE_COMMIT_UNVERIFIABLE` | Une source diffère du dernier commit, ou le commit est inconnu. | Validez vos sources puis refaites le plan. |
+| `WORKSPACE_NOT_REPOSITORY_ROOT` | Le dossier de travail est à l'intérieur d'un autre dépôt Git au lieu d'être la racine du sien. | Lancez `git init` dans le dossier de travail lui-même, ou sortez-le de l'autre dépôt. |
 | `PLAN_FAMILY_REQUIRED` | Plusieurs familles dans le profil. | Ajoutez `--family NOM`. |
 | `PLAN_CAPABILITY_UNKNOWN` | Un fait ou une puce utilise une capacité absente de la taxonomie. | Utilisez un identifiant de la taxonomie (par exemple `data-analysis`, pas `data`) ou fournissez la vôtre. |
 | Une rubrique (par exemple Formation) manque au CV | Son bloc n'a aucune puce et n'est pas protégé (`content check` avertit `CONTENT_BLOCK_NEVER_PRINTED`). | Ajoutez `"protected": true` au bloc. |

@@ -25,10 +25,13 @@ English: [README.md](README.md)
 | `modularcv.package`, `chain` | Construit un **paquet** (plan, CV assemblé, `.tex`, PDF, métadonnées, snapshot) dans votre espace de travail privé, enregistre une **approbation humaine du PDF exact** et calcule `READY_TO_SEND` à partir des preuves à chaque appel. Rien n'est envoyé, rien n'est approuvé automatiquement (voir [docs/PACKAGE.md](docs/PACKAGE.md), en anglais). |
 | `modularcv.legacy` | `facts import` : transforme un document Markdown historique en base de faits *proposée*, selon une correspondance que vous écrivez. Une ligne inconnue n'est jamais importée et rien ne devient `CONFIRMED` tout seul (voir [docs/IMPORT.md](docs/IMPORT.md), en anglais). |
 | `modularcv.privacy` | Analyse un répertoire (et l'historique) à la recherche de courriels, téléphones, NAS, chemins d'utilisateur, URL de profil, identifiants et de vos propres termes privés, **avant** publication. |
+| `modularcv.config`, `external` | Une configuration d'espace de travail et un diagnostic clair quand un répertoire d'entrée externe est absent. |
+| `schemas/`, `templates/` | Le registre de traçabilité et les gabarits d'analyse. |
 | `skills/cv-panel` | Skill Claude Code : sept lecteurs indépendants (ATS, recruteur RH, gestionnaire technique, conseiller en stage ÉTS, candidat concurrent, coéquipier, vérificateur de faits) relisent un CV et, si vous en fournissez une, une lettre que vous avez écrite. **Relecture seulement : il ne réécrit rien et n'ajoute aucun fait.** |
 
 **Vous débutez ? Commencez par [docs/QUICKSTART.fr.md](docs/QUICKSTART.fr.md)** (un exemple fictif en cinq minutes, ce que signifie
-`READY_TO_SEND`, dépannage). Voir ensuite [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/GOVERNANCE.md](docs/GOVERNANCE.md) et
+`READY_TO_SEND`, dépannage). Sous Windows, voyez d'abord [docs/INSTALL_WINDOWS.fr.md](docs/INSTALL_WINDOWS.fr.md). Toutes les commandes et options sont
+listées dans [docs/CLI.md](docs/CLI.md) (en anglais). Voir ensuite [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/GOVERNANCE.md](docs/GOVERNANCE.md) et
 [docs/WORKSPACE.md](docs/WORKSPACE.md).
 
 ## Vos données restent privées
@@ -84,7 +87,16 @@ cryptographique**, et qui peut écrire dans votre espace de travail peut la fals
 processus est cohérent, pas que vous remplissez les exigences du poste. `pdflatex` n'est pas un bac à sable. L'analyse de confidentialité est
 une recherche de motifs au mieux. Détails : [docs/PACKAGE.md](docs/PACKAGE.md) (« Limits that are not hidden », en anglais).
 
+## Contribuer, sécurité et journal des changements
+
+[CONTRIBUTING.md](CONTRIBUTING.md) (en anglais) explique comment proposer une modification ; signalez une faille présumée en privé comme le décrit
+[SECURITY.md](SECURITY.md) (en anglais), pas dans une issue publique ; [CHANGELOG.md](CHANGELOG.md) (en anglais) liste le contenu de `0.2.0` (pas encore publiée) et ses
+limites connues.
+
 ## Licence
 
 MIT. `skills/cv-panel` est adapté de [hiring-panel-skill](https://github.com/alexyc9381/hiring-panel-skill)
-de Alex Chen (MIT) ; voir `skills/cv-panel/NOTICE.md`.
+de Alex Chen (MIT) ; voir `skills/cv-panel/NOTICE.md`. Le conseiller en stage de la skill peut lire `skills/cv-panel/normes-ets.md`, un résumé
+facultatif des consignes de stage de l'école : il est dans le dépôt Git et dans l'archive source, il n'est pas dans le wheel, et le moteur ne
+l'utilise pas. C'est une commodité, il peut être périmé et ne remplace pas les documents de l'école, qui ne sont pas inclus ici ; remplacez-le par
+vos propres normes si les vôtres diffèrent.
