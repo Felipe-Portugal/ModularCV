@@ -54,6 +54,7 @@ def test_no_document_announces_a_published_release():
     assert "Aucune version n'a été publiée" in read("README.fr.md")
     changelog = read("CHANGELOG.md")
     assert "No version of ModularCV has been released yet" in changelog
+    assert "not a public release" in changelog  # the first commit's `0.1.0` is an internal state, never presented as a release
     heading = re.search(r"^## \[0\.2\.0\][^\n]*$", changelog, re.M)
     assert heading and "not released" in heading.group(0) and not re.search(r"\d{4}-\d{2}-\d{2}", heading.group(0))
     assert "0.2.0" in read("pyproject.toml")  # the version is unchanged

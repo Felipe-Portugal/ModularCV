@@ -29,7 +29,15 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 
 Details and acceptance criteria: `docs/design/MILESTONES.md`.
 
-## Last work (DOC-1, public documentation and release preparation; local commit, not pushed)
+## Last work (DOC-1-PACKAGE, packaging check of the documentation; local commit, not pushed)
+
+Built from a clean export of `2734b33`: wheel (32 entries, engine and licence only, identical to the earlier wheel layout) and sdist (the three community
+files, `docs/CLI.md`, both Windows guides, the new tests and `NOTICE.md` are inside; `MANIFEST.in` needed no further change). Both installed in fresh Python 3.14
+environments outside the repository; the example ran end to end from each (`NEEDS_REVIEW`, nothing approved); the full suite ran from the unpacked sdist.
+The one correction: the internal `0.1.0` state is no longer worded as "published" (`CHANGELOG.md`, `CONTRACTS.md`, `PROVENANCE_READINESS.md`). Nothing pushed,
+no tag, no release, no GitHub setting changed. The archives are checks, not release artefacts: G5 builds its own from the public repository.
+
+## Earlier work (DOC-1, public documentation and release preparation; local commit, not pushed)
 
 Documentation, tests of the documentation and `MANIFEST.in` only; the engine, the contracts and the version (`0.2.0`) are unchanged. The repository is public;
 `origin/main` was `0269f5d` when the work started. No tag, no release, no GitHub setting changed.

@@ -6,6 +6,8 @@ are the contract the code now follows; section 9 lists the breaking changes. Tes
 
 ## 1. ModularCV 0.1.0 compared with the validated private 6C validator
 
+`0.1.0` is the internal state of the first commit. It was never a public release (no tag, no GitHub release, no package index).
+
 Observed by reading both code bases and by calling `modularcv.readiness.assess` on synthetic input.
 
 | Topic | ModularCV 0.1.0 | Private validator (6C) | Gap |

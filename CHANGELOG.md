@@ -6,7 +6,8 @@ project intends to follow [Semantic Versioning](https://semver.org/) once it has
 **No version of ModularCV has been released yet.** There is no Git tag, no GitHub release, no downloadable archive and no upload to a
 package index. The source code is public in this repository; `0.2.0` below is a **release candidate**. It has no release date: a date
 will be added only when a release is actually made. The first commit of the repository describes an earlier internal state called
-`0.1.0`, which was never published; the differences with it are listed under "Changed since the internal `0.1.0` state".
+`0.1.0`. It is **not a public release**: the repository was private until its publication and has no tag or release. The differences with
+that internal state are listed under "Changed since the internal `0.1.0` state".
 
 ## [0.2.0] - release candidate, not released
 

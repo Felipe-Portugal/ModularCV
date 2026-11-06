@@ -546,7 +546,7 @@ and the core never imports one.
 
 ## 6. Compatibility with the published metadata schema
 
-`schemas/application_metadata.schema.json` (published with `0.1.0`) accepts `schema_version` in `["1","2"]`, requires
+`schemas/application_metadata.schema.json` (shipped in the internal `0.1.0` state, which was never a public release) accepts `schema_version` in `["1","2"]`, requires
 `master_resume` (ending in `.tex`) and the common fields below, allows `base_resume` (`.tex` or `null`), and has
 `additionalProperties: true`. The published template is v2. The schema does not distinguish v1 from v2 beyond the value of
 `schema_version`; that stays true.
