@@ -1,15 +1,15 @@
 # Changelog
 
 All notable changes to ModularCV are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
-project intends to follow [Semantic Versioning](https://semver.org/) once it has a published release.
+project follows [Semantic Versioning](https://semver.org/).
 
-**No version of ModularCV has been released yet.** There is no Git tag, no GitHub release, no downloadable archive and no upload to a
-package index. The source code is public in this repository; `0.2.0` below is a **release candidate**. It has no release date: a date
-will be added only when a release is actually made. The first commit of the repository describes an earlier internal state called
-`0.1.0`. It is **not a public release**: the repository was private until its publication and has no tag or release. The differences with
-that internal state are listed under "Changed since the internal `0.1.0` state".
+**ModularCV 0.2.0 is the first release.** It is listed on the Releases page of the GitHub repository, with its archives (a wheel and a
+source archive) and their SHA-256 checksums. ModularCV is not on PyPI or any other package index. The first commit of the repository
+describes an earlier internal state called `0.1.0`. It is **not a public release**: the repository was private until its publication
+and had no tag or release before `v0.2.0`. The differences with that internal state are listed under "Changed since the internal
+`0.1.0` state".
 
-## [0.2.0] - release candidate, not released
+## [0.2.0] - 2026-11-07
 
 ### Added
 

@@ -58,12 +58,13 @@ def test_the_entry_documents_stay_true_before_and_after_a_release():
 
 
 def test_the_changelog_matches_the_release_state():
-    """Before the release: `0.2.0` is an unreleased candidate with no date. The release commit of the publication procedure replaces this test."""
+    """From the release on: `0.2.0` is the first release and carries the real publication date."""
     changelog = read("CHANGELOG.md")
-    assert "No version of ModularCV has been released yet" in changelog
+    assert "ModularCV 0.2.0 is the first release" in changelog
     assert "not a public release" in changelog  # the first commit's `0.1.0` is an internal state, never presented as a release
     heading = re.search(r"^## \[0\.2\.0\][^\n]*$", changelog, re.M)
-    assert heading and "not released" in heading.group(0) and not re.search(r"\d{4}-\d{2}-\d{2}", heading.group(0))
+    assert heading and re.fullmatch(r"## \[0\.2\.0\] - \d{4}-\d{2}-\d{2}", heading.group(0))
+    assert not re.search(r"not released|release candidate|No version of ModularCV has been released", changelog)
     assert not re.search(r"/releases/(tag|download|latest)", changelog)
 
 
