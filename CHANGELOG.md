@@ -9,7 +9,7 @@ describes an earlier internal state called `0.1.0`. It is **not a public release
 and had no tag or release before `v0.2.0`. The differences with that internal state are listed under "Changed since the internal
 `0.1.0` state".
 
-## [0.2.0] - 2026-11-07
+## [0.2.0] - 2026-11-08
 
 ### Added
 
