@@ -1,2 +1,5 @@
 * text=auto eol=lf
 *.pdf binary
+# Verbatim third-party licence texts keep their original whitespace.
+desktop/THIRD_PARTY_LICENSES.txt -whitespace
+desktop/licenses/texts/* -whitespace
