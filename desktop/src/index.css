@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-2: #efede7;
+  --line: #e1ded5;
+  --ink: #1d2320;
+  --ink-2: #5a625d;
+  --accent: #1f6f5c;
+  --accent-ink: #ffffff;
+  --success: #1d7a4f;
+  --success-bg: #e3f3ea;
+  --warning: #9a5b00;
+  --warning-bg: #fbefd7;
+  --danger: #b3261e;
+  --danger-bg: #fbe4e1;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #121614;
+  --surface: #1a201d;
+  --surface-2: #232a26;
+  --line: #2f3833;
+  --ink: #e8ece9;
+  --ink-2: #9aa59f;
+  --accent: #4fc3a1;
+  --accent-ink: #08130f;
+  --success: #6fd6a0;
+  --success-bg: #17301f;
+  --warning: #f0b45a;
+  --warning-bg: #35280f;
+  --danger: #ff8a80;
+  --danger-bg: #3a1a17;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink-2);
+  --color-accent: var(--accent);
+  --color-accentink: var(--accent-ink);
+  --color-success: var(--success);
+  --color-successbg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warningbg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-dangerbg: var(--danger-bg);
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.rise {
+  animation: rise 220ms ease-out both;
+}
+
+.sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: var(--accent);
+  border-radius: 999px;
+  animation: sweep 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .sweep::after {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}

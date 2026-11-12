@@ -68,8 +68,8 @@ To use the skill, copy `skills/cv-panel/` into `~/.claude/skills/` and run
 ## Status, supported platforms and limits
 
 The source code is public in this repository: install from a clone (above). Versioned releases, if there are any, are listed on the Releases page of the
-GitHub repository and described in [CHANGELOG.md](CHANGELOG.md). ModularCV is **not on PyPI** or any other package index, and there is no installer and no
-desktop application. `0.2.0` is the version of this source tree: the persona-independent chain from fact base to a human-approved PDF (provenance, readiness,
+GitHub repository and described in [CHANGELOG.md](CHANGELOG.md). ModularCV is **not on PyPI** or any other package index. The engine and the command line are installed from a clone; a separate, optional
+Windows application, **ModularCV Desktop** (beta, see [desktop/README.md](desktop/README.md)), has its own installer and its own version. `0.2.0` is the version of the engine in this source tree: the persona-independent chain from fact base to a human-approved PDF (provenance, readiness,
 `Profile-v1`, controlled legacy import, `ResumeContent-v1`, offers, plan, assembly, generic LaTeX, packages). Nothing is sent anywhere and
 nothing is approved automatically. The CV generation engine from the original private project is not included here because it still embeds
 one person's content; porting it behind a configurable fact base is future work.
