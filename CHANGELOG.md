@@ -21,7 +21,7 @@ ModularCV Desktop is an optional Windows application with its own version and in
 - Added: offline, read-only environment diagnostics (embedded engine, Git, LaTeX).
 - Added: documentation in `docs/desktop/` and third-party licence notices shipped with the installer.
 - Changed: the documents that said there was no installer and no desktop application now describe the optional Desktop.
-- Known limits: unsigned installer; tested on a stripped-down Windows 11 virtual machine and a Windows 11 Home development computer, not on a stock Windows 11 installation. See `docs/desktop/KNOWN_ISSUES.md`.
+- Known limits: unsigned installer; tested on a stripped-down Windows 11 virtual machine, not on a stock Windows 11 installation; the automated checks on GitHub skip the tests that need LaTeX (they pass locally with MiKTeX). See `docs/desktop/KNOWN_ISSUES.md`.
 
 ## [0.2.0] - 2026-11-08
 

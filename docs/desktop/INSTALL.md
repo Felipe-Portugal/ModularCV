@@ -5,9 +5,9 @@ Français : [LISEZMOI.fr.md](LISEZMOI.fr.md)
 ModularCV Desktop is a Windows application for the ModularCV engine. It is a **beta** (`0.5.0-beta.1`): it works, it was tested on the
 machines listed in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), and it has rough edges.
 
-> **Status: prepared, not yet published.** ModularCV Desktop `0.5.0-beta.1` has not been published yet. There is no Desktop release and no
-> installer to download today. The installer will be offered on the **Releases** page of the GitHub repository after the official
-> publication. Until then, this page describes how the installation will work, so that you can read it in advance.
+> **Prepared — not yet published.** ModularCV Desktop `0.5.0-beta.1` has not been published: there is no Desktop release and no installer to
+> download today. The installer is built and validated; it will be offered on the **Releases** page of the GitHub repository after the
+> official publication. Until then, this page describes how the installation will work, so that you can read it in advance.
 
 ## What you need
 
@@ -36,14 +36,15 @@ Get-FileHash ".\ModularCV Desktop_0.5.0-beta.1_x64-setup.exe" -Algorithm SHA256
 
 The result must be exactly the fingerprint published with the release. If it differs, do not run the file.
 
-For information, the installer tested so far has this SHA-256:
+The installer prepared for this beta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 10,022,845 bytes, 9.56 MiB, unsigned) was built from commit
+`da656f0` and has this SHA-256:
 
 ```
-F1DA86139CDA4125FCCE4E2D171256791F29E7CE29A170CE28BFF4764A1F14B8
+C638561536F3921B775C048ED4E8A4A86C8D06012DF13015CA474DF0FD45AF71
 ```
 
-This value is **not** the final fingerprint of the future release. The final installer will be identified and verified when the release is made;
-always compare with the fingerprint published with the file on the Releases page.
+This is the fingerprint of the file planned for publication: the release will publish exactly that file. If the file you downloaded shows a
+different fingerprint, do not run it. Until the release exists there is nothing to download and nothing to compare.
 
 ## 2. Run the installer
 
@@ -64,10 +65,22 @@ Open **ModularCV** from the Start menu. Continue with [FIRST_RUN.md](FIRST_RUN.m
 
 ## Test record of the installer
 
-The fingerprint above belongs to the installer that was built and tested. It was tested on a Windows 11 virtual machine with none of the
-development tools installed: installation, start from the Start menu, the main journeys with and without Git and LaTeX, closing and reopening,
-and uninstalling. That virtual machine was built from a third-party, stripped-down Windows 11 image, not from a stock installation, so a test on a
-stock Windows 11 is still recommended. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+The fingerprint above is the one of the installer built from commit `da656f0`. What was done with that exact file:
+
+- **Windows 11 virtual machine** (built from a third-party, stripped-down image, not a stock installation; no Python, Node.js or Rust installed):
+  hash checked in the machine, fresh silent install, start from the Start-menu shortcut, the journeys with Git and LaTeX hidden from the
+  application (16 of 16 checks), then with Git and MiKTeX (29 of 29 checks: profile, offers, matrix, `.tex`, PDF, package, review, approval,
+  revocation after a change, refusal, stale evidence), a package created through the interface, English and light theme kept after a
+  restart, and a silent uninstall that kept the application data and an external fictional workspace. The first run of the second set gave
+  25 of 29: the four failures were in the test harness (its command-line checks pointed at a missing interpreter); the harness was fixed and the
+  whole set was replayed (29 of 29).
+- **Not done with this exact file:** a stock Windows 11 installation, Windows 10, TeX Live, the graphical uninstaller with the "delete application
+  data" box ticked, installing over an older version, and a run on the developer's own computer (an earlier build of this beta went through the
+  same journeys there).
+- GitHub's automated checks run the engine and Desktop test suites on Windows. The runner has no LaTeX, so the tests that need `pdflatex` are
+  skipped there (they pass on a machine with MiKTeX), and the checks do not build or test the installer.
+
+See [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Updating
 

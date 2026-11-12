@@ -6,13 +6,21 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 
 ## What was tested, and where
 
-- **Windows 11 25H2, 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image.** No Python, Node.js or Rust was
-  installed in it. Tested with the exact installer: installation, Start-menu launch, fictional workspace, editing, offers, matrix, plan, `.tex`,
-  diagnostics, closing and reopening, uninstalling; then, with Git and MiKTeX installed in the machine, the PDF, package, review, approval,
-  revocation after a change, refusal and the command-line verdict.
-- **Windows 11 Home on the development computer**, with the same journeys and the development tools hidden from the application.
-- **Not tested:** a stock Windows 11 installation, Windows 10, ARM Windows, TeX Live, installing over an older version, a screen reader,
-  high-contrast mode, display scaling above 100 %, workspaces on network drives, very long paths.
+- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with this exact installer (built from
+  commit `da656f0`). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
+  shortcut; with Git and LaTeX hidden from the application: fictional workspace, profile editing, offers, matrix, plan, `.tex`, diagnostics
+  (16 of 16 checks); then, with Git and MiKTeX installed in the machine: PDF, package, review, approval, revocation after a change, refusal,
+  stale evidence and the command-line verdict (29 of 29 checks); a package created through the interface; English and light theme kept after a
+  restart; a silent uninstall that kept the application data and an external fictional workspace. The first run of the second set gave 25 of 29
+  because of the test harness (its command-line checks used a missing interpreter); after the harness was fixed the whole set was replayed (29 of 29).
+- **Windows 11 Home on the development computer:** an **earlier build** of this beta went through the same journeys with the development tools
+  hidden from the application. This exact installer was **not** run there.
+- **Automated checks on GitHub** (engine on Python 3.12 and 3.14, and the Desktop suites) pass, but the runner has no LaTeX, so the tests that need
+  `pdflatex` are skipped there: 8 in the engine suite, 70 in the adapter suite and 2 in the packaged-engine suite, among them most of the review
+  and approval tests of the adapter. They pass on a machine with MiKTeX. The checks do not build or test the installer.
+- **Not tested:** a stock Windows 11 installation, Windows 10, ARM Windows, TeX Live, installing over an older version, the graphical uninstaller
+  with the "delete application data" box ticked (on this exact installer), a screen reader, high-contrast mode, display scaling above 100 %,
+  workspaces on network drives, very long paths.
 - The virtual machine was slow (two virtual processors), so timings measured there are not representative of a real computer.
 
 ## Installation

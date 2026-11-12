@@ -2,7 +2,34 @@
 
 Source of truth for progress. Update it at the end of every session (see `AGENTS.md` §8).
 
-## Repository
+## Current state (BETA-RELEASE-B0)
+
+This section is the current status. The sections below it keep the reports of earlier milestones as they were written: their wording ("nothing is
+pushed", "local commit", "release candidate") described the state at that time and is superseded by what follows.
+
+- **Repository**: `Felipe-Portugal/ModularCV` is public on GitHub. `main` is at `da656f05c454ca904528467cbf0b7653a317e904`.
+- **Command line and engine**: version `0.2.0`, published as `v0.2.0` (tag and GitHub release with the wheel, the archive and the checksums,
+  2026-11-08). Unchanged by the Desktop work.
+- **Pull request 1** (`feat/desktop-public`, one commit above the former `main`) was merged by squash into `main`. The three GitHub Actions
+  jobs of the push on that commit are green (run 43313799828): engine on Python 3.12 and 3.14, and the full Desktop verification. The runner has
+  no LaTeX, so the tests that need `pdflatex` (engine 8, adapter 70, packaged engine 2) are skipped there; they pass locally with MiKTeX.
+- **BETA-RELEASE-A** (validated): the installer `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` was built from `da656f0` in a clean worktree with
+  `desktop/build-installer.ps1`: 10 022 845 bytes, SHA-256 `C638561536F3921B775C048ED4E8A4A86C8D06012DF13015CA474DF0FD45AF71`, not signed.
+  On a Windows 11 virtual machine (third-party stripped-down image, not stock): fresh install, Phase A 16 of 16, Phase B 29 of 29 (first run 25 of
+  29 because of the test harness, which was fixed and replayed), a package created through the interface, a restart, and a silent uninstall that
+  kept the application data and an external fictional workspace. Not done: a stock Windows 11, the graphical uninstaller on this file, a run on
+  the development computer.
+- **Status of Desktop `0.5.0-beta.1`: prepared, built and validated, not published.** No Desktop tag and no Desktop release exist. The documents in
+  `docs/desktop/` say "Prepared — not yet published". The installer exists only on the maintainer's machine; it is not in the repository.
+- **Installer fingerprints in the history below** (`F8ABFD69...` for `0.5.0`, `BF068384...` and `F1DA8613...` for earlier builds of `0.5.0-beta.1`)
+  are superseded. The only candidate is `C638561536F3...AF71`.
+- **Open point before publication**: `desktop/THIRD_PARTY_NOTICES.md`, installed under `legal\`, names each component, its version, its licence and
+  its source but does not reproduce licence texts or copyright lines. Whether that satisfies the attribution terms of the MIT, BSD and Apache
+  licences of the bundled components is not established here (no legal review). Changing the file changes the installer and its fingerprint.
+- **Next action**: BETA-RELEASE-B1, the publication itself (a Desktop tag, a GitHub pre-release carrying exactly the installer above, then the
+  documents switched to "published"). Each remote action needs its own explicit authorisation. Do not push, tag or release without it.
+
+## Repository (history: state during milestones M4 to M8; superseded by the current state above)
 
 - Branch: `main`. M5 (`20979f9`) and M5-R1 are committed locally on top of `5585c42` (M4 final closure; see `git log`). Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
@@ -13,7 +40,7 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
 
-## Desktop application (branch `feat/desktop`, under `desktop/`; outside the engine milestones, nothing pushed)
+## Desktop application (history of the work on the branch `feat/desktop`, under `desktop/`; superseded by the current state above)
 
 The engine, its contracts and its CLI are unchanged; the desktop application adds no dependency to the engine (`dependencies = []`).
 
@@ -123,7 +150,7 @@ The engine, its contracts and its CLI are unchanged; the desktop application add
   silent install over the previous build (version 0.5.0-beta.1), Phase A 16 of 16, Phase B 29 of 29 (generation, review, approval, tamper, stale source), and a UI-driven run (demo, plan, `.tex`,
   package) showing the new message and opening the review. English and light theme persisted across an app restart; smallest text contrast in the light theme 5.76:1. **Not done**: a reliable cold-start
   "interface usable" time (a warm reload measured about 0.1 s in the guest and is not a cold start); the graphical approval was not re-driven by hand with the mouse on this exact binary (the automated
-  Phase B covers it); the CI file has still never run on GitHub.
+  Phase B covers it); the CI file had not yet run on GitHub at that point (see the current state above).
 - **Public branch (CI-2A, local only)**: the Desktop work is consolidated into one commit on top of `origin/main` (`7c4b516`) on the local branch `feat/desktop-public`, built in a separate worktree; the development branch
   `feat/desktop` keeps its 12 commits untouched. The three maintainer drafts are not part of it. A clean checkout showed a defect the development tree hid: `cargo test` failed because the git-ignored
   `desktop/src-tauri/resources/examples/` directory (created only by `build-installer.ps1`) did not exist; `desktop/verify.ps1` now prepares it the same way before the Rust steps. `desktop/verify.ps1` is green on that
@@ -133,7 +160,7 @@ The engine, its contracts and its CLI are unchanged; the desktop application add
   (the runner has no LaTeX, so the tests that need `pdflatex`, among them most review and approval tests of the adapter, are skipped there; they pass locally with MiKTeX). The pre-merge audit found no P0 or P1 and one
   documentation point: `docs/desktop/INSTALL.md`, `RELEASE_NOTES_0.5.0-beta.1.md` and `LISEZMOI.fr.md` read as if the installer could already be downloaded. They now say that Desktop `0.5.0-beta.1` is prepared and not yet
   published, and that the installer SHA-256 shown is the one of the installer tested so far, not the final fingerprint: the final artefact is to be identified and verified at release time. No installer was rebuilt or published and no tag or release was created.
-- **Next**: maintainer decision on the stock-Windows run, the CI file, code signing and the publication steps (PR, tag, release), each needing its own authorisation.
+- **Next (historical, superseded by the current state above)**: maintainer decision on the stock-Windows run, the CI file, code signing and the publication steps (PR, tag, release), each needing its own authorisation.
 
 ## Milestones
 
@@ -428,7 +455,7 @@ Details and evidence: `docs/design/PREPUBLICATION_AUDIT.md` section 16. Nothing 
 
 ## Last work (M4 final closure)
 
-- The foreign file `modularcv/legacy_import.py` was moved, unchanged, to `D:\Projets\ModularCV\_quarantine\legacy_import.py`
+- The foreign file `modularcv/legacy_import.py` was moved, unchanged, to a private quarantine folder
   (outside the repository, so no local build can include it). SHA-256 checked before and after:
   `5c73e936d25ce534dc13b8ef77005630f1643f96092140a3b690b190a2504106`. Nothing deleted, nothing committed.
   **Restore:** move it back to `modularcv/legacy_import.py` (never overwrite a file there) and compare the SHA-256.
@@ -475,5 +502,4 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of DOC-1, the authorisation to push it, and then the authorisation of the release (gate G5). Do not push, tag or release without an explicit go for that exact action. Do not push, tag, release or
-change a visibility without an explicit go for that exact action.
+See the current state at the top of this file: BETA-RELEASE-B1, the publication of Desktop `0.5.0-beta.1`, after the maintainer's explicit authorisation for each remote action (tag, release, upload). Do not push, tag, release or change a visibility without an explicit go for that exact action.

@@ -13,7 +13,8 @@ cover a job's requirements, build a tailoring plan, produce a `.tex` file and a 
 record your own approval or refusal.
 
 **Read before you rely on it:** an approval is your decision, saved in a local file that is **not signed**; `READY_TO_SEND` proves the process,
-not the candidate. This is a beta, the installer is unsigned, and it was tested on a stripped-down Windows 11 image, not on a stock one.
+not the candidate. This is a beta, the installer is unsigned, and it was tested on a stripped-down Windows 11 image, not on a stock one. The installer is
+prepared but **not yet published**.
 
 | Guide | What it covers |
 |---|---|
