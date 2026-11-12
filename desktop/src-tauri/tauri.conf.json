@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ModularCV Desktop",
+  "version": "0.5.0-beta.1",
+  "identifier": "org.modularcv.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ModularCV Desktop",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 720,
+        "minHeight": 520
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico"
+    ],
+    "publisher": "ModularCV contributors",
+    "copyright": "ModularCV Desktop is distributed unsigned, for local use.",
+    "shortDescription": "Local desktop shell for the ModularCV engine",
+    "longDescription": "ModularCV Desktop prepares tailored CVs from your own confirmed facts. Everything stays on this computer: no network, no telemetry.",
+    "category": "Productivity",
+    "resources": {
+      "resources/engine/": "engine/",
+      "resources/examples/": "examples/",
+      "../../LICENSE": "legal/LICENSE",
+      "../THIRD_PARTY_NOTICES.md": "legal/THIRD_PARTY_NOTICES.md"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "languages": [
+          "French",
+          "English"
+        ],
+        "startMenuFolder": "ModularCV"
+      }
+    }
+  }
+}

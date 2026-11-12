@@ -9,6 +9,20 @@ describes an earlier internal state called `0.1.0`. It is **not a public release
 and had no tag or release before `v0.2.0`. The differences with that internal state are listed under "Changed since the internal
 `0.1.0` state".
 
+## [Unreleased]
+
+### ModularCV Desktop 0.5.0-beta.1 (prepared, not yet published)
+
+ModularCV Desktop is an optional Windows application with its own version and installer. The engine and the command line stay at `0.2.0`; the tag
+`v0.2.0` is unchanged.
+
+- Added: a Windows desktop application in `desktop/` (Tauri 2, React) that runs the unchanged engine, embedded in a per-user, unsigned NSIS installer.
+- Added: a review screen that shows the exact PDF and records an approval or a refusal through the engine's review mechanism. The approval is a local, unsigned file.
+- Added: offline, read-only environment diagnostics (embedded engine, Git, LaTeX).
+- Added: documentation in `docs/desktop/` and third-party licence notices shipped with the installer.
+- Changed: the documents that said there was no installer and no desktop application now describe the optional Desktop.
+- Known limits: unsigned installer; tested on a stripped-down Windows 11 virtual machine and a Windows 11 Home development computer, not on a stock Windows 11 installation. See `docs/desktop/KNOWN_ISSUES.md`.
+
 ## [0.2.0] - 2026-11-08
 
 ### Added

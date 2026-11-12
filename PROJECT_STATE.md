@@ -13,6 +13,128 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
 
+## Desktop application (branch `feat/desktop`, under `desktop/`; outside the engine milestones, nothing pushed)
+
+The engine, its contracts and its CLI are unchanged; the desktop application adds no dependency to the engine (`dependencies = []`).
+
+- **Step 1 (`05ff1d6`)**: Tauri 2 + React/TypeScript/Vite/Tailwind prototype. One real journey: demo workspace (copy of `examples/workspace/`, created outside the
+  repository, never overwritten) -> `facts check` through the Rust bridge -> typed engine result. Observed: window launched on Windows 11, valid / invalid-facts /
+  missing-workspace outcomes shown from the real engine; 11 Rust tests, 10 vitest tests; full Python suite passed (1508 passed, 1 skipped); privacy 0 finding.
+- **Step 2**: profile and fact management. A thin stdlib adapter (`desktop/adapter/mcv_adapter.py`) reads facts, profile and resume content through
+  `facts`/`profile`/`content`/`config` and performs the only two writes (`save_fact`, `save_profile`): optimistic concurrency by source hash (`CONFLICT`),
+  engine validation before and after, proof that untouched facts/keys are unchanged, atomic replace (temporary file in the same folder, fsync, read-back, hash re-check,
+  `os.replace`), line endings and BOM preserved, no implicit confirmation (a fact becomes `CONFIRMED`, or a confirmed one is changed, only with an explicit dated
+  decision typed by the user). Rust exposes a closed list of commands (`validate_workspace`, `prepare_demo_workspace`, `read_workspace`, `save_fact`, `save_profile`);
+  the front end has no shell or process permission (capabilities: `core:default`, `dialog:allow-open`). Screens: profile (identity, visibility, links, default language,
+  publication policy), experiences, education, skills (read-only CV skills with the status of their supporting facts, plus editable skill facts). Native folder picker
+  with a manual-entry fallback.
+- **Known limits**: only `facts.md` (one fact at a time) and `profile.json` (identity, links, default language, policy) are editable; the profile is rewritten as indented
+  JSON (values and unedited keys identical, whitespace not); `resume.json` is read-only; no Git commit is ever made in the user's workspace (a modified, uncommitted source
+  may not satisfy the provenance checks); a very small race remains between the last hash check and `os.replace`; no sidecar, installer or distribution build.
+- **Step 3**: job offers and CV generation. The adapter gains 15 operations (`desktop/adapter/mcv_jobs.py`; shared safe-write helpers in `mcv_core.py`): offers (list, read,
+  save, delete, import, all validated by `joboffer.check_file()`), requirement matrix (DIRECT / ADJACENT / ABSENT / FORBIDDEN_TO_CLAIM, ranking rules untouched, unmet REQUIRED
+  always shown), `TailoringPlan-v1` via `plan.build_plan()` (selected and omitted items with reasons), plan save under `plans/`, plan re-verification, assemble
+  (`ready_to_send: false`), LaTeX render to `out/` and PDF through the existing engine when `pdflatex` exists. Never overwrites: new files are created exclusively and a
+  distinct name is proposed. Screens: Offers and "Adapt my CV" (4-step guided flow), FR/EN, light/dark. Rust: closed allowlist of 18 operations with per-operation timeouts;
+  no new capability for the front end. Observed in the real Windows window (WebView2, driven through the debugging port): offer create / invalid / edit / conflict / delete,
+  matrix, plan, `.tex`, existing output refused, real PDF compiled (`%PDF-`, not ready to send); native folder picker verified (select, cancel, reopen after cancel, no panic).
+  Tests: engine suite 1508 passed, 1 skipped; adapter suite 67 passed; vitest 26 passed; cargo 16 passed; clippy clean (`-D warnings`); privacy 0 finding.
+  One command runs all of them, including `desktop/adapter/tests` (outside `testpaths`): `powershell -File desktop\verify.ps1`.
+- **Provenance in step 3**: plan, assembly and rendering do not require a verifiable Git commit, so nothing is gated on it; the screen shows "unverified" with the reason when the
+  workspace is not a Git repository or has uncommitted sources, and says a package (step 4) will be refused until the user commits. The app never commits in the user's workspace.
+- **Residual concurrency window**: the workspace lock file is cooperative and does not cover external editors; a very small window remains between the last hash check and
+  `os.replace`. New files use exclusive creation and have no such window.
+- **Known limits (step 3)**: no preview, approval or readiness check (step 4); PDF needs `pdflatex`; the picker's earlier `RecvError` was seen only when a native dialog was killed
+  by force and was not reproduced in normal use; visual checks of the real window were done through its debugging port plus the Chromium browser pane.
+- **Step 4**: PDF preview, history and review. Adapter operations `package_create` (engine `package create --compile` only: no supplied PDF is ever packaged), `packages_list`,
+  `package_review`, `package_status` and `pdf_read` (`desktop/adapter/mcv_packages.py`); Rust closed list of 23 operations plus `open_pdf`, which validates through the adapter before
+  handing a PDF to Windows. Screens: "Review my CV" (exact PDF with pdf.js, SHA-256 recomputed on the received bytes, pagination, unmet REQUIRED, directives, warnings, engine limits,
+  status with reasons), "History" (packages and generated PDFs, no invented date), package creation in the last step of "Adapt my CV". The verdict is recomputed by the engine at every
+  opening/refresh; nothing is computed in React or Rust; viewing writes nothing. PDF reading is limited to `applications/<name>/cv/resume.pdf` and `out/<name>.pdf`.
+  Test-only "Demo with Git (test)" workspace (independent repository, one test commit, created only on click in the app data folder).
+- **Step 4 completion, graphical approval** (no engine change, `package approve` untouched): adapter operation `package_approve` (24th Rust-allowlisted operation). It requires an explicit
+  `APPROVED`/`REJECTED`, a reviewer name, two strict confirmations, the typed 12-character SHA-256 prefix, the review context fingerprint and the hash of the bytes displayed; under the workspace
+  lock it re-reads the disk with `review_summary()`, refuses a stale context, a missing PDF, any reason other than `HUMAN_REVIEW_REQUIRED` and an existing review, records through the engine's
+  `record_review()` (note: "Recorded through the ModularCV Desktop review screen."), checks that the written file matches what was compared (otherwise withdraws its own just-created file) and
+  returns a fresh `package.status()`. The review screen has the 8-step flow with a final confirmation dialog; nothing is pre-ticked. Design and limits: `desktop/APPROVAL_PROPOSAL.md`.
+  Observed in the real Windows window: approval written, status READY_TO_SEND computed by the engine and confirmed by the CLI (exit 0); altered PDF revokes it; explicit rejection gives BLOCKED;
+  a source changed after display is refused with nothing recorded. Automated approvals in tests are fictional, in temporary copies, never real approvals.
+- **Approval risks**: unsigned JSON (no proof of a human); cooperative workspace lock does not cover external processes (a change between two reads in different processes is caught by the
+  post-write check and by the status recomputation, but the instant itself cannot be excluded).
+- **Step 5, Windows packaging** (engine and stable CLI unchanged, nothing published): a PyInstaller 6.22.3 sidecar `mcv-engine.exe` (onedir, built in a private virtual environment outside the
+  repository; `desktop/build-sidecar.ps1`) bundles the engine and the adapter. It accepts a closed set of modes only (`adapter`, `cli facts check --root`, `diagnose`, `version`); anything else exits 2
+  with `OPERATION_NOT_ALLOWED`. Onedir was chosen over onefile (facts check about 0.15 s against about 0.8 s, because onefile unpacks at every start; 21 MB against 10 MB on disk); `-Mode onefile`
+  remains available. Rust (`engine.rs`) runs the sidecar from the application resources in a release build and the development Python only in a debug build; a release build without the sidecar
+  returns `ENGINE_NOT_FOUND` and never falls back to a system Python. The 24-operation allowlist, timeouts and privacy rules are unchanged. A read-only, offline `diagnostics` command
+  (`desktop/adapter/mcv_diag.py`) reports the embedded engine, Git present or absent, provenance verifiable or not, pdflatex and PDF compilation, with closed codes and no paths; Settings shows it.
+  Git and MiKTeX are not embedded and never downloaded; without Git provenance is refused with an explanation, without LaTeX the `.tex` is still produced.
+  The NSIS installer (`desktop/build-installer.ps1`, version 0.5.0, per-user, unsigned, `webviewInstallMode: skip`) ships the engine and the fictional example workspace; uninstalling leaves
+  workspaces alone. Build artifacts are git-ignored. The NSIS tooling is downloaded by Tauri at build time. RUSTFLAGS `--remap-path-prefix` strips the user profile from `desktop.exe`; the build
+  directory path of the repository still appears once (a Tauri macro path, no personal name).
+  Hardening: the review-file withdrawal after a conflict (`_withdraw_if_ours`) now deletes the file only if its bytes are still the ones just written and its content is ours; a replaced, foreign or
+  unreadable file is left untouched. A residual instant between the final comparison and the deletion cannot be excluded without an engine-side atomic operation (would need an engine contract change).
+  Validation: 20 packaged-sidecar tests; the installed app was driven end to end in a scrubbed environment (no Python, Node, Rust, npm on PATH): without Git and LaTeX (messages, `.tex`, refusals) and
+  with Git and MiKTeX (PDF, package, review, approval, revocation). Install, launch, uninstall were run. **Distribution validation: PARTIAL at that point**, no clean Windows machine, VM or Sandbox was available
+  (Windows Home), so a scrubbed environment on the development machine stood in; WebView2 was already present. Superseded by the virtual machine validation in Step 5-R1 below.
+- **Step 5 risks**: unsigned installer (SmartScreen warning); WebView2 prerequisite not installed by the app; MiKTeX may prompt for missing packages; antivirus may scan the first run of a PyInstaller
+  executable; the Claude desktop app virtualises LOCALAPPDATA writes of its child processes, which only affected test paths.
+- **Step 5-R1, distribution validation** (no feature change): WebView2 is now `downloadBootstrapper` (the installer fetches Microsoft's small bootstrapper only when the runtime is missing; the full
+  runtime is not embedded; documented as the one prerequisite download). The development engine folder (`CARGO_MANIFEST_DIR`) is compiled in debug builds only, and the path remap target is now
+  absolute-looking so that no build path (checkout, `src-tauri`, user profile) remains in `desktop.exe` (checked: 0 hits for the checkout, user profile and `src-tauri`). The NSIS uninstaller was read:
+  files are deleted one by one, the install folder is removed only if empty, and the unticked-by-default "Delete app data" box removes only `org.modularcv.desktop` (settings and the demo workspace).
+  Final installer `ModularCV Desktop_0.5.0_x64-setup.exe`, 9.53 MiB, SHA-256 `F8ABFD6975839D3C00FE0520A2B5D437C403B5267C3A798FBA529ECF57CF9EEC`. `desktop/verify.ps1` green on the same tree
+  (engine 1508 passed and 1 skipped, adapter 164, sidecar 20, vitest 36, Rust 21, clippy, privacy 0). On that installer, same machine, scrubbed environment: no-Git/no-LaTeX journey 15/16 (the 16th, a
+  system-wide process count, is invalid; the application's process tree held only `desktop.exe` and WebView2, plus the engine during operations), Git+MiKTeX journey 29/29, close and reopen kept the
+  workspace and edits. Measured on the installed build: facts check median 129 ms; plan plus `.tex` median 295 ms; render with a real PDF (status COMPILED, 1 page) median 1060 ms; UI loaded in 534 to 624 ms
+  over 5 launches; idle `desktop.exe` 27 MB working set, WebView2 347 MB (6 processes), installed size 26.4 MB.
+  **Clean-environment validation (done)**: with the maintainer's authorisation, VirtualBox 7.2 was installed on the development machine and a fresh Windows 11 25H2 virtual machine was built from
+  a Tiny11 image (a third-party, stripped Windows image, not a stock install). The guest held no Python, Node, Rust or Git at first; the exact final installer (SHA-256 verified in the guest,
+  `F8ABFD69...9EEC`) was installed there as a normal user. The image carries a stale WebView2 registry key but no runtime files, so the first install skipped the download; after deleting the key, the
+  installer fetched the WebView2 bootstrapper and the runtime installed, which proves the `downloadBootstrapper` path. Phase A (no Git, no LaTeX): 16 of 16 steps (Start-menu launch, embedded engine,
+  fictional workspace, view and edit facts, fictional offer, matrix, plan, `.tex`, diagnostics naming Git and LaTeX as absent, close and reopen). Phase B (Git 2.56 and MiKTeX 25.12 installed in the
+  guest, no Python, Node or Rust): 29 of 29 steps (Git demo workspace, real PDF, package with compile, page-by-page review, graphical approval, READY_TO_SEND from the engine, altered PDF revokes it,
+  rejection gives BLOCKED, stale source refused, command-line `package status` gives the same verdict as the screen). The facts check in the guest returns OK (9 facts, 6 publishable). After a full close the
+  packages and the approval file were still on disk and no sidecar was left running. A silent uninstall removed `desktop.exe`, the Start-menu shortcut and the uninstall registry key and kept both the app
+  data (demo workspace, packages) and a fictional user workspace placed in Documents (12 files, marker intact). Measured in the guest (2 virtual CPUs, no paravirtualisation, Hyper-V host, so slower than
+  real hardware): installed size 26.4 MB (sidecar 21.3 MB, `desktop.exe` 5.0 MB); UI loaded in 2169 ms on the first launch after stopping every process and 928 to 1109 ms on four repeat launches;
+  idle `desktop.exe` 24 MB working set, 6 WebView2 processes 291 MB working set (94 MB private); facts check median 151 ms (8 runs); plan plus `.tex` median 416 ms (6 runs); render with a real PDF
+  (COMPILED) median 1510 ms (3 runs).
+  **Findings and limits**: (1) the Tiny11 image is not stock Windows 11, so a run on a stock install remains worth doing before a public release; (2) the "Delete app data" box was read in the uninstaller
+  script (unticked by default) and a silent uninstall was run, but the box itself was not clicked in the graphical uninstaller; (3) the diagnostics line "PDF compilation available" only checks that
+  `pdflatex` is found: on a freshly installed MiKTeX that was misconfigured (my own test mistake), compilation failed with `PDF_FAILED` and the app handled it without crashing, but the diagnostics could not
+  warn about it; the same failure persisted in an app instance started before the MiKTeX repair and was not reproducible after restarting the app, cause not established; (4) MiKTeX may prompt on its first
+  run or print "not checked for updates"; (5) the installer is unsigned (SmartScreen warning); (6) a leftover folder in the install directory after uninstall came from that same misconfigured MiKTeX
+  writing under the engine folder, not from the installer.
+- **Publication preparation (0.5.0-beta.1)**, nothing pushed, tagged, opened or published. Changes to the installer: Desktop version `0.5.0-beta.1` in `tauri.conf.json`, `package.json`,
+  `Cargo.toml` (the engine stays `0.2.0`, the tag `v0.2.0` is untouched); the "Prototype" badge now reads "Beta" and an obsolete error message was reworded; `LICENSE` and
+  `desktop/THIRD_PARTY_NOTICES.md` are shipped under `legal\`. Because the binary changed, the earlier installer `F8ABFD69...9EEC` (0.5.0) is **superseded and is no longer the release candidate**.
+  Release candidate: `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9 997 576 bytes (9.53 MiB), SHA-256 `BF068384748D58C15DA72F4673C75AA1616C58BDCD98CE999D591B442FBCEBE7`, no personal path or
+  name in `desktop.exe`. `desktop/verify.ps1` green on the tree (engine 1508 passed and 1 skipped, adapter 164, sidecar 20, vitest 36, Rust 21, clippy, privacy 0). On this exact installer, in the Tiny11 machine:
+  hash verified in the guest, silent install (legal files present, version 0.5.0-beta.1), Phase A 16 of 16 (Git and LaTeX hidden from the app), Phase B 29 of 29, real screenshots taken from the installed app.
+  Graphical uninstaller (keyboard-driven, fictional data only, disposable installation): the box "Delete the application data" is unticked by default; unticked, program, shortcut and registry entry
+  go and all data stays; ticked, only `%APPDATA%\org.modularcv.desktop` and `%LOCALAPPDATA%\org.modularcv.desktop` go, a similarly named folder, another `%APPDATA%` folder and a workspace in Documents stay.
+  Public documentation: `docs/desktop/` (install, first start, features, statuses and approval, known issues, uninstall, release notes, French guide, screenshots), `desktop/README.md` rewritten for users,
+  `README*` and `docs/INSTALL_WINDOWS*` no longer say there is no desktop application, `CHANGELOG.md` has an Unreleased Desktop entry. The maintainer's working drafts (pull request text, release text, stock-Windows test plan) are kept outside this repository. There was no CI at all; `.github/workflows/ci.yml` was added (tests only, Windows) and **has never run on GitHub**.
+  **Still open**: no run on a stock Windows 11 installation (it needs an official image whose checksum is verified against the vendor's published value, and the maintainer's go); the unsigned installer; the CI file untested; third-party notices are a list, not full licence texts.
+- **Beta-R1 (UX correction, local commit only)**: the message shown after creating a package said to approve in a terminal although the graphical approval exists. It now points to "Review my CV" and
+  names the terminal command as an alternative (FR and EN, `desktop/src/strings4.ts`); no other message presented the terminal as mandatory. Because the binary changed, the installer `BF068384...EBE7`
+  is **superseded**: new installer `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 10 025 129 bytes (9.56 MiB), SHA-256 `F1DA86139CDA4125FCCE4E2D171256791F29E7CE29A170CE28BFF4764A1F14B8`.
+  `desktop/verify.ps1` green (engine 1508 passed and 1 skipped, adapter 164, sidecar 20, vitest 36, Rust 21, clippy, privacy 0). On this exact installer, in the Tiny11 machine: hash verified in the guest,
+  silent install over the previous build (version 0.5.0-beta.1), Phase A 16 of 16, Phase B 29 of 29 (generation, review, approval, tamper, stale source), and a UI-driven run (demo, plan, `.tex`,
+  package) showing the new message and opening the review. English and light theme persisted across an app restart; smallest text contrast in the light theme 5.76:1. **Not done**: a reliable cold-start
+  "interface usable" time (a warm reload measured about 0.1 s in the guest and is not a cold start); the graphical approval was not re-driven by hand with the mouse on this exact binary (the automated
+  Phase B covers it); the CI file has still never run on GitHub.
+- **Public branch (CI-2A, local only)**: the Desktop work is consolidated into one commit on top of `origin/main` (`7c4b516`) on the local branch `feat/desktop-public`, built in a separate worktree; the development branch
+  `feat/desktop` keeps its 12 commits untouched. The three maintainer drafts are not part of it. A clean checkout showed a defect the development tree hid: `cargo test` failed because the git-ignored
+  `desktop/src-tauri/resources/examples/` directory (created only by `build-installer.ps1`) did not exist; `desktop/verify.ps1` now prepares it the same way before the Rust steps. `desktop/verify.ps1` is green on that
+  clean tree (engine 1508 passed and 1 skipped, adapter 164, sidecar 20, vitest 36, Rust 21, clippy, privacy 0).
+- **First GitHub CI and pre-merge audit (CI-2B, CI-3, CI-3-R1)**: the branch `feat/desktop-public` is a draft pull request (number 1) against `main`. The first run of the workflow, on commit `e857a28`, ended in `success` for
+  the three jobs. It ran, per Python version, 1501 engine tests passed and 8 skipped; in the Desktop job the adapter ran 94 passed and 70 skipped, the packaged engine 18 passed and 2 skipped, the front end 36 and Rust 21
+  (the runner has no LaTeX, so the tests that need `pdflatex`, among them most review and approval tests of the adapter, are skipped there; they pass locally with MiKTeX). The pre-merge audit found no P0 or P1 and one
+  documentation point: `docs/desktop/INSTALL.md`, `RELEASE_NOTES_0.5.0-beta.1.md` and `LISEZMOI.fr.md` read as if the installer could already be downloaded. They now say that Desktop `0.5.0-beta.1` is prepared and not yet
+  published, and that the installer SHA-256 shown is the one of the installer tested so far, not the final fingerprint: the final artefact is to be identified and verified at release time. No installer was rebuilt or published and no tag or release was created.
+- **Next**: maintainer decision on the stock-Windows run, the CI file, code signing and the publication steps (PR, tag, release), each needing its own authorisation.
+
 ## Milestones
 
 | ID | Title | Status |
