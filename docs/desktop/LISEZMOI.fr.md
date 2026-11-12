@@ -6,6 +6,10 @@ ModularCV Desktop est une application Windows pour le moteur ModularCV : elle co
 vérifiable entre les faits et le PDF que vous envoyez. Tout reste sur votre ordinateur : pas de compte, pas de réseau, pas de télémétrie.
 C'est une **bêta** (`0.5.0-beta.1`).
 
+> **Statut : préparée, pas encore publiée.** ModularCV Desktop `0.5.0-beta.1` n'est pas encore publié. Il n'existe aujourd'hui ni version
+> Desktop ni installateur à télécharger. L'installateur sera proposé sur la page **Releases** du dépôt GitHub après la publication officielle.
+> D'ici là, cette page décrit comment l'installation se déroulera, pour que vous puissiez la lire à l'avance.
+
 À lire avant de vous y fier : **une approbation est votre propre décision, enregistrée dans un fichier local non signé** ; `READY_TO_SEND`
 prouve le processus, pas la valeur du candidat ni la qualité du texte.
 
@@ -14,18 +18,23 @@ prouve le processus, pas la valeur du candidat ni la qualité du texte.
 Il faut Windows 11 64 bits (Windows 10 n'a pas été testé). Python, Node.js et Rust ne sont pas nécessaires : l'application embarque son moteur.
 Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont facultatifs et ne sont jamais installés par l'application.
 
-1. Téléchargez `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` depuis la page **Releases** du dépôt GitHub, et nulle part ailleurs.
+1. Une fois la bêta publiée, téléchargez `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` depuis la page **Releases** du dépôt GitHub, et nulle part ailleurs.
 2. Vérifiez l'empreinte SHA-256 avant de lancer le fichier :
 
    ```powershell
    Get-FileHash ".\ModularCV Desktop_0.5.0-beta.1_x64-setup.exe" -Algorithm SHA256
    ```
 
-   Résultat attendu :
+   Le résultat doit être exactement l'empreinte publiée avec la version. S'il diffère, ne lancez pas le fichier.
+
+   À titre d'information, l'installateur testé jusqu'ici a cette empreinte SHA-256 :
 
    ```
    F1DA86139CDA4125FCCE4E2D171256791F29E7CE29A170CE28BFF4764A1F14B8
    ```
+
+   Cette valeur n'est **pas** l'empreinte définitive de la future version : l'installateur final sera identifié et vérifié au moment de la publication.
+   Comparez toujours avec l'empreinte publiée avec le fichier sur la page Releases.
 
 3. Lancez l'installateur. Il n'est **pas signé** : SmartScreen peut afficher « Windows a protégé votre ordinateur ». Si l'empreinte correspond,
    choisissez **Informations complémentaires** puis **Exécuter quand même**.

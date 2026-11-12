@@ -5,6 +5,10 @@ Français : [LISEZMOI.fr.md](LISEZMOI.fr.md)
 ModularCV Desktop is a Windows application for the ModularCV engine. It is a **beta** (`0.5.0-beta.1`): it works, it was tested on the
 machines listed in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), and it has rough edges.
 
+> **Status: prepared, not yet published.** ModularCV Desktop `0.5.0-beta.1` has not been published yet. There is no Desktop release and no
+> installer to download today. The installer will be offered on the **Releases** page of the GitHub repository after the official
+> publication. Until then, this page describes how the installation will work, so that you can read it in advance.
+
 ## What you need
 
 | Item | Needed for | Notes |
@@ -20,9 +24,9 @@ You do **not** need Python, Node.js or Rust. The application carries its own cop
 The installer never installs Git or LaTeX, and the application never downloads anything. Settings > Environment diagnostics tells you,
 offline and read-only, which optional tools it can find.
 
-## 1. Download and check the file
+## 1. Download and check the file (after the publication)
 
-Download `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` from the **Releases** page of the GitHub repository. Do not take it from anywhere else.
+Once the beta is published, download `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` from the **Releases** page of the GitHub repository. Do not take it from anywhere else.
 
 Check its SHA-256 fingerprint before running it. In PowerShell, from the folder that holds the file:
 
@@ -30,13 +34,16 @@ Check its SHA-256 fingerprint before running it. In PowerShell, from the folder 
 Get-FileHash ".\ModularCV Desktop_0.5.0-beta.1_x64-setup.exe" -Algorithm SHA256
 ```
 
-The result must be exactly:
+The result must be exactly the fingerprint published with the release. If it differs, do not run the file.
+
+For information, the installer tested so far has this SHA-256:
 
 ```
 F1DA86139CDA4125FCCE4E2D171256791F29E7CE29A170CE28BFF4764A1F14B8
 ```
 
-If it differs, do not run the file. The same fingerprint is in the release notes.
+This value is **not** the final fingerprint of the future release. The final installer will be identified and verified when the release is made;
+always compare with the fingerprint published with the file on the Releases page.
 
 ## 2. Run the installer
 

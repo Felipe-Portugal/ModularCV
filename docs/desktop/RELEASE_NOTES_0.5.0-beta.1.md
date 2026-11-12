@@ -2,20 +2,21 @@
 
 Français : [LISEZMOI.fr.md](LISEZMOI.fr.md)
 
-First public beta of ModularCV Desktop, a Windows application for the ModularCV engine. The command-line release `v0.2.0` is unchanged; the
-engine inside the installer is that same `0.2.0` engine.
+First beta of ModularCV Desktop, a Windows application for the ModularCV engine. **Prepared, not yet published: there is no Desktop release yet.**
+The command-line release `v0.2.0` is unchanged; the engine inside the installer is that same `0.2.0` engine.
 
-## Download
+## Download (not available yet)
 
-`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9.56 MiB, unsigned.
+The installer is not published. It will be downloadable from the **Releases** page of the GitHub repository after the official publication.
 
-SHA-256:
+The installer tested so far is `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9.56 MiB, unsigned. Its SHA-256, for information only:
 
 ```
 F1DA86139CDA4125FCCE4E2D171256791F29E7CE29A170CE28BFF4764A1F14B8
 ```
 
-Check it before running ([INSTALL.md](INSTALL.md)). Windows SmartScreen will warn because the installer is not signed.
+This value is **not** the final fingerprint of the future release: the final installer will be identified and verified when the release is made,
+and its fingerprint will be published with it. Check the file before running it ([INSTALL.md](INSTALL.md)). Windows SmartScreen will warn because the installer is not signed.
 
 ## What is in this beta
 

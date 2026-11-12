@@ -127,7 +127,12 @@ The engine, its contracts and its CLI are unchanged; the desktop application add
 - **Public branch (CI-2A, local only)**: the Desktop work is consolidated into one commit on top of `origin/main` (`7c4b516`) on the local branch `feat/desktop-public`, built in a separate worktree; the development branch
   `feat/desktop` keeps its 12 commits untouched. The three maintainer drafts are not part of it. A clean checkout showed a defect the development tree hid: `cargo test` failed because the git-ignored
   `desktop/src-tauri/resources/examples/` directory (created only by `build-installer.ps1`) did not exist; `desktop/verify.ps1` now prepares it the same way before the Rust steps. `desktop/verify.ps1` is green on that
-  clean tree (engine 1508 passed and 1 skipped, adapter 164, sidecar 20, vitest 36, Rust 21, clippy, privacy 0). Nothing pushed.
+  clean tree (engine 1508 passed and 1 skipped, adapter 164, sidecar 20, vitest 36, Rust 21, clippy, privacy 0).
+- **First GitHub CI and pre-merge audit (CI-2B, CI-3, CI-3-R1)**: the branch `feat/desktop-public` is a draft pull request (number 1) against `main`. The first run of the workflow, on commit `e857a28`, ended in `success` for
+  the three jobs. It ran, per Python version, 1501 engine tests passed and 8 skipped; in the Desktop job the adapter ran 94 passed and 70 skipped, the packaged engine 18 passed and 2 skipped, the front end 36 and Rust 21
+  (the runner has no LaTeX, so the tests that need `pdflatex`, among them most review and approval tests of the adapter, are skipped there; they pass locally with MiKTeX). The pre-merge audit found no P0 or P1 and one
+  documentation point: `docs/desktop/INSTALL.md`, `RELEASE_NOTES_0.5.0-beta.1.md` and `LISEZMOI.fr.md` read as if the installer could already be downloaded. They now say that Desktop `0.5.0-beta.1` is prepared and not yet
+  published, and that the installer SHA-256 shown is the one of the installer tested so far, not the final fingerprint: the final artefact is to be identified and verified at release time. No installer was rebuilt or published and no tag or release was created.
 - **Next**: maintainer decision on the stock-Windows run, the CI file, code signing and the publication steps (PR, tag, release), each needing its own authorisation.
 
 ## Milestones
