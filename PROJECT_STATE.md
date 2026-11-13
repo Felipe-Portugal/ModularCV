@@ -2,7 +2,33 @@
 
 Source of truth for progress. Update it at the end of every session (see `AGENTS.md` §8).
 
-## Current state (BETA-RELEASE-B0-R1)
+## Current state (BETA-RELEASE-B0-R1-GATE)
+
+This section is the current status; it supersedes the B0-R1 section below for the installer. Observed unless stated.
+
+- **Repository**: `main` unchanged at `da656f05c454ca904528467cbf0b7653a317e904`. The local branch `docs/desktop-beta-release-prep` is not pushed.
+- **Installer**: the file `1A117D080214F3F98048C17D31D07A2E776FF7D2BF87DAB7962B501DEEC04187` (10 064 848 bytes, built from `fef0c6f`) is **no longer the final
+  candidate**. The gate corrected the embedded `THIRD_PARTY_LICENSES.txt` and `THIRD_PARTY_NOTICES.md` (WebView2 loader version, NSIS 3.13 and its plug-in,
+  Microsoft statements). Those files go into the installer, so **a rebuild and new virtual-machine tests are required** before the beta can be published.
+  The file stays untouched in the private staging folder, labelled superseded.
+- **Provenance finding**: between `fef0c6f` and `4028314` only documents changed, none of them an installer input. The correction commit
+  changes embedded files on purpose (REBUILD_REQUIRED).
+- **Privacy scanner**: three files and the NSIS text carry `privacy-scan: ignore-file` (verbatim third-party texts that contain rights holders' own addresses); a
+  test checks that their only addresses are the nine listed addresses (the NSIS text adds none), that no token, key, user path or other address appears, and that
+  the exempt set is exactly the expected one. `.gitattributes` exempts only four verbatim files from the whitespace check. No change to `AGENTS.md` was made;
+  a clarification is proposed for the maintainer.
+- **Microsoft files** (see `THIRD_PARTY_LICENSES.txt`, part 5): `VCRUNTIME140.dll` 14.51.36247.0 is byte-identical to the copy installed with python.org Python on the build
+  computer, not the Visual Studio redistributable folder copy (14.44.35211.0); the origin of `ucrtbase.dll` and the `api-ms-win-*.dll` files is not established (the
+  Windows 10 and 11 system UCRT is used and local copies are ignored); `desktop.exe` imports the system UCRT and links the MSVC runtime statically. Whether this
+  redistribution is covered by the Microsoft terms is **not established**. Options for the maintainer: rebuild with the Visual Studio redistributable copy of
+  `VCRUNTIME140.dll` (the REDIST list covers it) and drop the UCRT files; or require the Visual C++ Redistributable at install time; or accept the residual risk.
+- **WebView2 SDK loader**: version established as 1.0.3800.47 (library byte-identical to the NuGet package); the earlier mention of 1.0.3650.58 was wrong.
+- **NSIS**: 3.13 with the LZMA solid stub and nsis_tauri_utils 0.5.3 identified; the NSIS `COPYING` (zlib/libpng, CPL-1.0 for LZMA with the special exception) and
+  the plug-in licences are now reproduced.
+- **Next action**: the maintainer decides on the Microsoft options; then rebuild the installer from the final source, replay the virtual-machine journeys, record the
+  new fingerprint, and only then BETA-RELEASE-B1. Nothing is pushed; each remote action needs its own explicit authorisation.
+
+## Previous state (BETA-RELEASE-B0-R1), superseded by the section above for the installer
 
 This section is the current status. The sections below it keep the reports of earlier milestones as they were written: their wording ("nothing is
 pushed", "local commit", "release candidate") described the state at that time and is superseded by what follows.

@@ -122,14 +122,34 @@ COMPONENTS = [
                "The program is not modified by ModularCV: only unmodified PyInstaller files are embedded. Source: "
                "https://github.com/pyinstaller/pyinstaller/tree/v6.22.3 .",
          texts=[]),
-    dict(id="webview2-loader", title="Microsoft WebView2 SDK, static loader (WebView2LoaderStatic.lib)", version="1.0.3650.58 (see note)",
+    dict(id="webview2-loader", title="Microsoft WebView2 SDK, static loader (WebView2LoaderStatic.lib)", version="1.0.3800.47",
          where="desktop.exe: linked statically by the webview2-com-sys crate (CreateWebViewEnvironmentWithOptionsInternal is present in the binary)",
          licence="BSD-3-Clause style licence of the Microsoft.Web.WebView2 NuGet package",
-         notes="The version of the static library inside webview2-com-sys 0.39.1 could not be read from the binary. The text below is the "
-               "LICENSE.txt of Microsoft.Web.WebView2 1.0.3650.58, the version the crate changelog names. The package's NOTICE.txt lists "
-               "third-party components of other parts of that SDK; it was not reproduced because the statically linked loader only "
-               "contains Microsoft code (see 'Unresolved items' for the limit of that statement). The WebView2 Runtime itself is not shipped.",
-         texts=[("webview2-sdk-LICENSE.txt", "https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.3650.58 (file LICENSE.txt)")]),
+         notes="Version established by comparison: the x64 WebView2LoaderStatic.lib inside webview2-com-sys 0.39.1 is byte-identical to "
+               "build/native/x64/WebView2LoaderStatic.lib of the Microsoft.Web.WebView2 1.0.3800.47 package (no other stable release from 1.0.3000 "
+               "to 1.0.4129 matches). The text below is that package's LICENSE.txt (identical in 1.0.3650.58). The package NOTICE.txt only lists "
+               "ANTLR 3.5.2 and StringTemplate 4.0.9 (BSD-3-Clause), used by other parts of the SDK; neither name appears in the loader library "
+               "or in desktop.exe, so that notice is not reproduced. The WebView2 Runtime itself is not shipped.",
+         texts=[("webview2-sdk-LICENSE.txt", "https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.3800.47 (file LICENSE.txt)")]),
+    dict(id="nsis", title="NSIS (Nullsoft Scriptable Install System), installer stub and uninstaller stub", version="3.13",
+         where="ModularCV Desktop_0.5.0-beta.1_x64-setup.exe and the installed uninstall.exe: the 'lzma_solid' unicode stub, the compression "
+               "module (LZMA, solid) and the System, nsDialogs, NSISdl and UserInfo plug-ins",
+         licence="zlib/libpng for the stub, plug-ins and headers; Common Public License 1.0 with the NSIS special exception for the LZMA compression "
+                 "module; the bzip2 module is not used",
+         notes="Copyright (C) 1999-2026 Contributors (COPYING of NSIS 3.13, the distribution pinned by the Tauri CLI: "
+               "https://github.com/tauri-apps/binary-releases/releases/tag/nsis-3.13). The installer compresses with LZMA (SetCompressor /SOLID lzma), so the "
+               "CPL-1.0 text of the LZMA module is reproduced in the file below. ModularCV did not modify NSIS. Source code of NSIS is available at "
+               "https://nsis.sourceforge.io/ (mirror: https://github.com/kichik/nsis); the LZMA module's source is part of that tree. The "
+               "provisions of the CPL-1.0 that differ from the MIT licence of ModularCV apply only to the LZMA module and are offered by its "
+               "contributors alone, not by ModularCV; ModularCV gives no warranty.",
+         texts=[("nsis-3.13-COPYING.txt", "COPYING of the NSIS 3.13 distribution (tauri-apps/binary-releases, nsis-3.13.zip)")]),
+    dict(id="nsis-tauri-utils", title="nsis_tauri_utils (NSIS plug-in used by Tauri's installer template)", version="0.5.3",
+         where="setup.exe (SemverCompare, RunAsUser and related calls)",
+         licence="MIT OR Apache-2.0 (MIT relied on; both texts reproduced)",
+         notes="Copyright (c) 2019 - 2022 Tauri Programme within The Commons Conservancy. The plug-in DLL (SHA-1 75197FEE3C6A814FE035788D1C34EAD39349B860) is "
+               "the one pinned by the Tauri CLI. The Rust crates compiled into that DLL were not itemised.",
+         texts=[("nsis-tauri-utils-LICENSE_MIT.txt", "https://github.com/tauri-apps/nsis-tauri-utils/blob/nsis_tauri_utils-v0.5.3/LICENSE_MIT"),
+                ("nsis-tauri-utils-LICENSE_APACHE-2.0.txt", "https://github.com/tauri-apps/nsis-tauri-utils/blob/nsis_tauri_utils-v0.5.3/LICENSE_APACHE-2.0")]),
     dict(id="rust-std", title="Rust standard library and compiler runtime (statically linked into desktop.exe)", version="rustc 1.99.1 (58cf8f9c3, 2026-10-13)",
          where="desktop.exe: core, alloc, std, compiler-builtins and the other crates of the standard library",
          licence="MIT OR Apache-2.0 (the MIT terms are the ones relied on; both texts are reproduced)",
@@ -160,20 +180,26 @@ COMPONENTS = [
 ]
 
 UNRESOLVED = """\
-Microsoft Visual C++ runtime and Universal C Runtime (engine sidecar and desktop.exe)
-  The sidecar ships VCRUNTIME140.dll (14.51.36247.0), ucrtbase.dll (10.0.22621.3233) and the api-ms-win-*.dll forwarders, copied by
-  PyInstaller from the build machine. desktop.exe also links the MSVC runtime statically. These are Microsoft redistributable files whose
-  terms come from the Microsoft Visual Studio / Windows SDK licence, not from an open licence. Their text is not reproduced here and
-  has not been verified for this release: it is an open compliance item. See the matching entry of THIRD_PARTY_NOTICES.md.
+Microsoft Visual C++ runtime, Universal C Runtime (UCRT) and the statically linked C runtime
+  What ships: (1) engine sidecar: VCRUNTIME140.dll 14.51.36247.0, a Microsoft-signed file that is byte-identical to the copy installed with the
+  python.org Python 3.14.10 on the build computer (it is not the copy of Visual Studio's own redistributable folder, which is 14.44.35211.0);
+  ucrtbase.dll 10.0.22621.3233 and the api-ms-win-*.dll forwarders (Microsoft-signed, version 10.0.22621.3233, origin on the build computer not
+  established). (2) desktop.exe imports the UCRT through api-ms-win-crt-*.dll of Windows (not shipped) and links the MSVC C runtime statically.
+  Official position (Microsoft, 'Redistribute Visual C++ files' and 'Universal CRT deployment'): redistributing individual Visual C++ runtime
+  binaries is limited to licensed Visual Studio users and subject to the Microsoft Software License Terms; for Visual Studio 2022 Community,
+  Professional and Enterprise the REDIST list allows copying the unmodified files under the VC redist folder with a program. The UCRT is an
+  operating-system component on Windows 10 and later, the system copy is always used there, and local copies are ignored.
+  Not established: that the python.org copy of VCRUNTIME140.dll and the UCRT files of unknown origin were obtained under a redistribution grant
+  that covers this installer; that statically linking the MSVC runtime into desktop.exe needs no further notice. These Microsoft licence texts are
+  not reproduced and no Microsoft text is available offline in this installer. Open compliance item.
 
-WebView2 SDK loader: version and NOTICE
-  The exact SDK version of the static loader library could not be read from the binary; the licence text comes from the version named in
-  the crate changelog. The SDK package NOTICE.txt (third-party components of other SDK parts) was not reproduced.
+WebView2 SDK loader
+  Version and licence text are established (see its entry). The loader is Microsoft code under the BSD-style licence reproduced above.
 
-NSIS installer stub
-  The installer (setup.exe) is produced by Tauri with NSIS and Tauri's NSIS plugin. Those installer-only components are not installed on
-  the user's computer and are not itemised here; their own licences (NSIS: zlib/libpng-style, no attribution required in binaries) were
-  not re-verified for this release.
+NSIS installer
+  NSIS 3.13, its LZMA-solid stub, the plug-ins used and nsis_tauri_utils 0.5.3 are identified and their licence texts are reproduced above. Whether
+  the CPL-1.0 requirement to state where the LZMA module's source is available is met by the statement in the NSIS entry is a reading of the
+  licence, not a legal opinion.
 
 Unicode data in unicodedata.pyd
   The Unicode Character Database notice of CPython is reproduced above ('Unicode Character Database' section). The exact UCD version

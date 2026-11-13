@@ -36,15 +36,10 @@ Get-FileHash ".\ModularCV Desktop_0.5.0-beta.1_x64-setup.exe" -Algorithm SHA256
 
 The result must be exactly the fingerprint published with the release. If it differs, do not run the file.
 
-The installer prepared for this beta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 10,064,848 bytes, 9.60 MiB, unsigned) was built from commit
-`fef0c6f` and has this SHA-256:
-
-```
-1A117D080214F3F98048C17D31D07A2E776FF7D2BF87DAB7962B501DEEC04187
-```
-
-This is the fingerprint of the file planned for publication: the release will publish exactly that file. If the file you downloaded shows a
-different fingerprint, do not run it. Until the release exists there is nothing to download and nothing to compare.
+The installer for this beta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, unsigned) is being rebuilt after a last correction of the licence
+notices that it carries. Its SHA-256 fingerprint will be written here and published with the release; the release will publish exactly the file
+that has that fingerprint. If the file you downloaded shows a different fingerprint, do not run it. Until the release exists there is nothing to
+download and nothing to compare.
 
 ## 2. Run the installer
 
@@ -65,7 +60,8 @@ Open **ModularCV** from the Start menu. Continue with [FIRST_RUN.md](FIRST_RUN.m
 
 ## Test record of the installer
 
-The fingerprint above is the one of the installer built from commit `fef0c6f`. What was done with that exact file:
+The journeys below were run on the installer built from commit `fef0c6f` (before the last correction of the licence notices; no application code
+changed since). They will be replayed on the rebuilt installer before the publication. What was done with that build:
 
 - **Windows 11 virtual machine** (built from a third-party, stripped-down image, not a stock installation; no Python, Node.js or Rust installed):
   hash checked in the machine, fresh silent install, start from the Start-menu shortcut, the journeys with Git and LaTeX hidden from the
@@ -87,7 +83,7 @@ See [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 The installation folder has a `legal` folder that can be read offline: `LICENSE` (the ModularCV licence, MIT), `THIRD_PARTY_NOTICES.md` (the
 inventory of third-party components) and `THIRD_PARTY_LICENSES.txt` (their licence texts and copyright notices). A few items could not be
-settled, for example the terms of Microsoft's redistributable C runtime files; they are listed at the end of that file and in
+settled, for example whether Microsoft's redistributable C runtime files may be redistributed here; they are listed at the end of that file and in
 [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Updating

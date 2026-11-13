@@ -3,6 +3,7 @@ import importlib.util
 import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -82,21 +83,21 @@ def test_each_verbatim_text_is_reproduced_unchanged_with_its_hash():
 
 def test_bundle_holds_no_personal_data_beyond_rights_holders_addresses():
     gen = _generator()
-    for path in [BUNDLE, TEXTS / "bzip2-LICENSE.txt", TEXTS / "python-license.rst"]:
+    for path in [BUNDLE, TEXTS / "bzip2-LICENSE.txt", TEXTS / "nsis-3.13-COPYING.txt", TEXTS / "python-license.rst"]:
         text = path.read_text(encoding="utf-8")
         assert gen.SCAN_MARKER in text[:600]  # the scanner skips these files; this test replaces it for them
         for number, kind, value in scan_text(text):
             assert kind == "email" and value in THIRD_PARTY_ADDRESSES, (path.name, number, kind, value)
     # no other verbatim text may carry the scan marker: a stray marker would hide a finding
     for path in TEXTS.iterdir():
-        if path.name not in {"bzip2-LICENSE.txt", "python-license.rst"}:
+        if path.name not in {"bzip2-LICENSE.txt", "nsis-3.13-COPYING.txt", "python-license.rst"}:
             assert gen.SCAN_MARKER not in path.read_text(encoding="utf-8")
 
 
 def test_unresolved_items_are_stated_not_hidden():
     bundle = BUNDLE.read_text(encoding="utf-8")
     assert "PART 5. UNRESOLVED ITEMS" in bundle
-    assert "Microsoft Visual C++ runtime" in bundle and "open compliance item" in bundle
+    assert "Microsoft Visual C++ runtime, Universal C Runtime (UCRT)" in bundle and "Open compliance item" in bundle
     assert "not legal advice" in bundle
 
 
@@ -104,3 +105,32 @@ def test_unresolved_items_are_stated_not_hidden():
 def test_committed_bundle_matches_a_fresh_generation():
     gen = _generator()
     assert gen.build() == BUNDLE.read_text(encoding="utf-8"), "rerun desktop/tools/build_third_party_licenses.py"
+
+
+def test_nsis_and_webview2_loader_are_covered():
+    bundle = BUNDLE.read_text(encoding="utf-8")
+    assert "NSIS (Nullsoft Scriptable Install System)" in bundle and "Common Public License" in bundle
+    assert "nsis_tauri_utils" in bundle
+    assert "Microsoft WebView2 SDK, static loader (WebView2LoaderStatic.lib)  1.0.3800.47" in bundle
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is needed to list tracked files")
+def test_only_the_expected_files_are_exempt_from_the_privacy_scanner():
+    """The scanner skips any file whose first 600 bytes hold the marker; a new exempt file must be a deliberate, reviewed choice."""
+    root = DESKTOP.parent
+    out = subprocess.run(["git", "-C", str(root), "ls-files", "-z"], capture_output=True)
+    if out.returncode != 0:
+        pytest.skip("not a Git checkout")
+    exempt = set()
+    for name in filter(None, out.stdout.decode("utf-8").split(chr(0))):
+        path = root / name
+        if path.is_file() and path.suffix.lower() not in {".png", ".jpg", ".ico", ".pdf", ".woff", ".woff2", ".zip"}:
+            if b"privacy-scan: ignore-file" in path.read_bytes()[:600]:
+                exempt.add(name)
+    assert exempt == {
+        "desktop/THIRD_PARTY_LICENSES.txt",
+        "desktop/licenses/texts/bzip2-LICENSE.txt",
+        "desktop/licenses/texts/nsis-3.13-COPYING.txt",
+        "desktop/licenses/texts/python-license.rst",
+        "tests/test_privacy.py",
+    }

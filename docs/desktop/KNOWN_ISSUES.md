@@ -6,8 +6,8 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 
 ## What was tested, and where
 
-- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with this exact installer (built from
-  commit `fef0c6f`). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
+- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with the installer built from
+  commit `fef0c6f` (before the last correction of the licence notices; the journeys will be replayed on the rebuilt installer). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
   shortcut; with Git and LaTeX hidden from the application: fictional workspace, profile editing, offers, matrix, plan, `.tex`, diagnostics
   (16 of 16 checks); then, with Git and MiKTeX installed in the machine: PDF, package, review, approval, revocation after a change, refusal,
   stale evidence and the command-line verdict (29 of 29 checks); a package created through the interface; English and light theme kept after a
@@ -27,10 +27,11 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 
 - `legal\THIRD_PARTY_LICENSES.txt` reproduces the licence texts and copyright notices of the third-party components that could be identified as
   redistributed, and `legal\THIRD_PARTY_NOTICES.md` is their inventory. This is a best-effort audit, not legal advice.
-- **Not settled:** the terms of Microsoft's redistributable C runtime files (`VCRUNTIME140.dll`, `ucrtbase.dll`, `api-ms-win-*.dll`, and the runtime
-  linked into `desktop.exe`) were not verified; the exact version of the WebView2 SDK loader linked into `desktop.exe` could not be read from the
-  binary; the licences of the installer-only components (NSIS and its plugin) were not re-checked; the version of the Unicode data inside Python
-  was not determined.
+- The licence texts of NSIS 3.13 (installer stub, LZMA module) and of its plug-in are reproduced, and the WebView2 SDK loader is identified
+  (1.0.3800.47).
+- **Not settled:** whether Microsoft's redistributable C runtime files (`VCRUNTIME140.dll`, copied from the python.org Python installation;
+  `ucrtbase.dll` and `api-ms-win-*.dll`, origin not established; the runtime linked into `desktop.exe`) may be redistributed in this installer; the
+  version of the Unicode data inside Python was not determined.
 
 ## Installation
 
