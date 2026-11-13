@@ -10,8 +10,13 @@ The command-line release `v0.2.0` is unchanged; the engine inside the installer 
 The installer is built and validated but not published. It will be downloadable from the **Releases** page of the GitHub repository after the
 official publication.
 
-`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, unsigned. It is being rebuilt after a last correction of the licence notices it carries; its SHA-256
-fingerprint will be written here and published with the release, and the release will publish exactly that file. Check the file before running it
+`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9,605,866 bytes (9.16 MiB), unsigned, built from commit `bd9e3a9`. Its SHA-256:
+
+```
+88A5196DCD6C7DF047161437122F2A4A3D67DC8FEF41A54096F7C61C985EC37F
+```
+
+This is the fingerprint of the file planned for publication: the release will publish exactly that file. Check the file before running it
 ([INSTALL.md](INSTALL.md)). Windows SmartScreen will warn because the installer is not signed.
 
 ## What is in this beta
@@ -39,7 +44,7 @@ fingerprint will be written here and published with the release, and the release
 Tauri 2 (Rust), React and TypeScript front end, the unchanged Python engine packaged with PyInstaller (onedir), pdf.js for the PDF view. Installed
 size about 27 MB. The engine runs from a closed list of operations, without a shell, with time limits. Licences of the components are listed
 in `THIRD_PARTY_NOTICES.md`, and their licence texts and copyright notices are in `THIRD_PARTY_LICENSES.txt`, both installed under `legal\`.
-A licensing point is not settled (the right to redistribute Microsoft's C runtime files); see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+A licensing point is not fully settled (the exact conditions of Microsoft's Visual C++ runtime file); see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Versions
 

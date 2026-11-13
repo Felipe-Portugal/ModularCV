@@ -6,13 +6,14 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 
 ## What was tested, and where
 
-- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with the installer built from
-  commit `fef0c6f` (before the last correction of the licence notices; the journeys will be replayed on the rebuilt installer). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
+- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with this exact installer (built from
+  commit `bd9e3a9`). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
   shortcut; with Git and LaTeX hidden from the application: fictional workspace, profile editing, offers, matrix, plan, `.tex`, diagnostics
   (16 of 16 checks); then, with Git and MiKTeX installed in the machine: PDF, package, review, approval, revocation after a change, refusal,
   stale evidence and the command-line verdict (29 of 29 checks); a package created through the interface; English and light theme kept after a
   restart; a silent uninstall that kept the application data and an external fictional workspace. Both sets passed on the first run. The installed
-  `legal` folder was checked: it holds `LICENSE`, `THIRD_PARTY_NOTICES.md` and `THIRD_PARTY_LICENSES.txt`, byte-identical to the files built in.
+  `legal` folder was checked: it holds `LICENSE`, `THIRD_PARTY_NOTICES.md` and `THIRD_PARTY_LICENSES.txt`, byte-identical to the files built in. The
+  machine had no Visual C++ Redistributable: the engine used the Microsoft runtime file shipped in its own folder.
 - **Windows 11 Home on the development computer:** an **earlier build** of this beta went through the same journeys with the development tools
   hidden from the application. This exact installer was **not** run there.
 - **Automated checks on GitHub** (engine on Python 3.12 and 3.14, and the Desktop suites) pass, but the runner has no LaTeX, so the tests that need
@@ -29,9 +30,11 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
   redistributed, and `legal\THIRD_PARTY_NOTICES.md` is their inventory. This is a best-effort audit, not legal advice.
 - The licence texts of NSIS 3.13 (installer stub, LZMA module) and of its plug-in are reproduced, and the WebView2 SDK loader is identified
   (1.0.3800.47).
-- **Not settled:** whether Microsoft's redistributable C runtime files (`VCRUNTIME140.dll`, copied from the python.org Python installation;
-  `ucrtbase.dll` and `api-ms-win-*.dll`, origin not established; the runtime linked into `desktop.exe`) may be redistributed in this installer; the
-  version of the Unicode data inside Python was not determined.
+- The engine ships Microsoft's own `VCRUNTIME140.dll` 14.52.37029.0, unmodified, taken from Microsoft's Visual C++ Redistributable; the Universal CRT
+  copies are no longer shipped (Windows provides them).
+- **Not settled:** Microsoft allows redistributing that file to licensed Visual Studio users; the maintainer confirmed holding such a licence, which this
+  project cannot verify, and Microsoft's own licence text is not reproduced; whether the C runtime linked statically into `desktop.exe` needs any further
+  notice; the version of the Unicode data inside Python.
 
 ## Installation
 

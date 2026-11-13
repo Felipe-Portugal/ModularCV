@@ -2,7 +2,43 @@
 
 Source of truth for progress. Update it at the end of every session (see `AGENTS.md` §8).
 
-## Current state (BETA-RELEASE-B0-R1-GATE)
+## Current state (BETA-RELEASE-B0-R1-GATE, closed)
+
+This section is the current status. It supersedes the sections below for the installer and the licence notices. Observed unless stated.
+
+- **Repository**: `main` unchanged at `da656f05c454ca904528467cbf0b7653a317e904`. The local branch `docs/desktop-beta-release-prep` is not pushed. Its commits above
+  `main`: `50c75f5`, `fef0c6f` (licence bundle), `4028314`, `ed24566` (Microsoft and NSIS notices), `bd9e3a9` (runtime change, the last commit that changes an installer
+  input), and a documentation commit that records the results below. Only documents change after `bd9e3a9`.
+- **Installer (candidate)**: `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, **9 605 866 bytes (9.16 MiB), SHA-256
+  `88A5196DCD6C7DF047161437122F2A4A3D67DC8FEF41A54096F7C61C985EC37F`**, not signed, built with `desktop/build-installer.ps1` from `bd9e3a99c59e86399a4d12efa75afaeaff9d6ab2`
+  in a new clean detached worktree (6 min 08 s, exit 0). A squash merge gives the same tree another commit identifier; the manifest next to the staged file records
+  the pair. The earlier files `C638…AF71` (from `da656f0`) and `1A117D08…4187` (from `fef0c6f`) are superseded and must not be published.
+- **Microsoft runtime decision**: CPython's `PC/crtlicense.txt` (tag v3.14.10) covers the redistribution of its own Windows binary build and was not relied on for a
+  repackaging; Visual Studio 2022 Community's redistributable on the build computer (14.44.35211) is older than the toolset recorded in `python314.dll` (14.44.35229), and
+  Microsoft requires the redistributable to be at least as recent as the build tools. The engine therefore ships the unmodified `VCRUNTIME140.dll` 14.52.37029.0
+  (SHA-256 `EB1EE979BF02324712346E5BDBFC59C785388BC50D18CC2688AAE4B0734915A0`) extracted from Microsoft's `vc_redist.x64.exe` (SHA-256
+  `9C02C9ED120F671B900E6B9471D890E3B2414117A7E53F4AE2E855466FA2B7C9`, signature valid). Microsoft allows redistribution of that file only to licensed Visual Studio users: the
+  maintainer confirmed holding that licence; this cannot be checked from here. `desktop/licenses/microsoft-runtime.json` pins the file and the release build fails on any other.
+  The Windows Universal CRT copies (`ucrtbase.dll`, 39 `api-ms-win-*.dll`) are removed from the engine: Windows 10 and 11 use their own.
+- **Notices and privacy**: `THIRD_PARTY_LICENSES.txt` and `THIRD_PARTY_NOTICES.md` describe the runtime file, its origin and the removed files, WebView2 loader 1.0.3800.47,
+  NSIS 3.13 and `nsis_tauri_utils` 0.5.3. `AGENTS.md` has a narrow, tested exception for rights holders' public details in verbatim legal notices. The scanner is unchanged.
+- **Checks before `bd9e3a9`** (`desktop/verify.ps1`, whole): engine 1508 passed and 1 skipped; adapter 174 passed; front end typecheck, 36 tests, build; sidecar build and 22
+  packaged-engine tests; Rust 21 tests and clippy; privacy scanner 0 findings, tree and history; licence tests and generator up to date; `git diff --check` clean.
+- **Tests on this exact file** (Windows 11 virtual machine, stripped-down third-party image, not stock; **no Visual C++ Redistributable installed**): hash verified in the
+  guest, silent install, the three `legal` files present, 32 of 34 installed files byte-identical to the build inputs (`desktop.exe` and `uninstall.exe` checked
+  separately: not signed, version 0.5.0-beta.1, no personal data), no Universal CRT copy installed; loaded modules of the running engine: `VCRUNTIME140.dll` 14.52.37029.0 from its own
+  folder (signature valid), `ucrtbase.dll` from the Windows system folder; start from the Start-menu shortcut; Phase A 16 of 16; Phase B 29 of 29; package created through the
+  interface with the corrected message; English, light theme and workspace kept after a restart; silent uninstall removed the program, shortcut and registry key and kept the
+  application data and an external fictional workspace.
+- **Not done**: a stock Windows 11, Windows 10, TeX Live, the graphical uninstaller with the "delete application data" box ticked, installing over an older version, a run on
+  the development computer, CI on these commits (nothing is pushed), a scan of the NSIS file's raw bytes. The WebView2 runtime of the virtual machine had to be reinstalled
+  once with Microsoft's bootstrapper after a clean-up of mine; that is a test-machine matter, not an installer defect.
+- **Open compliance items** (end of `THIRD_PARTY_LICENSES.txt`): the maintainer's Visual Studio licence is not checkable here and Microsoft's own licence text is not
+  reproduced; whether the MSVC runtime linked statically into `desktop.exe` needs a notice; the Unicode data version and the zlib copy in PyInstaller's bootloader. No legal review.
+- **Next action**: the maintainer validates; then, on explicit authorisation, push the branch and open a Draft pull request; BETA-RELEASE-B1 (merge, tag, pre-release carrying exactly the
+  installer above) only after that. Each remote action needs its own explicit authorisation.
+
+## Previous state (BETA-RELEASE-B0-R1-GATE, first part), superseded by the section above
 
 This section is the current status; it supersedes the B0-R1 section below for the installer. Observed unless stated.
 
