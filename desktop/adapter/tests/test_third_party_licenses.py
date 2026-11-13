@@ -97,7 +97,7 @@ def test_bundle_holds_no_personal_data_beyond_rights_holders_addresses():
 def test_unresolved_items_are_stated_not_hidden():
     bundle = BUNDLE.read_text(encoding="utf-8")
     assert "PART 5. UNRESOLVED ITEMS" in bundle
-    assert "Microsoft Visual C++ runtime, Universal C Runtime (UCRT)" in bundle and "Open compliance item" in bundle
+    assert "Microsoft Visual C++ runtime, Universal C Runtime (UCRT)" in bundle and "What remains not established" in bundle
     assert "not legal advice" in bundle
 
 
@@ -134,3 +134,11 @@ def test_only_the_expected_files_are_exempt_from_the_privacy_scanner():
         "desktop/licenses/texts/python-license.rst",
         "tests/test_privacy.py",
     }
+
+
+def test_shipped_microsoft_runtime_is_pinned_and_described():
+    entry = json.loads((DESKTOP / "licenses" / "microsoft-runtime.json").read_text(encoding="utf-8"))["files"][0]
+    bundle = BUNDLE.read_text(encoding="utf-8")
+    assert entry["name"] == "vcruntime140.dll" and re.fullmatch(r"[0-9A-F]{64}", entry["sha256"])
+    assert entry["sha256"] in bundle and entry["version"] in bundle and entry["source_package_sha256"] in bundle
+    assert "ucrtbase.dll and api-ms-win-*.dll" in bundle  # the removed copies are stated

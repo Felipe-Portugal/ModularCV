@@ -27,7 +27,8 @@ and in the section "Open items" below.
 | Zstandard (`_zstd.pyd`) | 1.5.7 | embedded engine | BSD-3-Clause (the GPL-2.0 alternative is not used) | yes | https://github.com/facebook/zstd |
 | zlib-ng (inside `python314.dll`), zlib in the PyInstaller bootloader | 2.2.4 / not determined | embedded engine | Zlib | yes | https://github.com/zlib-ng/zlib-ng |
 | PyInstaller bootloader, loader modules and run-time hooks (start the embedded engine) | 6.22.3 | embedded engine | GPL-2.0-or-later with the PyInstaller Bootloader Exception (bootloader, loader); Apache-2.0 (run-time hooks) | exception summarised, Apache-2.0 text included | https://github.com/pyinstaller/pyinstaller |
-| Microsoft Visual C++ runtime and Universal C runtime (`VCRUNTIME140.dll` (the python.org copy), `ucrtbase.dll`, `api-ms-win-*.dll` (origin not established); the C runtime is also linked statically into `desktop.exe`) | 14.51.36247.0 / 10.0.22621.3233 | embedded engine, `desktop.exe` | Microsoft redistributable terms | **no, open item** | https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files |
+| Microsoft Visual C++ runtime (`VCRUNTIME140.dll`, taken unmodified from Microsoft's Visual C++ Redistributable) | 14.52.37029.0 | embedded engine | Microsoft Distributable Code terms (Visual Studio) | notice in `THIRD_PARTY_LICENSES.txt`; Microsoft's own text not reproduced | https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files |
+| Microsoft Universal C runtime (`ucrtbase.dll`, `api-ms-win-*.dll`) | not shipped: removed from the engine; Windows 10 and 11 provide it. `desktop.exe` links the MSVC runtime statically. | `desktop.exe` | n/a | n/a | https://learn.microsoft.com/cpp/windows/universal-crt-deployment |
 | Microsoft WebView2 SDK, static loader (linked by `webview2-com-sys`) | 1.0.3800.47 (the library is byte-identical to the one in that NuGet package) | `desktop.exe` | BSD-3-Clause style (Microsoft) | yes | https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.3800.47 |
 | NSIS (stub and LZMA compression module of the installer and of `uninstall.exe`; System, nsDialogs, NSISdl, UserInfo plug-ins) | 3.13 | `setup.exe`, `uninstall.exe` | zlib/libpng; CPL-1.0 with the NSIS special exception for the LZMA module | yes (`COPYING` of NSIS 3.13, with the source location) | https://nsis.sourceforge.io/ |
 | `nsis_tauri_utils` (NSIS plug-in of Tauri's template) | 0.5.3 | `setup.exe` | MIT OR Apache-2.0 | yes | https://github.com/tauri-apps/nsis-tauri-utils |
@@ -51,10 +52,9 @@ source-availability condition of MPL-2.0 is met.
 
 ## Open items
 
-- Microsoft Visual C++ and Universal C runtime files: Microsoft limits redistribution of individual Visual C++ runtime binaries to licensed Visual
-  Studio users under the Microsoft Software License Terms. The shipped `VCRUNTIME140.dll` is the copy installed with python.org Python, not the one of
-  the build computer's Visual Studio redistributable folder, and the origin of `ucrtbase.dll` and the `api-ms-win-*.dll` files was not established
-  (on Windows 10 and 11 the system UCRT is used and these local copies are ignored). Whether the redistribution is covered is not established.
+- Microsoft Visual C++ runtime: Microsoft's own `VCRUNTIME140.dll` 14.52.37029.0 is shipped, unmodified and pinned by hash. Microsoft's terms allow this only
+  for a licensed Visual Studio user; the maintainer confirmed holding that licence, which this project cannot verify, and whether the notice wording meets
+  Microsoft's requirement to bind end users is a best-effort reading. The Universal C runtime copies are no longer shipped.
 - Whether statically linking the MSVC runtime into `desktop.exe` needs any further notice was not verified.
 - The NSIS licence texts are reproduced and the NSIS source location is stated; whether that fully meets the CPL-1.0 for the LZMA module is a reading
   of the licence, not a legal opinion.
