@@ -53,6 +53,14 @@ application, and reported in Settings > Environment diagnostics:
 development the engine is the repository's Python (`MODULARCV_PYTHON` to choose the interpreter, `MODULARCV_ENGINE_DIR` for the engine
 folder); a release build never falls back to a system Python.
 
+## Third-party licence texts
+
+`desktop/THIRD_PARTY_NOTICES.md` is the inventory of third-party components and `desktop/THIRD_PARTY_LICENSES.txt` holds their licence texts; both
+are installed under `legal\`. The second file is generated: `python desktop/tools/build_third_party_licenses.py` (needs `cargo` and network access
+for `cargo fetch`) rewrites it from the verbatim texts in `desktop/licenses/texts/` and from the licence files inside the Rust crates compiled into
+`desktop.exe`; with `--check` it fails when the committed file is out of date, and `desktop/adapter/tests/test_third_party_licenses.py` checks it. Rerun it
+whenever `Cargo.lock`, `package-lock.json`, the Python or PyInstaller version changes, and update the inventory by hand.
+
 ## Install and run (development)
 
 ```powershell

@@ -27,11 +27,11 @@ Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont 
 
    Le résultat doit être exactement l'empreinte publiée avec la version. S'il diffère, ne lancez pas le fichier.
 
-   L'installateur préparé pour cette bêta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 10 022 845 octets, soit 9,56 Mio, non signé) a été
-   construit depuis le commit `da656f0` et a cette empreinte SHA-256 :
+   L'installateur préparé pour cette bêta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 10 064 848 octets, soit 9,60 Mio, non signé) a été
+   construit depuis le commit `fef0c6f` et a cette empreinte SHA-256 :
 
    ```
-   C638561536F3921B775C048ED4E8A4A86C8D06012DF13015CA474DF0FD45AF71
+   1A117D080214F3F98048C17D31D07A2E776FF7D2BF87DAB7962B501DEEC04187
    ```
 
    C'est l'empreinte du fichier prévu pour la publication : la version publiera exactement ce fichier. Si le fichier téléchargé affiche une
@@ -79,6 +79,9 @@ paquet et ce PDF exact. Relisez le PDF vous-même avant de l'envoyer.
 - Le diagnostic vérifie seulement que `pdflatex` est trouvé ; un MiKTeX mal configuré affiche « disponible » puis la compilation échoue (`PDF_FAILED`).
 - MiKTeX peut proposer d'installer des paquets à la première compilation.
 - L'application n'envoie rien, ne se met pas à jour seule et n'installe jamais Git ni LaTeX.
+- Licences : le dossier `legal` de l'installation contient `LICENSE` (licence MIT de ModularCV), `THIRD_PARTY_NOTICES.md` (inventaire des composants
+  tiers) et `THIRD_PARTY_LICENSES.txt` (leurs textes de licence et mentions de droits d'auteur). Quelques points ne sont pas tranchés (conditions des
+  fichiers de runtime C de Microsoft, version du chargeur WebView2) ; ils sont listés à la fin de ce dernier fichier.
 
 Liste complète : [KNOWN_ISSUES.md](KNOWN_ISSUES.md) (en anglais).
 

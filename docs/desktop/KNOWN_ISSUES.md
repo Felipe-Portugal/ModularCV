@@ -7,12 +7,12 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 ## What was tested, and where
 
 - **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with this exact installer (built from
-  commit `da656f0`). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
+  commit `fef0c6f`). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
   shortcut; with Git and LaTeX hidden from the application: fictional workspace, profile editing, offers, matrix, plan, `.tex`, diagnostics
   (16 of 16 checks); then, with Git and MiKTeX installed in the machine: PDF, package, review, approval, revocation after a change, refusal,
   stale evidence and the command-line verdict (29 of 29 checks); a package created through the interface; English and light theme kept after a
-  restart; a silent uninstall that kept the application data and an external fictional workspace. The first run of the second set gave 25 of 29
-  because of the test harness (its command-line checks used a missing interpreter); after the harness was fixed the whole set was replayed (29 of 29).
+  restart; a silent uninstall that kept the application data and an external fictional workspace. Both sets passed on the first run. The installed
+  `legal` folder was checked: it holds `LICENSE`, `THIRD_PARTY_NOTICES.md` and `THIRD_PARTY_LICENSES.txt`, byte-identical to the files built in.
 - **Windows 11 Home on the development computer:** an **earlier build** of this beta went through the same journeys with the development tools
   hidden from the application. This exact installer was **not** run there.
 - **Automated checks on GitHub** (engine on Python 3.12 and 3.14, and the Desktop suites) pass, but the runner has no LaTeX, so the tests that need
@@ -22,6 +22,15 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
   with the "delete application data" box ticked (on this exact installer), a screen reader, high-contrast mode, display scaling above 100 %,
   workspaces on network drives, very long paths.
 - The virtual machine was slow (two virtual processors), so timings measured there are not representative of a real computer.
+
+## Third-party licences
+
+- `legal\THIRD_PARTY_LICENSES.txt` reproduces the licence texts and copyright notices of the third-party components that could be identified as
+  redistributed, and `legal\THIRD_PARTY_NOTICES.md` is their inventory. This is a best-effort audit, not legal advice.
+- **Not settled:** the terms of Microsoft's redistributable C runtime files (`VCRUNTIME140.dll`, `ucrtbase.dll`, `api-ms-win-*.dll`, and the runtime
+  linked into `desktop.exe`) were not verified; the exact version of the WebView2 SDK loader linked into `desktop.exe` could not be read from the
+  binary; the licences of the installer-only components (NSIS and its plugin) were not re-checked; the version of the Unicode data inside Python
+  was not determined.
 
 ## Installation
 

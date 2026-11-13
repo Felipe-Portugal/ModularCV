@@ -10,10 +10,10 @@ The command-line release `v0.2.0` is unchanged; the engine inside the installer 
 The installer is built and validated but not published. It will be downloadable from the **Releases** page of the GitHub repository after the
 official publication.
 
-`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 10,022,845 bytes (9.56 MiB), unsigned, built from commit `da656f0`. Its SHA-256:
+`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 10,064,848 bytes (9.60 MiB), unsigned, built from commit `fef0c6f`. Its SHA-256:
 
 ```
-C638561536F3921B775C048ED4E8A4A86C8D06012DF13015CA474DF0FD45AF71
+1A117D080214F3F98048C17D31D07A2E776FF7D2BF87DAB7962B501DEEC04187
 ```
 
 This is the fingerprint of the file planned for publication: the release will publish exactly that file. Check the file before running it
@@ -43,7 +43,8 @@ This is the fingerprint of the file planned for publication: the release will pu
 
 Tauri 2 (Rust), React and TypeScript front end, the unchanged Python engine packaged with PyInstaller (onedir), pdf.js for the PDF view. Installed
 size about 27 MB. The engine runs from a closed list of operations, without a shell, with time limits. Licences of the components are listed
-in `THIRD_PARTY_NOTICES.md`, installed under `legal\`.
+in `THIRD_PARTY_NOTICES.md`, and their licence texts and copyright notices are in `THIRD_PARTY_LICENSES.txt`, both installed under `legal\`.
+A few licensing points are not settled (Microsoft's redistributable C runtime terms, the WebView2 loader version); see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Versions
 
