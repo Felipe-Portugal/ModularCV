@@ -42,7 +42,8 @@
       "resources/engine/": "engine/",
       "resources/examples/": "examples/",
       "../../LICENSE": "legal/LICENSE",
-      "../THIRD_PARTY_NOTICES.md": "legal/THIRD_PARTY_NOTICES.md"
+      "../THIRD_PARTY_NOTICES.md": "legal/THIRD_PARTY_NOTICES.md",
+      "../THIRD_PARTY_LICENSES.txt": "legal/THIRD_PARTY_LICENSES.txt"
     },
     "windows": {
       "webviewInstallMode": {

@@ -13,7 +13,8 @@ cover a job's requirements, build a tailoring plan, produce a `.tex` file and a 
 record your own approval or refusal.
 
 **Read before you rely on it:** an approval is your decision, saved in a local file that is **not signed**; `READY_TO_SEND` proves the process,
-not the candidate. This is a beta, the installer is unsigned, and it was tested on a stripped-down Windows 11 image, not on a stock one.
+not the candidate. This is a beta, the installer is unsigned, and it was tested on a stripped-down Windows 11 image, not on a stock one. The installer is
+prepared but **not yet published**.
 
 | Guide | What it covers |
 |---|---|
@@ -51,6 +52,14 @@ application, and reported in Settings > Environment diagnostics:
 **To develop or build:** Python 3.12 to 3.14, Rust (stable, MSVC) with the Visual Studio C++ build tools, Node.js and npm, Git. In
 development the engine is the repository's Python (`MODULARCV_PYTHON` to choose the interpreter, `MODULARCV_ENGINE_DIR` for the engine
 folder); a release build never falls back to a system Python.
+
+## Third-party licence texts
+
+`desktop/THIRD_PARTY_NOTICES.md` is the inventory of third-party components and `desktop/THIRD_PARTY_LICENSES.txt` holds their licence texts; both
+are installed under `legal\`. The second file is generated: `python desktop/tools/build_third_party_licenses.py` (needs `cargo` and network access
+for `cargo fetch`) rewrites it from the verbatim texts in `desktop/licenses/texts/` and from the licence files inside the Rust crates compiled into
+`desktop.exe`; with `--check` it fails when the committed file is out of date, and `desktop/adapter/tests/test_third_party_licenses.py` checks it. Rerun it
+whenever `Cargo.lock`, `package-lock.json`, the Python or PyInstaller version changes, and update the inventory by hand.
 
 ## Install and run (development)
 

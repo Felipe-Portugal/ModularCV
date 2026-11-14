@@ -6,9 +6,9 @@ ModularCV Desktop est une application Windows pour le moteur ModularCV : elle co
 vérifiable entre les faits et le PDF que vous envoyez. Tout reste sur votre ordinateur : pas de compte, pas de réseau, pas de télémétrie.
 C'est une **bêta** (`0.5.0-beta.1`).
 
-> **Statut : préparée, pas encore publiée.** ModularCV Desktop `0.5.0-beta.1` n'est pas encore publié. Il n'existe aujourd'hui ni version
-> Desktop ni installateur à télécharger. L'installateur sera proposé sur la page **Releases** du dépôt GitHub après la publication officielle.
-> D'ici là, cette page décrit comment l'installation se déroulera, pour que vous puissiez la lire à l'avance.
+> **Préparée — pas encore publiée.** ModularCV Desktop `0.5.0-beta.1` n'est pas publié : il n'existe aujourd'hui ni version Desktop ni
+> installateur à télécharger. L'installateur est construit et validé ; il sera proposé sur la page **Releases** du dépôt GitHub après la
+> publication officielle. D'ici là, cette page décrit comment l'installation se déroulera, pour que vous puissiez la lire à l'avance.
 
 À lire avant de vous y fier : **une approbation est votre propre décision, enregistrée dans un fichier local non signé** ; `READY_TO_SEND`
 prouve le processus, pas la valeur du candidat ni la qualité du texte.
@@ -27,14 +27,15 @@ Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont 
 
    Le résultat doit être exactement l'empreinte publiée avec la version. S'il diffère, ne lancez pas le fichier.
 
-   À titre d'information, l'installateur testé jusqu'ici a cette empreinte SHA-256 :
+   L'installateur préparé pour cette bêta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9 605 866 octets, soit 9,16 Mio, non signé) a été
+   construit depuis le commit `bd9e3a9` et a cette empreinte SHA-256 :
 
    ```
-   F1DA86139CDA4125FCCE4E2D171256791F29E7CE29A170CE28BFF4764A1F14B8
+   88A5196DCD6C7DF047161437122F2A4A3D67DC8FEF41A54096F7C61C985EC37F
    ```
 
-   Cette valeur n'est **pas** l'empreinte définitive de la future version : l'installateur final sera identifié et vérifié au moment de la publication.
-   Comparez toujours avec l'empreinte publiée avec le fichier sur la page Releases.
+   C'est l'empreinte du fichier prévu pour la publication : la version publiera exactement ce fichier. Si le fichier téléchargé affiche une
+   autre empreinte, ne le lancez pas. Tant que la version n'existe pas, il n'y a rien à télécharger ni à comparer.
 
 3. Lancez l'installateur. Il n'est **pas signé** : SmartScreen peut afficher « Windows a protégé votre ordinateur ». Si l'empreinte correspond,
    choisissez **Informations complémentaires** puis **Exécuter quand même**.
@@ -70,11 +71,17 @@ paquet et ce PDF exact. Relisez le PDF vous-même avant de l'envoyer.
 
 ## Limites connues
 
-- Installateur non signé ; testé sur Windows 11 (machine virtuelle à partir d'une image allégée tierce, et un Windows 11 Famille de développement).
-  **Non testés** : Windows 11 standard, Windows 10, TeX Live, installation par-dessus une ancienne version.
+- Installateur non signé ; testé avec ce fichier exact sur Windows 11 (machine virtuelle à partir d'une image allégée tierce) ; un build antérieur de
+  cette bêta a aussi été essayé sur un Windows 11 Famille de développement.
+  **Non testés** : Windows 11 standard, Windows 10, TeX Live, installation par-dessus une ancienne version, installateur graphique avec la case de
+  suppression des données cochée.
+- Les contrôles automatiques de GitHub n'exécutent pas les tests qui exigent LaTeX (PDF, approbation) : ils ont été exécutés en local avec MiKTeX.
 - Le diagnostic vérifie seulement que `pdflatex` est trouvé ; un MiKTeX mal configuré affiche « disponible » puis la compilation échoue (`PDF_FAILED`).
 - MiKTeX peut proposer d'installer des paquets à la première compilation.
 - L'application n'envoie rien, ne se met pas à jour seule et n'installe jamais Git ni LaTeX.
+- Licences : le dossier `legal` de l'installation contient `LICENSE` (licence MIT de ModularCV), `THIRD_PARTY_NOTICES.md` (inventaire des composants
+  tiers) et `THIRD_PARTY_LICENSES.txt` (leurs textes de licence et mentions de droits d'auteur). Quelques points ne sont pas tranchés (conditions exactes du fichier
+  de runtime Visual C++ de Microsoft que le moteur embarque) ; ils sont listés à la fin de ce dernier fichier.
 
 Liste complète : [KNOWN_ISSUES.md](KNOWN_ISSUES.md) (en anglais).
 

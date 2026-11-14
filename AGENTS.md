@@ -21,6 +21,11 @@ dedicated session.
 - Putting personal data in this repository: a name, e-mail, phone, address, employer, school, handle, profile URL, real CV text,
   real job posting, real fact, absolute user path, or any identifier taken from a private project.
   The one exception is the repository's own public address (the clone URL in the READMEs), which is how the project is found.
+  A second, narrow exception covers third-party legal notices: official licence texts and copyright notices of redistributed components may
+  keep the public contact details of their rights holders (for example the address in a copyright line), because altering a notice would
+  alter the licence. Such a file may carry the `privacy-scan: ignore-file` marker only if a test restricts its addresses to an explicit list
+  (by exact value), rejects any other finding (token, key, user path, other address), and fixes the exact set of exempt files. This never
+  extends to data about the maintainer, a contributor or any other person who is not a rights holder named in the notice.
 - Copying code, fixtures, documents or history from a private repository. Interfaces and algorithms may be studied read-only and
   re-implemented against the contracts in `docs/design/`.
 - Pushing, creating a remote, tagging, releasing or publishing without the maintainer's explicit authorisation for that exact action.

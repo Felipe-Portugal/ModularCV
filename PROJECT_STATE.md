@@ -2,7 +2,141 @@
 
 Source of truth for progress. Update it at the end of every session (see `AGENTS.md` §8).
 
-## Repository
+## Current state (BETA-RELEASE-B0-R1-GATE, closed)
+
+This section is the current status. It supersedes the sections below for the installer and the licence notices. Observed unless stated.
+
+- **Repository**: `main` unchanged at `da656f05c454ca904528467cbf0b7653a317e904`. The local branch `docs/desktop-beta-release-prep` is not pushed. Its commits above
+  `main`: `50c75f5`, `fef0c6f` (licence bundle), `4028314`, `ed24566` (Microsoft and NSIS notices), `bd9e3a9` (runtime change, the last commit that changes an installer
+  input), and a documentation commit that records the results below. Only documents change after `bd9e3a9`.
+- **Installer (candidate)**: `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, **9 605 866 bytes (9.16 MiB), SHA-256
+  `88A5196DCD6C7DF047161437122F2A4A3D67DC8FEF41A54096F7C61C985EC37F`**, not signed, built with `desktop/build-installer.ps1` from `bd9e3a99c59e86399a4d12efa75afaeaff9d6ab2`
+  in a new clean detached worktree (6 min 08 s, exit 0). A squash merge gives the same tree another commit identifier; the manifest next to the staged file records
+  the pair. The earlier files `C638…AF71` (from `da656f0`) and `1A117D08…4187` (from `fef0c6f`) are superseded and must not be published.
+- **Microsoft runtime decision**: CPython's `PC/crtlicense.txt` (tag v3.14.10) covers the redistribution of its own Windows binary build and was not relied on for a
+  repackaging; Visual Studio 2022 Community's redistributable on the build computer (14.44.35211) is older than the toolset recorded in `python314.dll` (14.44.35229), and
+  Microsoft requires the redistributable to be at least as recent as the build tools. The engine therefore ships the unmodified `VCRUNTIME140.dll` 14.52.37029.0
+  (SHA-256 `EB1EE979BF02324712346E5BDBFC59C785388BC50D18CC2688AAE4B0734915A0`) extracted from Microsoft's `vc_redist.x64.exe` (SHA-256
+  `9C02C9ED120F671B900E6B9471D890E3B2414117A7E53F4AE2E855466FA2B7C9`, signature valid). Microsoft allows redistribution of that file only to licensed Visual Studio users: the
+  maintainer confirmed holding that licence; this cannot be checked from here. `desktop/licenses/microsoft-runtime.json` pins the file and the release build fails on any other.
+  The Windows Universal CRT copies (`ucrtbase.dll`, 39 `api-ms-win-*.dll`) are removed from the engine: Windows 10 and 11 use their own.
+- **Notices and privacy**: `THIRD_PARTY_LICENSES.txt` and `THIRD_PARTY_NOTICES.md` describe the runtime file, its origin and the removed files, WebView2 loader 1.0.3800.47,
+  NSIS 3.13 and `nsis_tauri_utils` 0.5.3. `AGENTS.md` has a narrow, tested exception for rights holders' public details in verbatim legal notices. The scanner is unchanged.
+- **Checks before `bd9e3a9`** (`desktop/verify.ps1`, whole): engine 1508 passed and 1 skipped; adapter 174 passed; front end typecheck, 36 tests, build; sidecar build and 22
+  packaged-engine tests; Rust 21 tests and clippy; privacy scanner 0 findings, tree and history; licence tests and generator up to date; `git diff --check` clean.
+- **Tests on this exact file** (Windows 11 virtual machine, stripped-down third-party image, not stock; **no Visual C++ Redistributable installed**): hash verified in the
+  guest, silent install, the three `legal` files present, 32 of 34 installed files byte-identical to the build inputs (`desktop.exe` and `uninstall.exe` checked
+  separately: not signed, version 0.5.0-beta.1, no personal data), no Universal CRT copy installed; loaded modules of the running engine: `VCRUNTIME140.dll` 14.52.37029.0 from its own
+  folder (signature valid), `ucrtbase.dll` from the Windows system folder; start from the Start-menu shortcut; Phase A 16 of 16; Phase B 29 of 29; package created through the
+  interface with the corrected message; English, light theme and workspace kept after a restart; silent uninstall removed the program, shortcut and registry key and kept the
+  application data and an external fictional workspace.
+- **Not done**: a stock Windows 11, Windows 10, TeX Live, the graphical uninstaller with the "delete application data" box ticked, installing over an older version, a run on
+  the development computer, CI on these commits (nothing is pushed), a scan of the NSIS file's raw bytes. The WebView2 runtime of the virtual machine had to be reinstalled
+  once with Microsoft's bootstrapper after a clean-up of mine; that is a test-machine matter, not an installer defect.
+- **Open compliance items** (end of `THIRD_PARTY_LICENSES.txt`): the maintainer's Visual Studio licence is not checkable here and Microsoft's own licence text is not
+  reproduced; whether the MSVC runtime linked statically into `desktop.exe` needs a notice; the Unicode data version and the zlib copy in PyInstaller's bootloader. No legal review.
+- **Next action**: the maintainer validates; then, on explicit authorisation, push the branch and open a Draft pull request; BETA-RELEASE-B1 (merge, tag, pre-release carrying exactly the
+  installer above) only after that. Each remote action needs its own explicit authorisation.
+
+## Previous state (BETA-RELEASE-B0-R1-GATE, first part), superseded by the section above
+
+This section is the current status; it supersedes the B0-R1 section below for the installer. Observed unless stated.
+
+- **Repository**: `main` unchanged at `da656f05c454ca904528467cbf0b7653a317e904`. The local branch `docs/desktop-beta-release-prep` is not pushed.
+- **Installer**: the file `1A117D080214F3F98048C17D31D07A2E776FF7D2BF87DAB7962B501DEEC04187` (10 064 848 bytes, built from `fef0c6f`) is **no longer the final
+  candidate**. The gate corrected the embedded `THIRD_PARTY_LICENSES.txt` and `THIRD_PARTY_NOTICES.md` (WebView2 loader version, NSIS 3.13 and its plug-in,
+  Microsoft statements). Those files go into the installer, so **a rebuild and new virtual-machine tests are required** before the beta can be published.
+  The file stays untouched in the private staging folder, labelled superseded.
+- **Provenance finding**: between `fef0c6f` and `4028314` only documents changed, none of them an installer input. The correction commit
+  changes embedded files on purpose (REBUILD_REQUIRED).
+- **Privacy scanner**: three files and the NSIS text carry `privacy-scan: ignore-file` (verbatim third-party texts that contain rights holders' own addresses); a
+  test checks that their only addresses are the nine listed addresses (the NSIS text adds none), that no token, key, user path or other address appears, and that
+  the exempt set is exactly the expected one. `.gitattributes` exempts only four verbatim files from the whitespace check. No change to `AGENTS.md` was made;
+  a clarification is proposed for the maintainer.
+- **Microsoft files** (see `THIRD_PARTY_LICENSES.txt`, part 5): `VCRUNTIME140.dll` 14.51.36247.0 is byte-identical to the copy installed with python.org Python on the build
+  computer, not the Visual Studio redistributable folder copy (14.44.35211.0); the origin of `ucrtbase.dll` and the `api-ms-win-*.dll` files is not established (the
+  Windows 10 and 11 system UCRT is used and local copies are ignored); `desktop.exe` imports the system UCRT and links the MSVC runtime statically. Whether this
+  redistribution is covered by the Microsoft terms is **not established**. Options for the maintainer: rebuild with the Visual Studio redistributable copy of
+  `VCRUNTIME140.dll` (the REDIST list covers it) and drop the UCRT files; or require the Visual C++ Redistributable at install time; or accept the residual risk.
+- **WebView2 SDK loader**: version established as 1.0.3800.47 (library byte-identical to the NuGet package); the earlier mention of 1.0.3650.58 was wrong.
+- **NSIS**: 3.13 with the LZMA solid stub and nsis_tauri_utils 0.5.3 identified; the NSIS `COPYING` (zlib/libpng, CPL-1.0 for LZMA with the special exception) and
+  the plug-in licences are now reproduced.
+- **Next action**: the maintainer decides on the Microsoft options; then rebuild the installer from the final source, replay the virtual-machine journeys, record the
+  new fingerprint, and only then BETA-RELEASE-B1. Nothing is pushed; each remote action needs its own explicit authorisation.
+
+## Previous state (BETA-RELEASE-B0-R1), superseded by the section above for the installer
+
+This section is the current status. The sections below it keep the reports of earlier milestones as they were written: their wording ("nothing is
+pushed", "local commit", "release candidate") described the state at that time and is superseded by what follows.
+
+- **Repository**: `Felipe-Portugal/ModularCV` is public on GitHub. `main` is at `da656f05c454ca904528467cbf0b7653a317e904`. The local branch
+  `docs/desktop-beta-release-prep` is three commits above it and **is not pushed**: `50c75f5` (documents for the prepared beta), `fef0c6f` (licence bundle)
+  and a documentation commit that records the results below.
+- **Command line and engine**: version `0.2.0`, published as `v0.2.0` (2026-11-08). Unchanged. Desktop is `0.5.0-beta.1`, **prepared and validated, not
+  published**: no Desktop tag and no Desktop release exist.
+- **B0 blocker resolved (BETA-RELEASE-B0-R1)**: the installer now ships `legal\THIRD_PARTY_LICENSES.txt` (generated by
+  `desktop/tools/build_third_party_licenses.py`, checked by `desktop/adapter/tests/test_third_party_licenses.py`) next to the inventory
+  `THIRD_PARTY_NOTICES.md` and the project `LICENSE`. It reproduces, from official sources named with their SHA-256: the Python 3.14.10 licence and the
+  notices of the software incorporated in it, OpenSSL 3.5.9, HACL*, bzip2 1.0.8, mpdecimal 4.0.0, XZ 5.2.5 (public domain), Zstandard 1.5.7, zlib-ng 2.2.4, the
+  WebView2 SDK loader, the Rust standard library, React, React DOM, Scheduler, pdf.js, the Tauri JavaScript API and dialog plugin; and the licence files of
+  the 209 Rust crates compiled into `desktop.exe` (upstream text for the five crates whose package has none; the WebView2 loader was found
+  statically linked, the Rust standard library was missing from the inventory, both are now covered). Licence elections for "A OR B" are stated, the
+  PyInstaller Bootloader Exception is summarised, and the MPL-2.0 source locations are given for the five MPL-2.0 crates.
+- **New installer**: `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, **10 064 848 bytes (9.60 MiB), SHA-256
+  `1A117D080214F3F98048C17D31D07A2E776FF7D2BF87DAB7962B501DEEC04187`**, not signed, built with `desktop/build-installer.ps1` from commit
+  `fef0c6f371e227f38d30975146eaf40f07a1fa30` in a new clean detached worktree with no earlier artefact (3 min 52 s, exit 0; Python 3.14.10, PyInstaller
+  6.22.3, Node 26.13.1, Rust 1.99.1). **Provenance caveat**: that commit exists only locally; a squash merge will give the same tree a different commit
+  identifier, and the manifest kept next to the staged file records the pair. The documentation commit after `fef0c6f` changes no file that goes into the
+  installer. Any rebuild changes the hash.
+- **Checks before the commit** (docs-prep tree, `desktop/verify.ps1`): engine 1508 passed and 1 skipped; adapter 171 passed (7 new licence tests); front end
+  typecheck, 36 unit tests and build; sidecar build and 20 packaged-engine tests; Rust 21 tests and clippy; privacy scanner 0 findings (tree and history);
+  `git diff --check` clean (verbatim licence texts are exempt from the whitespace check through `.gitattributes`).
+- **Tests on the new file** (Windows 11 virtual machine, third-party stripped-down image, not stock): hash verified in the guest, fresh silent install, the three
+  legal files present and byte-identical to the build, 72 of 74 installed files byte-identical to the build inputs (`desktop.exe` and `uninstall.exe`
+  checked separately: not signed, version 0.5.0-beta.1, no personal data), start from the Start-menu shortcut, Phase A (Git and LaTeX hidden) 16 of 16, Phase B
+  (Git and MiKTeX) 29 of 29 on the first run, a package created through the interface with the corrected message, English and light theme and workspace kept
+  after a restart, silent uninstall that removed the program, shortcut and registry key and kept the application data and an external fictional workspace.
+- **Not done**: a stock Windows 11, Windows 10, TeX Live, the graphical uninstaller with the "delete application data" box ticked, installing over an older
+  version, a run on the development computer, the NSIS file's raw bytes scan (only its inputs and the installed tree were scanned), CI on the new commit
+  (nothing is pushed).
+- **Older installer**: `C638561536F3921B775C048ED4E8A4A86C8D06012DF13015CA474DF0FD45AF71` (10 022 845 bytes, built from `da656f0`) stays untouched in the
+  private staging folder. It lacks the licence texts and is **superseded**; it must not be published.
+- **Compliance items still open** (listed in `THIRD_PARTY_LICENSES.txt`, part 5): the terms of Microsoft's redistributable C runtime files (VC runtime and
+  Universal CRT in the sidecar, runtime linked into `desktop.exe`) are not reproduced and were not verified; the WebView2 SDK loader version could not be read
+  from the binary; installer-only components (NSIS and its plugin) were not re-verified; the Unicode data version and the zlib copy inside PyInstaller's bootloader
+  were not determined. No legal review was done; the bundle is a best-effort audit.
+- **Next action**: validation by the maintainer, then BETA-RELEASE-B1 (the publication: merge of the branch, a Desktop tag, a GitHub pre-release carrying exactly
+  the installer above, documents switched to "published"; rebuilding after the merge would change the hash, so B1 must decide whether to publish this exact
+  file or rebuild). Each remote action needs its own explicit authorisation. Do not push, tag or release without it.
+
+## Previous state (BETA-RELEASE-B0), superseded by the section above
+
+This section keeps the B0 report as it was written. The sections below it keep the reports of earlier milestones as they were written: their wording
+("nothing is pushed", "local commit", "release candidate") described the state at that time.
+
+- **Repository**: `Felipe-Portugal/ModularCV` is public on GitHub. `main` is at `da656f05c454ca904528467cbf0b7653a317e904`.
+- **Command line and engine**: version `0.2.0`, published as `v0.2.0` (tag and GitHub release with the wheel, the archive and the checksums,
+  2026-11-08). Unchanged by the Desktop work.
+- **Pull request 1** (`feat/desktop-public`, one commit above the former `main`) was merged by squash into `main`. The three GitHub Actions
+  jobs of the push on that commit are green (run 43313799828): engine on Python 3.12 and 3.14, and the full Desktop verification. The runner has
+  no LaTeX, so the tests that need `pdflatex` (engine 8, adapter 70, packaged engine 2) are skipped there; they pass locally with MiKTeX.
+- **BETA-RELEASE-A** (validated): the installer `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` was built from `da656f0` in a clean worktree with
+  `desktop/build-installer.ps1`: 10 022 845 bytes, SHA-256 `C638561536F3921B775C048ED4E8A4A86C8D06012DF13015CA474DF0FD45AF71`, not signed.
+  On a Windows 11 virtual machine (third-party stripped-down image, not stock): fresh install, Phase A 16 of 16, Phase B 29 of 29 (first run 25 of
+  29 because of the test harness, which was fixed and replayed), a package created through the interface, a restart, and a silent uninstall that
+  kept the application data and an external fictional workspace. Not done: a stock Windows 11, the graphical uninstaller on this file, a run on
+  the development computer.
+- **Status of Desktop `0.5.0-beta.1`: prepared, built and validated, not published.** No Desktop tag and no Desktop release exist. The documents in
+  `docs/desktop/` say "Prepared — not yet published". The installer exists only on the maintainer's machine; it is not in the repository.
+- **Installer fingerprints in the history below** (`F8ABFD69...` for `0.5.0`, `BF068384...` and `F1DA8613...` for earlier builds of `0.5.0-beta.1`)
+  are superseded. At B0 the only candidate was `C638561536F3...AF71`; it is superseded by the B0-R1 installer above.
+- **Open point before publication (resolved in B0-R1, see above)**: `desktop/THIRD_PARTY_NOTICES.md`, installed under `legal\`, names each component, its version, its licence and
+  its source but does not reproduce licence texts or copyright lines. Whether that satisfies the attribution terms of the MIT, BSD and Apache
+  licences of the bundled components is not established here (no legal review). Changing the file changes the installer and its fingerprint.
+- **Next action (superseded)**: BETA-RELEASE-B1, the publication itself (a Desktop tag, a GitHub pre-release carrying exactly the installer above, then the
+  documents switched to "published"). Each remote action needs its own explicit authorisation. Do not push, tag or release without it.
+
+## Repository (history: state during milestones M4 to M8; superseded by the current state above)
 
 - Branch: `main`. M5 (`20979f9`) and M5-R1 are committed locally on top of `5585c42` (M4 final closure; see `git log`). Baseline of M4: `1114663` (M3, validated). M4 commits: `b38e1c8`, `4244cf9`. M4-R1 (`fe47a23`) and the M4 closure are committed locally on top. Earlier: `17bcf18` (M3 code), `ab35c91` (M2-R1), `d34af49`, `4865a27`,
   `0a553e1` (initial `0.1.0`). M4 is committed locally on top (see `git log`); nothing is pushed.
@@ -13,7 +147,7 @@ Source of truth for progress. Update it at the end of every session (see `AGENTS
 - Privacy scan: `python -m modularcv privacy --root .` and with an outside deny list and `--history`: 0 findings.
 - Package: still `dependencies = []`; the engine imports no network module.
 
-## Desktop application (branch `feat/desktop`, under `desktop/`; outside the engine milestones, nothing pushed)
+## Desktop application (history of the work on the branch `feat/desktop`, under `desktop/`; superseded by the current state above)
 
 The engine, its contracts and its CLI are unchanged; the desktop application adds no dependency to the engine (`dependencies = []`).
 
@@ -123,7 +257,7 @@ The engine, its contracts and its CLI are unchanged; the desktop application add
   silent install over the previous build (version 0.5.0-beta.1), Phase A 16 of 16, Phase B 29 of 29 (generation, review, approval, tamper, stale source), and a UI-driven run (demo, plan, `.tex`,
   package) showing the new message and opening the review. English and light theme persisted across an app restart; smallest text contrast in the light theme 5.76:1. **Not done**: a reliable cold-start
   "interface usable" time (a warm reload measured about 0.1 s in the guest and is not a cold start); the graphical approval was not re-driven by hand with the mouse on this exact binary (the automated
-  Phase B covers it); the CI file has still never run on GitHub.
+  Phase B covers it); the CI file had not yet run on GitHub at that point (see the current state above).
 - **Public branch (CI-2A, local only)**: the Desktop work is consolidated into one commit on top of `origin/main` (`7c4b516`) on the local branch `feat/desktop-public`, built in a separate worktree; the development branch
   `feat/desktop` keeps its 12 commits untouched. The three maintainer drafts are not part of it. A clean checkout showed a defect the development tree hid: `cargo test` failed because the git-ignored
   `desktop/src-tauri/resources/examples/` directory (created only by `build-installer.ps1`) did not exist; `desktop/verify.ps1` now prepares it the same way before the Rust steps. `desktop/verify.ps1` is green on that
@@ -133,7 +267,7 @@ The engine, its contracts and its CLI are unchanged; the desktop application add
   (the runner has no LaTeX, so the tests that need `pdflatex`, among them most review and approval tests of the adapter, are skipped there; they pass locally with MiKTeX). The pre-merge audit found no P0 or P1 and one
   documentation point: `docs/desktop/INSTALL.md`, `RELEASE_NOTES_0.5.0-beta.1.md` and `LISEZMOI.fr.md` read as if the installer could already be downloaded. They now say that Desktop `0.5.0-beta.1` is prepared and not yet
   published, and that the installer SHA-256 shown is the one of the installer tested so far, not the final fingerprint: the final artefact is to be identified and verified at release time. No installer was rebuilt or published and no tag or release was created.
-- **Next**: maintainer decision on the stock-Windows run, the CI file, code signing and the publication steps (PR, tag, release), each needing its own authorisation.
+- **Next (historical, superseded by the current state above)**: maintainer decision on the stock-Windows run, the CI file, code signing and the publication steps (PR, tag, release), each needing its own authorisation.
 
 ## Milestones
 
@@ -428,7 +562,7 @@ Details and evidence: `docs/design/PREPUBLICATION_AUDIT.md` section 16. Nothing 
 
 ## Last work (M4 final closure)
 
-- The foreign file `modularcv/legacy_import.py` was moved, unchanged, to `D:\Projets\ModularCV\_quarantine\legacy_import.py`
+- The foreign file `modularcv/legacy_import.py` was moved, unchanged, to a private quarantine folder
   (outside the repository, so no local build can include it). SHA-256 checked before and after:
   `5c73e936d25ce534dc13b8ef77005630f1643f96092140a3b690b190a2504106`. Nothing deleted, nothing committed.
   **Restore:** move it back to `modularcv/legacy_import.py` (never overwrite a file there) and compare the SHA-256.
@@ -475,5 +609,4 @@ None.
 
 ## Next action
 
-Wait for the maintainer's validation of DOC-1, the authorisation to push it, and then the authorisation of the release (gate G5). Do not push, tag or release without an explicit go for that exact action. Do not push, tag, release or
-change a visibility without an explicit go for that exact action.
+See the current state at the top of this file: BETA-RELEASE-B1, the publication of Desktop `0.5.0-beta.1`, after the maintainer's explicit authorisation for each remote action (tag, release, upload). Do not push, tag, release or change a visibility without an explicit go for that exact action.

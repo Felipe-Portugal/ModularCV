@@ -7,7 +7,9 @@ temporary folders; approvals here are clearly fictional engine-level ones, never
 import base64
 import json
 import os
+import re
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -215,3 +217,41 @@ def test_pdf_package_review_and_approval_chain(engine, git_ws):
     assert adapter(engine, tools, op="package_status", root=str(git_ws), name="installed-cv")["status"]["status"] != "READY_TO_SEND"
     assert git(git_ws, "rev-parse", "HEAD") == head
     assert not (git_ws / ".modularcv-desktop.lock").exists()
+
+
+def test_redundant_universal_crt_copies_are_not_shipped(engine):
+    """Windows 10 and 11 provide the UCRT; build-sidecar.ps1 removes the copies PyInstaller finds on the build computer."""
+    names = {p.name.lower() for p in (engine.parent / "_internal").iterdir()}
+    assert "ucrtbase.dll" not in names
+    assert not [n for n in names if n.startswith("api-ms-win-")]
+    assert "python314.dll" in names or any(n.startswith("python3") and n.endswith(".dll") for n in names)  # the interpreter is still there
+
+
+def _runtime_manifest():
+    return json.loads((REPO / "desktop" / "licenses" / "microsoft-runtime.json").read_text(encoding="utf-8"))["files"]
+
+
+def _powershell(command):
+    return subprocess.run(["powershell", "-NoProfile", "-Command", command], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def test_the_only_microsoft_runtime_file_is_the_documented_visual_cpp_one(engine):
+    """Provenance of what is redistributed: one Microsoft-signed vcruntime140.dll, x64, not older than the toolset that built Python."""
+    internal = engine.parent / "_internal"
+    runtime_like = sorted(p.name.lower() for p in internal.iterdir()
+                          if re.match(r"(vcruntime|msvcp|concrt|vccorlib|vcomp|ucrt)", p.name, re.I))
+    assert runtime_like == ["vcruntime140.dll"]
+    entry = _runtime_manifest()[0]
+    dll = internal / "VCRUNTIME140.dll"
+    if not dll.exists():
+        dll = internal / "vcruntime140.dll"
+    info = json.loads(_powershell(
+        f"$f='{dll}'; $s=Get-AuthenticodeSignature $f; "
+        "[pscustomobject]@{status=[string]$s.Status; subject=$s.SignerCertificate.Subject; version=(Get-Item $f).VersionInfo.FileVersion; "
+        "sha=(Get-FileHash $f -Algorithm SHA256).Hash} | ConvertTo-Json"))
+    assert info["status"] == "Valid" and "O=Microsoft Corporation" in info["subject"]
+    assert tuple(map(int, info["version"].split("."))) >= tuple(map(int, entry["minimum_version"].split(".")))
+    data = dll.read_bytes()
+    assert struct.unpack("<H", data[struct.unpack("<I", data[0x3C:0x40])[0] + 4:][:2])[0] == 0x8664  # x64
+    if os.environ.get("MODULARCV_REQUIRE_PINNED_RUNTIME"):
+        assert info["sha"].upper() == entry["sha256"]
