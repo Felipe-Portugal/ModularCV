@@ -231,8 +231,31 @@ def _runtime_manifest():
     return json.loads((REPO / "desktop" / "licenses" / "microsoft-runtime.json").read_text(encoding="utf-8"))["files"]
 
 
+def _scrub(text):
+    """Keep diagnostics free of the user's profile path and account name, wherever they appear (for example in PSModulePath)."""
+    for home in {os.environ.get("USERPROFILE", ""), os.path.expanduser("~")}:
+        if home:
+            text = text.replace(home, "~")
+    user = os.environ.get("USERNAME", "")
+    if len(user) > 2:
+        text = re.sub(re.escape(user), "<user>", text, flags=re.I)
+    return text
+
+
 def _powershell(command):
-    return subprocess.run(["powershell", "-NoProfile", "-Command", command], capture_output=True, text=True, check=True).stdout.strip()
+    """Run Windows PowerShell; on failure raise with the exit code, the error stream and the shell facts needed to find the cause."""
+    done = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", command], capture_output=True, text=True)
+    if done.returncode == 0:
+        return done.stdout.strip()
+    facts = subprocess.run(
+        ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+         "'edition=' + $PSVersionTable.PSEdition + ' version=' + $PSVersionTable.PSVersion; "
+         "'modulepath=' + $env:PSModulePath; "
+         "'security_module=' + [bool](Get-Module -ListAvailable Microsoft.PowerShell.Security)"],
+        capture_output=True, text=True)
+    raise AssertionError(_scrub(
+        f"powershell exited with {done.returncode}\n--- stderr ---\n{done.stderr.strip()[-2000:]}\n--- stdout ---\n{done.stdout.strip()[-500:]}\n"
+        f"--- shell facts (exit {facts.returncode}) ---\n{facts.stdout.strip()}\n{facts.stderr.strip()[-500:]}"))
 
 
 def test_the_only_microsoft_runtime_file_is_the_documented_visual_cpp_one(engine):
