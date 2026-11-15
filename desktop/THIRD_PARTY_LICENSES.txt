@@ -1481,11 +1481,11 @@ Notes           : Copyright (c) 2010-2023 PyInstaller Development Team; Copyrigh
 ------------------------------------------------------------------------------
 
 ==============================================================================
-Microsoft Visual C++ runtime (VCRUNTIME140.dll)  14.52.37029.0
+Microsoft Visual C++ Redistributable (x64): required prerequisite, NOT shipped  14.44.35229 or newer (minimum)
 ------------------------------------------------------------------------------
-Where           : engine sidecar: _internal\VCRUNTIME140.dll, required by python314.dll, libcrypto-3.dll, libssl-3.dll and the .pyd modules
-Licence         : Microsoft Distributable Code (Microsoft Software License Terms for Visual Studio); no open licence
-Notes           : Microsoft's own redistributable, extracted unmodified and byte for byte from vc_redist.x64.exe 14.52.37029.0 (SHA-256 9C02C9ED120F671B900E6B9471D890E3B2414117A7E53F4AE2E855466FA2B7C9, downloaded from https://aka.ms/vc14/vc_redist.x64.exe, Authenticode signature Valid, Microsoft Corporation); the DLL has SHA-256 EB1EE979BF02324712346E5BDBFC59C785388BC50D18CC2688AAE4B0734915A0 and is the same file as the copy Windows itself ships. It replaces the python.org copy that PyInstaller finds (14.51.36247.0). Reason: python314.dll and the .pyd modules record the MSVC toolset 14.44.35229, and Microsoft requires the redistributable to be the same as or later than the build tools. Microsoft allows the redistribution of these files only to licensed Visual Studio users, unmodified, as part of a program (Visual Studio 2022 REDIST list; 'Redistribute Visual C++ files'); the maintainer who builds the installer confirmed holding that licence (Visual Studio 2022 Community), which this project cannot check. Notice to users of this program: vcruntime140.dll is Microsoft's property, is provided as is without warranty, may not be modified, may not be distributed separately from this program, and may not be reverse engineered except as the law allows; Microsoft's terms for it apply instead of the MIT licence of ModularCV, and Microsoft disclaims all liability for it. This notice is a best-effort wording; Microsoft's licence text itself is not reproduced here. The Universal CRT files are no longer shipped.
+Where           : not part of this installer; needed by the embedded engine (python314.dll, libcrypto-3.dll, libssl-3.dll and the extension modules import vcruntime140.dll)
+Licence         : Microsoft's own terms, which come with the Redistributable that Microsoft distributes
+Notes           : ModularCV Desktop does not contain, copy or redistribute VCRUNTIME140.dll or any other Microsoft C or C++ runtime file. Microsoft distributes its Visual C++ Redistributable itself (https://aka.ms/vc14/vc_redist.x64.exe, information at https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist); the user installs it separately, which may need administrator rights. ModularCV never downloads or installs it. The installer and the application look for it (the registry key that every Redistributable writes) and, when it is missing or older than 14.44.35229, say so and point to Microsoft. 14.44.35229 is the MSVC toolset recorded in python314.dll, and Microsoft asks for a Redistributable at least as recent as the build tools. The Universal CRT (ucrtbase.dll, api-ms-win-*.dll) is not shipped either: Windows 10 and 11 provide it. The build removes every such file that PyInstaller copies, and a test checks that none is in the engine folder and that every DLL the engine imports has a known origin.
 ------------------------------------------------------------------------------
 
 ==============================================================================
@@ -12169,13 +12169,10 @@ PART 5. UNRESOLVED ITEMS
 ==============================================================================
 
 Microsoft Visual C++ runtime, Universal C Runtime (UCRT) and the statically linked C runtime
-  Universal CRT: not shipped. Windows 10 and 11 provide the UCRT and always use their own copy (Microsoft, 'Universal CRT deployment'); the
-  build removes the ucrtbase.dll and api-ms-win-*.dll copies that PyInstaller finds on the build computer (desktop/build-sidecar.ps1, checked by a test).
-  Visual C++ runtime: the shipped VCRUNTIME140.dll is Microsoft's own 14.52.37029.0, signed, pinned by hash in desktop/licenses/microsoft-runtime.json (see its
-  entry above). CPython's PC/crtlicense.txt (v3.14.10) covers redistributing the Windows binary build of Python and does not clearly cover a repackaging, so it
-  was not relied on. What remains not established: that the build computer's Visual Studio licence covers this use (confirmed by the maintainer, not checkable
-  here); that the notice wording above satisfies Microsoft's requirement to bind end users to protective terms; and whether the MSVC runtime that desktop.exe
-  links statically needs any further notice. Microsoft's licence texts are not available offline in this installer.
+  Not shipped: the installer carries no Microsoft C or C++ runtime file (see the Visual C++ Redistributable entry above). The Visual C++ Redistributable is a
+  prerequisite that Microsoft distributes and the user installs; the Universal CRT is provided by Windows 10 and 11. What remains not established: whether
+  the MSVC runtime that desktop.exe links statically needs any further notice; Microsoft's own terms for the Redistributable are not reproduced here and apply to
+  the user's installation of it, which is the user's own matter. No legal review of any of this was made.
 
 WebView2 SDK loader
   Version and licence text are established (see its entry). The loader is Microsoft code under the BSD-style licence reproduced above.

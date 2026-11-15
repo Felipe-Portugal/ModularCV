@@ -5,7 +5,6 @@ Python on PATH, no MODULARCV_* variable, the executable copied away from the rep
 temporary folders; approvals here are clearly fictional engine-level ones, never real.
 """
 import base64
-import hashlib
 import json
 import os
 import re
@@ -228,71 +227,75 @@ def test_redundant_universal_crt_copies_are_not_shipped(engine):
     assert "python314.dll" in names or any(n.startswith("python3") and n.endswith(".dll") for n in names)  # the interpreter is still there
 
 
-def _runtime_manifest():
-    return json.loads((REPO / "desktop" / "licenses" / "microsoft-runtime.json").read_text(encoding="utf-8"))["files"]
+def _prerequisite():
+    return json.loads((REPO / "desktop" / "licenses" / "vc-runtime-prerequisite.json").read_text(encoding="utf-8"))
 
 
-def _scrub(text):
-    """Keep diagnostics free of the user's profile path and account name, wherever they appear (for example in PSModulePath)."""
-    for home in {os.environ.get("USERPROFILE", ""), os.path.expanduser("~")}:
-        if home:
-            text = text.replace(home, "~")
-    user = os.environ.get("USERNAME", "")
-    if len(user) > 2:
-        text = re.sub(re.escape(user), "<user>", text, flags=re.I)
-    return text
+def test_no_microsoft_runtime_file_is_shipped(engine):
+    """Microsoft's C and C++ runtime files are not redistributed: Windows provides the UCRT, and the Visual C++ Redistributable is a
+    prerequisite that the user installs (desktop/licenses/vc-runtime-prerequisite.json). build-sidecar.ps1 removes what PyInstaller copies."""
+    import fnmatch
+    names = sorted(p.name for p in (engine.parent / "_internal").iterdir())
+    patterns = _prerequisite()["not_shipped"]
+    assert patterns, "the list of files that must not be shipped is empty"
+    found = [n for n in names if any(fnmatch.fnmatch(n.lower(), pat.lower()) for pat in patterns)]
+    assert not found, found
+    assert not [n for n in names if re.match(r"(vcruntime|msvcp|concrt|vccorlib|vcomp|ucrt|api-ms-|ext-ms-)", n, re.I)]
+    assert any(n.lower().startswith("python3") and n.lower().endswith(".dll") for n in names)  # the interpreter is still there
 
 
-def _shell():
-    """The PowerShell the project's own scripts run under: PowerShell 7 (pwsh) when present, else Windows PowerShell.
-
-    One executable is chosen and used for the check and for its diagnostics. A failure is never retried under another shell.
-    Windows PowerShell 5.1 started from pwsh inherits PSModulePath entries of PowerShell 7 and can fail to load
-    Microsoft.PowerShell.Security (CouldNotAutoloadMatchingModule), which is what happened on the GitHub Actions runner.
-    """
-    exe = shutil.which("pwsh") or shutil.which("powershell")
-    if exe is None:
-        pytest.fail("no PowerShell found: the Authenticode signature of the shipped runtime cannot be checked")
-    return exe
+# Windows system libraries that the shipped binaries may import and that every supported Windows provides (audited on the real build).
+_WINDOWS_PROVIDED = {"advapi32.dll", "bcrypt.dll", "crypt32.dll", "iphlpapi.dll", "kernel32.dll", "rpcrt4.dll", "user32.dll", "version.dll", "ws2_32.dll"}
 
 
-def _powershell(command):
-    """Run PowerShell; on failure raise with the exit code, the error stream and the shell facts needed to find the cause."""
-    exe = _shell()
-    base = [exe, "-NoProfile", "-NonInteractive", "-Command"]
-    done = subprocess.run([*base, command], capture_output=True, text=True)
-    if done.returncode == 0:
-        return done.stdout.strip()
-    facts = subprocess.run(
-        [*base,
-         "'executable=' + [IO.Path]::GetFileName((Get-Process -Id $PID).Path); "
-         "'edition=' + $PSVersionTable.PSEdition + ' version=' + $PSVersionTable.PSVersion; "
-         "'module_path_entries=' + @($env:PSModulePath -split ';' | Where-Object { $_ }).Count; "
-         "'security_module_available=' + [bool](Get-Module -ListAvailable Microsoft.PowerShell.Security)"],
-        capture_output=True, text=True)
-    raise AssertionError(_scrub(
-        f"{Path(exe).name} exited with {done.returncode}\n--- stderr ---\n{done.stderr.strip()[-2000:]}\n--- stdout ---\n{done.stdout.strip()[-500:]}\n"
-        f"--- shell facts (exit {facts.returncode}) ---\n{facts.stdout.strip()}\n{facts.stderr.strip()[-500:]}"))
+def _imported_dlls(path):
+    """Names of the DLLs a PE file imports (import table and delay-load table), lower case. Standard library only."""
+    data = Path(path).read_bytes()
+    pe = struct.unpack_from("<I", data, 0x3C)[0]
+    assert data[pe:pe + 4] == b"PE\0\0", path
+    sections, optional = struct.unpack_from("<H", data, pe + 6)[0], pe + 24
+    first_section = optional + struct.unpack_from("<H", data, pe + 20)[0]
+    directories = optional + (112 if struct.unpack_from("<H", data, optional)[0] == 0x20B else 96)
+    spans = []
+    for i in range(sections):
+        _, virtual_size, virtual_address, raw_size, raw_offset = struct.unpack_from("<8sIIII", data, first_section + 40 * i)
+        spans.append((virtual_address, max(virtual_size, raw_size), raw_offset))
+
+    def offset(rva):
+        for start, size, raw in spans:
+            if start <= rva < start + size:
+                return rva - start + raw
+        return None
+
+    names = []
+    for index, step in ((1, 20), (13, 32)):  # import table, delay-load import table
+        rva = struct.unpack_from("<I", data, directories + 8 * index)[0]
+        at = offset(rva) if rva else None
+        while at is not None:
+            fields = struct.unpack_from("<IIIII", data, at)
+            name_rva = fields[3] if index == 1 else fields[1]
+            if not name_rva:
+                break
+            start = offset(name_rva)
+            if start is None:
+                break
+            names.append(data[start:data.index(b"\0", start)].decode("latin-1").lower())
+            at += step
+    return names
 
 
-def test_the_only_microsoft_runtime_file_is_the_documented_visual_cpp_one(engine):
-    """Provenance of what is redistributed: one Microsoft-signed vcruntime140.dll, x64, not older than the toolset that built Python."""
+def test_every_import_of_the_shipped_binaries_has_a_documented_origin(engine):
+    """Each DLL that a shipped binary imports is shipped alongside, provided by Windows, or the documented Visual C++ prerequisite.
+    A new dependency must be reviewed (and, if it is Microsoft's, its redistribution terms) before this test is changed."""
     internal = engine.parent / "_internal"
-    runtime_like = sorted(p.name.lower() for p in internal.iterdir()
-                          if re.match(r"(vcruntime|msvcp|concrt|vccorlib|vcomp|ucrt)", p.name, re.I))
-    assert runtime_like == ["vcruntime140.dll"]
-    entry = _runtime_manifest()[0]
-    dll = internal / "VCRUNTIME140.dll"
-    if not dll.exists():
-        dll = internal / "vcruntime140.dll"
-    quoted = str(dll).replace("'", "''")
-    info = json.loads(_powershell(
-        f"$f='{quoted}'; $s=Get-AuthenticodeSignature -LiteralPath $f; "
-        "[pscustomobject]@{status=[string]$s.Status; subject=$s.SignerCertificate.Subject; "
-        "version=(Get-Item -LiteralPath $f).VersionInfo.FileVersion} | ConvertTo-Json"))
-    assert info["status"] == "Valid" and "O=Microsoft Corporation" in info["subject"]
-    assert tuple(map(int, info["version"].split("."))) >= tuple(map(int, entry["minimum_version"].split(".")))
-    data = dll.read_bytes()
-    assert struct.unpack("<H", data[struct.unpack("<I", data[0x3C:0x40])[0] + 4:][:2])[0] == 0x8664  # x64
-    # the shipped file is the pinned one, whatever the build route: a new Microsoft build must be reviewed, then pinned
-    assert hashlib.sha256(data).hexdigest().upper() == entry["sha256"]
+    shipped = {p.name.lower() for p in internal.iterdir()}
+    prerequisite = {"vcruntime140.dll"}
+    binaries = [p for p in internal.iterdir() if p.suffix.lower() in {".dll", ".pyd"}] + [engine]
+    unexplained = {}
+    for binary in binaries:
+        for dll in _imported_dlls(binary):
+            if dll in shipped or dll in _WINDOWS_PROVIDED or dll in prerequisite or dll.startswith(("api-ms-win-", "ext-ms-")):
+                continue
+            unexplained.setdefault(dll, []).append(binary.name)
+    assert not unexplained, unexplained
+    assert any("vcruntime140.dll" in _imported_dlls(b) for b in binaries), "the prerequisite is no longer needed: update the documentation"

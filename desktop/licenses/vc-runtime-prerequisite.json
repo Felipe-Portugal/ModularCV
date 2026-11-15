@@ -1,0 +1,14 @@
+{
+  "_comment": "The Microsoft Visual C++ runtime is a prerequisite, not part of ModularCV Desktop. Read by the sidecar tests and by the licence tests; src/vcruntime.rs and src-tauri/windows/hooks.nsh carry the same minimum, and a test keeps them equal.",
+  "prerequisite": {
+    "name": "Microsoft Visual C++ Redistributable (x64)",
+    "minimum_version": "14.44.35229",
+    "minimum_reason": "python314.dll and the extension modules record the MSVC toolset 14.44.35229 in their headers; Microsoft asks for a Redistributable at least as recent as the build tools",
+    "registry_key": "HKLM\\SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\X64",
+    "download": "https://aka.ms/vc14/vc_redist.x64.exe",
+    "information": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist",
+    "needed_by": "python314.dll, libcrypto-3.dll, libssl-3.dll and the extension modules of the embedded engine (import of vcruntime140.dll)"
+  },
+  "not_shipped": ["vcruntime140.dll", "vcruntime140_1.dll", "msvcp*.dll", "concrt*.dll", "vccorlib*.dll", "vcomp*.dll", "ucrtbase.dll", "api-ms-win-*.dll"],
+  "not_shipped_reason": "Microsoft distributes its Redistributable itself and Windows 10 and 11 provide the Universal CRT; ModularCV does not redistribute these files"
+}

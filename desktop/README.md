@@ -37,8 +37,10 @@ education, skills, job offers, "Tailor my CV" (requirement matrix, tailoring pla
 
 ## Dependencies
 
-**To use the installed application (Windows 11 x64):** nothing to install. The installer carries its own Python engine (a PyInstaller
-build of the unchanged `modularcv` engine and the Desktop adapter). WebView2 is part of Windows 11, so nothing is
+**To use the installed application (Windows 11 x64):** no Python, Node.js or Rust. The installer carries its own Python engine (a PyInstaller
+build of the unchanged `modularcv` engine and the Desktop adapter), but not Microsoft's C and C++ runtime: the **Microsoft Visual C++ Redistributable (x64)
+14.44.35229 or newer** is a prerequisite that Microsoft distributes (https://aka.ms/vc14/vc_redist.x64.exe) and the user installs (administrator rights may be needed). The installer
+and the application only check for it and explain what to do; they never download or install it. WebView2 is part of Windows 11, so nothing is
 downloaded there. The installer is configured with `webviewInstallMode: downloadBootstrapper`: only on a machine that lacks the WebView2
 runtime does it fetch Microsoft's small bootstrapper (an internet connection is then needed during installation, and this is the one
 prerequisite download that can happen; the application itself never downloads anything). The full runtime is not embedded. Optional,

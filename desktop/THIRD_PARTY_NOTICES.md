@@ -27,7 +27,7 @@ and in the section "Open items" below.
 | Zstandard (`_zstd.pyd`) | 1.5.7 | embedded engine | BSD-3-Clause (the GPL-2.0 alternative is not used) | yes | https://github.com/facebook/zstd |
 | zlib-ng (inside `python314.dll`), zlib in the PyInstaller bootloader | 2.2.4 / not determined | embedded engine | Zlib | yes | https://github.com/zlib-ng/zlib-ng |
 | PyInstaller bootloader, loader modules and run-time hooks (start the embedded engine) | 6.22.3 | embedded engine | GPL-2.0-or-later with the PyInstaller Bootloader Exception (bootloader, loader); Apache-2.0 (run-time hooks) | exception summarised, Apache-2.0 text included | https://github.com/pyinstaller/pyinstaller |
-| Microsoft Visual C++ runtime (`VCRUNTIME140.dll`, taken unmodified from Microsoft's Visual C++ Redistributable) | 14.52.37029.0 | embedded engine | Microsoft Distributable Code terms (Visual Studio) | notice in `THIRD_PARTY_LICENSES.txt`; Microsoft's own text not reproduced | https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files |
+| Microsoft Visual C++ Redistributable (x64), `VCRUNTIME140.dll` | **not shipped**: a prerequisite that Microsoft distributes and the user installs, 14.44.35229 or newer | needed by the embedded engine | Microsoft's own terms, which come with the Redistributable | not applicable: nothing of it is redistributed; see the entry in `THIRD_PARTY_LICENSES.txt` | https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist |
 | Microsoft Universal C runtime (`ucrtbase.dll`, `api-ms-win-*.dll`) | not shipped: removed from the engine; Windows 10 and 11 provide it. `desktop.exe` links the MSVC runtime statically. | `desktop.exe` | n/a | n/a | https://learn.microsoft.com/cpp/windows/universal-crt-deployment |
 | Microsoft WebView2 SDK, static loader (linked by `webview2-com-sys`) | 1.0.3800.47 (the library is byte-identical to the one in that NuGet package) | `desktop.exe` | BSD-3-Clause style (Microsoft) | yes | https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.3800.47 |
 | NSIS (stub and LZMA compression module of the installer and of `uninstall.exe`; System, nsDialogs, NSISdl, UserInfo plug-ins) | 3.13 | `setup.exe`, `uninstall.exe` | zlib/libpng; CPL-1.0 with the NSIS special exception for the LZMA module | yes (`COPYING` of NSIS 3.13, with the source location) | https://nsis.sourceforge.io/ |
@@ -52,9 +52,10 @@ source-availability condition of MPL-2.0 is met.
 
 ## Open items
 
-- Microsoft Visual C++ runtime: Microsoft's own `VCRUNTIME140.dll` 14.52.37029.0 is shipped, unmodified and pinned by hash. Microsoft's terms allow this only
-  for a licensed Visual Studio user; the maintainer confirmed holding that licence, which this project cannot verify, and whether the notice wording meets
-  Microsoft's requirement to bind end users is a best-effort reading. The Universal C runtime copies are no longer shipped.
+- Microsoft Visual C++ runtime: no Microsoft runtime file is shipped. The Visual C++ Redistributable (x64) 14.44.35229 or newer is a prerequisite that Microsoft
+  distributes and the user installs, which may need administrator rights; the installer and the application check for it and say where to get it, and never
+  download or install it. Microsoft's terms for it are not reproduced here and apply to the user's own installation. The Universal C runtime copies are not shipped
+  either: Windows 10 and 11 provide it. No legal review was made.
 - Whether statically linking the MSVC runtime into `desktop.exe` needs any further notice was not verified.
 - The NSIS licence texts are reproduced and the NSIS source location is stated; whether that fully meets the CPL-1.0 for the LZMA module is a reading
   of the licence, not a legal opinion.

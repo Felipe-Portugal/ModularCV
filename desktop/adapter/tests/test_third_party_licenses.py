@@ -136,9 +136,49 @@ def test_only_the_expected_files_are_exempt_from_the_privacy_scanner():
     }
 
 
-def test_shipped_microsoft_runtime_is_pinned_and_described():
-    entry = json.loads((DESKTOP / "licenses" / "microsoft-runtime.json").read_text(encoding="utf-8"))["files"][0]
+def _prerequisite():
+    return json.loads((DESKTOP / "licenses" / "vc-runtime-prerequisite.json").read_text(encoding="utf-8"))
+
+
+def test_visual_cpp_runtime_is_a_documented_prerequisite_not_a_shipped_file():
+    data = _prerequisite()
     bundle = BUNDLE.read_text(encoding="utf-8")
-    assert entry["name"] == "vcruntime140.dll" and re.fullmatch(r"[0-9A-F]{64}", entry["sha256"])
-    assert entry["sha256"] in bundle and entry["version"] in bundle and entry["source_package_sha256"] in bundle
-    assert "ucrtbase.dll and api-ms-win-*.dll" in bundle  # the removed copies are stated
+    notices = NOTICES.read_text(encoding="utf-8")
+    assert data["prerequisite"]["minimum_version"] in bundle and data["prerequisite"]["download"] in bundle
+    assert "required prerequisite, NOT shipped" in bundle and "never downloads or installs it" in bundle
+    assert "Not shipped: the installer carries no Microsoft C or C++ runtime file" in bundle
+    # nothing in the bundle or the inventory claims that a Microsoft runtime DLL is redistributed, pinned or extracted
+    for text in (bundle, notices):
+        for stale in ("pinned by hash", "extracted unmodified", "taken unmodified", "may be redistributed"):
+            assert stale not in text, stale
+    # the build removes what PyInstaller copies, and the configuration ships no Microsoft runtime resource
+    build = (DESKTOP / "build-sidecar.ps1").read_text(encoding="utf-8")
+    for pattern in ("vcruntime140.dll", "ucrtbase.dll", "api-ms-win-*.dll", "msvcp*.dll"):
+        assert pattern in build
+    conf = (DESKTOP / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8")
+    assert "vcruntime" not in conf.lower()
+
+
+def test_the_minimum_runtime_version_is_the_same_everywhere():
+    """The Rust check, the installer hook, the prerequisite file, the user interface and the guide must all name the same minimum."""
+    minimum = _prerequisite()["prerequisite"]["minimum_version"]
+    major, minor, build = minimum.split(".")[:3]
+    rust = (DESKTOP / "src-tauri" / "src" / "vcruntime.rs").read_text(encoding="utf-8")
+    assert re.search(r'MIN_VERSION_TEXT: &str = "%s"' % re.escape(minimum), rust)
+    for name, value in (("MIN_MAJOR", major), ("MIN_MINOR", minor), ("MIN_BUILD", build)):
+        assert re.search(r"%s: u32 = %s;" % (name, value), rust), name
+    hook = (DESKTOP / "src-tauri" / "windows" / "hooks.nsh").read_text(encoding="utf-8")
+    for name, value in (("MAJOR", major), ("MINOR", minor), ("BUILD", build)):
+        assert re.search(r"!define MCV_VC_MIN_%s %s\b" % (name, value), hook), name
+    assert '!define MCV_VC_MIN_TEXT "%s"' % minimum in hook
+    conf = json.loads((DESKTOP / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
+    assert conf["bundle"]["windows"]["nsis"]["installerHooks"] == "windows/hooks.nsh"
+    # every Microsoft download address in the code and the interface is the one of the prerequisite file
+    url = _prerequisite()["prerequisite"]["download"]
+    assert url in rust and url in hook
+    for name in ("strings.ts", "i18n.ts"):
+        text = (DESKTOP / "src" / name).read_text(encoding="utf-8")
+        assert re.findall(r"14\.\d+\.\d+", text) and set(re.findall(r"14\.\d+\.\d+", text)) == {minimum}, name
+        assert set(re.findall(r"https://[^\s\"]*microsoft[^\s\"]*|https://aka\.ms/[^\s\"]*", text)) <= {url}, name
+    guide = (DESKTOP.parent / "docs" / "desktop" / "INSTALL.md").read_text(encoding="utf-8")
+    assert minimum in guide and url in guide

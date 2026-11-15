@@ -3,7 +3,8 @@
 #   powershell -File desktop\build-installer.ps1 [-Python <python 3.12-3.14>]
 #
 # Prerequisites on the BUILD machine only: Python 3.12-3.14, Node.js + npm, Rust (MSVC), Git. The installed application needs none
-# of them: it carries its own engine (PyInstaller onedir sidecar) and relies on WebView2, which Windows 11 includes.
+# of them: it carries its own engine (PyInstaller onedir sidecar) and relies on WebView2, which Windows 11 includes, and on Microsoft's Visual C++
+# Redistributable (x64), which Microsoft distributes and the user installs (see docs\desktop\INSTALL.md).
 # Output (git-ignored): desktop\src-tauri\target\release\bundle\nsis\ModularCV Desktop_<version>_x64-setup.exe
 # Nothing is signed, nothing is uploaded, no tag or release is made.
 
@@ -20,9 +21,8 @@ function Step([string]$name, [scriptblock]$body) {
   if ($LASTEXITCODE -ne 0) { throw "failed: $name" }
 }
 
-# The Microsoft runtime file is pinned: a release build must ship exactly the reviewed one.
-$pin = ((Get-Content (Join-Path $desktop "licenses\microsoft-runtime.json") -Raw | ConvertFrom-Json).files | Where-Object { $_.name -eq "vcruntime140.dll" }).sha256
-Step "Embedded engine (PyInstaller onedir)" { & (Join-Path $desktop "build-sidecar.ps1") -Mode onedir -Python $Python -RuntimePin $pin }
+# No Microsoft runtime file is shipped: the sidecar build removes them (see build-sidecar.ps1).
+Step "Embedded engine (PyInstaller onedir)" { & (Join-Path $desktop "build-sidecar.ps1") -Mode onedir -Python $Python }
 
 Step "Fictional example workspace (resource)" {
   $target = Join-Path $resources "examples"
