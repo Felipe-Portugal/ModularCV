@@ -28,8 +28,8 @@ Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont 
 
    Le résultat doit être exactement l'empreinte publiée avec la version. S'il diffère, ne lancez pas le fichier.
 
-   L'installateur de cette bêta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, non signé) est en cours de reconstruction après un changement dans la façon dont il
-   traite le runtime Visual C++ de Microsoft. Son empreinte SHA-256 sera inscrite ici et publiée avec la version, qui publiera exactement ce fichier. Si le fichier
+   L'installateur de cette bêta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, non signé, 9 544 231 octets) a l'empreinte SHA-256
+   `0763AECE52C9E816767E8BD68B42646428B118FE10A4DD6FB172A0BD08D757F4`. Il ne contient pas le runtime Visual C++ de Microsoft. La version publiera exactement ce fichier. Si le fichier
    téléchargé affiche une autre empreinte, ne le lancez pas. Tant que la version n'existe pas, il n'y a rien à télécharger ni à comparer.
 
 3. Lancez l'installateur. Il n'est **pas signé** : SmartScreen peut afficher « Windows a protégé votre ordinateur ». Si l'empreinte correspond,
@@ -66,9 +66,10 @@ paquet et ce PDF exact. Relisez le PDF vous-même avant de l'envoyer.
 
 ## Limites connues
 
-- Installateur non signé. Un candidat antérieur de cette bêta (qui embarquait encore le fichier de runtime de Microsoft ; retiré) a été testé sur Windows 11
-  (machine virtuelle à partir d'une image allégée tierce) et essayé sur un Windows 11 Famille de développement ; l'installateur reconstruit aura son propre
-  compte rendu de tests, écrit quand il existera.
+- Installateur non signé. Cet installateur a été testé sur une machine virtuelle Windows 11 (image allégée tierce, pas une installation standard) : sans le
+  Redistributable (avertissement de l'installateur, message de l'application), avec une version trop ancienne (message), puis avec une version récente
+  (moteur démarré, parcours 16 sur 16 et 29 sur 29, réglages conservés après redémarrage, désinstallation silencieuse qui conserve les données). Compte rendu dans
+  [INSTALL.md](INSTALL.md) (en anglais). Un candidat antérieur (qui embarquait le fichier de runtime de Microsoft ; retiré) a aussi été essayé sur un Windows 11 Famille de développement.
   **Non testés** : Windows 11 standard, Windows 10, TeX Live, installation par-dessus une ancienne version, installateur graphique avec la case de
   suppression des données cochée.
 - Les contrôles automatiques de GitHub n'exécutent pas les tests qui exigent LaTeX (PDF, approbation) : ils ont été exécutés en local avec MiKTeX.

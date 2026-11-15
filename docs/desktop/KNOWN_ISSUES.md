@@ -6,9 +6,11 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 
 ## What was tested, and where
 
-- **The rebuilt installer** (no Microsoft runtime file inside; see below) has its own test record, written when it has been tested. Nothing below is claimed
-  for it until then.
-- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with an **earlier candidate** of this beta, withdrawn
+- **The installer** (SHA-256 `0763AECE…57F4`, no Microsoft runtime file inside) was tested on the same kind of virtual machine (Windows 11 build 26200,
+  stripped-down third-party image): without the Visual C++ Redistributable (installer warning, application message), with 14.44.35211 (too old: message), and with
+  14.52.37029 (engine starts; 16 of 16 and 29 of 29 journey checks; language, theme and workspace kept after a restart; silent uninstall that kept the
+  application data and an external fictional workspace). Details in [INSTALL.md](INSTALL.md).
+- **An earlier candidate on Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, withdrawn
   because it carried Microsoft's runtime file. No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
   shortcut; with Git and LaTeX hidden from the application: fictional workspace, profile editing, offers, matrix, plan, `.tex`, diagnostics
   (16 of 16 checks); then, with Git and MiKTeX installed in the machine: PDF, package, review, approval, revocation after a change, refusal,

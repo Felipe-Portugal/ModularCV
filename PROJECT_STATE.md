@@ -2,12 +2,12 @@
 
 Source of truth for progress. Update it at the end of every session (see `AGENTS.md` §8).
 
-## Current state (B1-B-R1: no embedded Microsoft runtime, in progress)
+## Current state (B1-B-R1: no embedded Microsoft runtime, tested locally, awaiting human validation)
 
 Superseding decision: the installer no longer ships Microsoft's `VCRUNTIME140.dll`. The licensing review found that the file taken from `vc_redist.x64.exe` is covered by the
 licence of that package, which forbids distributing it, and that the end-user agreement the Visual Studio terms ask for is not demonstrated; so the Visual C++ Redistributable (x64)
 14.44.35229 or newer became a **prerequisite** that Microsoft distributes and the user installs. The earlier candidate (`staging-r2`, 9,605,866 bytes, SHA-256 `88A5196D…EC37F`) stays
-archived as technically validated but **not authorised for publication**. Nothing is pushed or published. This section is updated with the new installer's hash and test results.
+archived as technically validated but **not authorised for publication**. Nothing is pushed or published.
 
 - **Done (local branch `fix/desktop-no-embedded-vcruntime`, from `main` at `50fdeaf`)**: `build-sidecar.ps1` removes every Microsoft runtime file PyInstaller copies; `src/vcruntime.rs`
   checks the registry key of the Redistributable and gives stable codes `RUNTIME_MISSING` and `RUNTIME_TOO_OLD` (plus Windows loader failures of the engine); `windows/hooks.nsh` warns
@@ -16,7 +16,16 @@ archived as technically validated but **not authorised for publication**. Nothin
 - **Audit of Microsoft and Windows files** in the sidecar: only `vcruntime140.dll` was a Microsoft redistributable (imported by `python314.dll`, `libcrypto-3.dll`, `libssl-3.dll` and the
   extension modules); the other imports are Windows system libraries or API sets; `desktop.exe` links the MSVC runtime statically and imports only Windows libraries; the PyInstaller
   bootloader imports none of the runtime files. No other Microsoft redistributable remains.
-- **Not yet done at this point**: rebuild of the installer, tests on the virtual machine, new provenance.
+- **New installer** (`staging-r4`, outside the repository): `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9,544,231 bytes, SHA-256
+  `0763AECE52C9E816767E8BD68B42646428B118FE10A4DD6FB172A0BD08D757F4`, unsigned, built by `desktop/build-installer.ps1` from a clean detached worktree at the commit `4b04af5`
+  (local, not pushed; chain `50fdeaf` <- `8bbd166` <- `4b04af5`). A first rebuild (`staging-r3`, `E0227A51…`) is superseded: it did not recognise the launcher's failure to load
+  the missing runtime. `staging`, `staging-r1` and `staging-r2` are untouched.
+- **VM results** (Windows 11 build 26200, stripped-down third-party image, guest `tester`): hash checked; 33 installed files, no Microsoft runtime file; Redistributable absent: engine
+  exits with the launcher's "Failed to load Python DLL", application shows `RUNTIME_MISSING`, installer warning shown (No aborts, Yes installs), silent install continues; 14.44.35211: `RUNTIME_TOO_OLD`
+  shown (the engine itself ran, so the minimum is conservative); 14.52.37029: engine starts, `VCRUNTIME140.dll` loaded from `System32`; Phase A 16/16, Phase B 29/29, language, theme and workspace
+  kept after restart, silent uninstall removes program, shortcut and registry entry and keeps app data and the external workspace. 31 of 33 installed files match build files; `desktop.exe` differs by
+  the 3-byte Tauri bundle-type marker; `uninstall.exe` is generated. Privacy scan of both: only `.cargo\registry` path strings and substrings of "Portugal"/"Portuguese".
+- **Not done**: stock Windows 11, Windows 10, TeX Live, graphical uninstaller with the data box ticked, install over an older version, CI on these commits (nothing pushed), legal review.
 
 ## Previous state (BETA-RELEASE-B0-R1-GATE, closed), superseded by the section above where they differ
 

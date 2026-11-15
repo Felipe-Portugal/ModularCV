@@ -7,8 +7,8 @@ The command-line release `v0.2.0` is unchanged; the engine inside the installer 
 
 ## Download (not available yet)
 
-The installer is not published. It is being rebuilt after a change of how it handles Microsoft's Visual C++ runtime (see below); its size and SHA-256
-fingerprint will be written here once the rebuilt file has been tested, and the release will publish exactly that file. It will be downloadable from the
+The installer is not published. Prepared file: 9,544,231 bytes, SHA-256 `0763AECE52C9E816767E8BD68B42646428B118FE10A4DD6FB172A0BD08D757F4`; the release
+will publish exactly that file. It will be downloadable from the
 **Releases** page of the GitHub repository after the official publication. Check the file before running it ([INSTALL.md](INSTALL.md)). Windows SmartScreen will
 warn because the installer is not signed.
 
@@ -34,9 +34,9 @@ starting its engine. Your workspaces are not affected.
   ([STATUSES.md](STATUSES.md)).
 - Git and LaTeX are optional and are never installed for you. The diagnostics only check that they can be found.
 - The installer is unsigned. If WebView2 is missing, the installer downloads Microsoft's bootstrapper.
-- An earlier candidate of this beta (which still carried Microsoft's runtime file; withdrawn) was tested on a Windows 11 virtual machine made from a
-  stripped-down image (not a stock installation) and exercised on the developer's Windows 11 Home. The rebuilt installer has its own test record, written
-  when it exists. **Not tested:** a stock Windows 11 installation, Windows 10, TeX Live. The
+- This installer was tested on a Windows 11 virtual machine made from a stripped-down image (not a stock installation): without the Redistributable, with an
+  older one, and with a current one (16 of 16 and 29 of 29 journey checks, restart, silent uninstall; record in [INSTALL.md](INSTALL.md)). An earlier candidate
+  (which carried Microsoft's runtime file; withdrawn) was also exercised on the developer's Windows 11 Home. **Not tested:** a stock Windows 11 installation, Windows 10, TeX Live. The
   automated checks on GitHub skip the tests that need LaTeX, so PDF and approval tests are not run there (they were run locally with MiKTeX).
   Full list in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
