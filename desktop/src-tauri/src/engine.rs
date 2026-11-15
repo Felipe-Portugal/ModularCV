@@ -402,7 +402,7 @@ fn interpret(run: RawRun, started: Instant) -> ValidationResult {
     let Some(code) = run.exit_code else {
         return mk(Outcome::ProcessFailed, Some("The engine was terminated abnormally.".into()), None);
     };
-    if crate::vcruntime::is_loader_failure(Some(code)) {
+    if crate::vcruntime::is_loader_failure(Some(code), &run.stderr) {
         return mk(Outcome::RuntimeUnavailable, Some(crate::vcruntime::load_failure_message()), None);
     }
     match code {
@@ -596,7 +596,7 @@ impl EngineLauncher {
         if run.timed_out {
             return adapter_error("TIMEOUT", "The diagnostics did not answer in time and were stopped.");
         }
-        if crate::vcruntime::is_loader_failure(run.exit_code) {
+        if crate::vcruntime::is_loader_failure(run.exit_code, &run.stderr) {
             return adapter_error("RUNTIME_MISSING", &crate::vcruntime::load_failure_message());
         }
         match serde_json::from_str::<serde_json::Value>(run.stdout.trim()) {
@@ -646,7 +646,7 @@ impl EngineLauncher {
         if run.timed_out {
             return adapter_error("TIMEOUT", "The engine did not answer in time and was stopped.");
         }
-        if crate::vcruntime::is_loader_failure(run.exit_code) {
+        if crate::vcruntime::is_loader_failure(run.exit_code, &run.stderr) {
             return adapter_error("RUNTIME_MISSING", &crate::vcruntime::load_failure_message());
         }
         match serde_json::from_str::<serde_json::Value>(run.stdout.trim()) {
@@ -857,8 +857,12 @@ mod tests {
             assert!(r.detail.unwrap().contains("Visual C++ Redistributable"));
             assert!(r.report.is_none());
         }
+        // the launcher of the embedded engine exits with -1 and says so when Windows cannot resolve a library it needs
+        let launcher = "[PYI-1:ERROR] Failed to load Python DLL 'x\\python314.dll'. LoadLibrary: The specified module could not be found.";
+        assert_eq!(interpret(raw(Some(-1), "", launcher, false), Instant::now()).outcome, Outcome::RuntimeUnavailable);
         // an ordinary unexpected code stays an ordinary process failure
         assert_eq!(interpret(raw(Some(7), "", "", false), Instant::now()).outcome, Outcome::ProcessFailed);
+        assert_eq!(interpret(raw(Some(-1), "", "", false), Instant::now()).outcome, Outcome::ProcessFailed);
     }
 
     #[test]

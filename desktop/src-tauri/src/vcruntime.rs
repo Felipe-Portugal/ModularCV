@@ -134,10 +134,16 @@ pub fn load_failure_message() -> String {
     )
 }
 
-/// True when `code` is a Windows loader failure of the engine process: DLL not found (0xC0000135), entry point not
-/// found (0xC0000139) or bad image (0xC000007B).
-pub fn is_loader_failure(code: Option<i32>) -> bool {
-    matches!(code.map(|c| c as u32), Some(0xC000_0135 | 0xC000_0139 | 0xC000_007B))
+/// True when the engine process failed to load: Windows itself reports DLL not found (0xC0000135), entry point not
+/// found (0xC0000139) or bad image (0xC000007B); the PyInstaller launcher of the embedded engine loads `python314.dll` by
+/// itself and, when Windows cannot resolve a library it needs (such as `vcruntime140.dll`), exits with -1 after printing
+/// "Failed to load Python DLL" on its error output.
+pub fn is_loader_failure(code: Option<i32>, stderr: &str) -> bool {
+    match code.map(|c| c as u32) {
+        Some(0xC000_0135 | 0xC000_0139 | 0xC000_007B) => true,
+        Some(0xFFFF_FFFF) => stderr.contains("Failed to load Python DLL"),
+        _ => false,
+    }
 }
 
 /// Looks for the runtime, once it has been found good it is not looked up again during this run.
@@ -211,13 +217,19 @@ mod tests {
 
     #[test]
     fn loader_failures_are_recognised() {
-        assert!(is_loader_failure(Some(0xC000_0135_u32 as i32)));
-        assert!(is_loader_failure(Some(0xC000_0139_u32 as i32)));
-        assert!(is_loader_failure(Some(0xC000_007B_u32 as i32)));
-        assert!(!is_loader_failure(Some(0)));
-        assert!(!is_loader_failure(Some(1)));
-        assert!(!is_loader_failure(Some(2)));
-        assert!(!is_loader_failure(None));
+        assert!(is_loader_failure(Some(0xC000_0135_u32 as i32), ""));
+        assert!(is_loader_failure(Some(0xC000_0139_u32 as i32), ""));
+        assert!(is_loader_failure(Some(0xC000_007B_u32 as i32), ""));
+        // the launcher of the embedded engine, as observed on a computer without the Redistributable
+        let launcher = "[PYI-6620:ERROR] Failed to load Python DLL 'engine\\_internal\\python314.dll'. LoadLibrary: The specified module could not be found.";
+        assert!(is_loader_failure(Some(-1), launcher));
+        // -1 alone, or the launcher message with another code, is not enough
+        assert!(!is_loader_failure(Some(-1), ""));
+        assert!(!is_loader_failure(Some(2), launcher));
+        assert!(!is_loader_failure(Some(0), ""));
+        assert!(!is_loader_failure(Some(1), ""));
+        assert!(!is_loader_failure(Some(2), ""));
+        assert!(!is_loader_failure(None, launcher));
     }
 
     #[cfg(windows)]

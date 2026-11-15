@@ -46,7 +46,9 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
   blank or the application does not start, install the "Evergreen" WebView2 runtime from Microsoft.
 - Antivirus software may scan the program on first run and slow it down.
 - **Visual C++ Redistributable.** Without the Redistributable 14.44.35229 or newer, the engine cannot start: the installer warns before installing (and goes on in
-  a silent installation), and the application shows a message with Microsoft's download address. Installing the Redistributable may need administrator rights.
+  a silent installation), and the application shows a message with Microsoft's download address. Installing the Redistributable may need administrator rights. The check
+  looks for the Redistributable that Microsoft registers on the computer: a copy of `vcruntime140.dll` that merely sits in a folder of your `PATH` (some tools carry one) is not accepted,
+  even if Windows would load it.
 
 ## LaTeX and PDF
 
