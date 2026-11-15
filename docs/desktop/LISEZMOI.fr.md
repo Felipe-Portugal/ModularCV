@@ -16,6 +16,7 @@ prouve le processus, pas la valeur du candidat ni la qualité du texte.
 ## Installer
 
 Il faut Windows 11 64 bits (Windows 10 n'a pas été testé). Python, Node.js et Rust ne sont pas nécessaires : l'application embarque son moteur.
+Il faut en revanche le **Redistributable Microsoft Visual C++ (x64) 14.44.35229 ou plus récent**. ModularCV **ne l'inclut pas** : Microsoft le distribue lui-même (https://aka.ms/vc14/vc_redist.x64.exe), vous l'installez, et son installation peut demander les **droits administrateur**. ModularCV ne le télécharge ni ne l'installe jamais. Beaucoup d'ordinateurs Windows 11 l'ont déjà ; s'il manque ou s'il est trop ancien, l'installateur puis l'application vous le disent et indiquent où le trouver. Vos espaces de travail ne sont pas touchés.
 Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont facultatifs et ne sont jamais installés par l'application.
 
 1. Une fois la bêta publiée, téléchargez `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` depuis la page **Releases** du dépôt GitHub, et nulle part ailleurs.
@@ -27,15 +28,9 @@ Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont 
 
    Le résultat doit être exactement l'empreinte publiée avec la version. S'il diffère, ne lancez pas le fichier.
 
-   L'installateur préparé pour cette bêta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9 605 866 octets, soit 9,16 Mio, non signé) a été
-   construit depuis le commit `bd9e3a9` et a cette empreinte SHA-256 :
-
-   ```
-   88A5196DCD6C7DF047161437122F2A4A3D67DC8FEF41A54096F7C61C985EC37F
-   ```
-
-   C'est l'empreinte du fichier prévu pour la publication : la version publiera exactement ce fichier. Si le fichier téléchargé affiche une
-   autre empreinte, ne le lancez pas. Tant que la version n'existe pas, il n'y a rien à télécharger ni à comparer.
+   L'installateur de cette bêta (`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, non signé) est en cours de reconstruction après un changement dans la façon dont il
+   traite le runtime Visual C++ de Microsoft. Son empreinte SHA-256 sera inscrite ici et publiée avec la version, qui publiera exactement ce fichier. Si le fichier
+   téléchargé affiche une autre empreinte, ne le lancez pas. Tant que la version n'existe pas, il n'y a rien à télécharger ni à comparer.
 
 3. Lancez l'installateur. Il n'est **pas signé** : SmartScreen peut afficher « Windows a protégé votre ordinateur ». Si l'empreinte correspond,
    choisissez **Informations complémentaires** puis **Exécuter quand même**.
@@ -71,8 +66,9 @@ paquet et ce PDF exact. Relisez le PDF vous-même avant de l'envoyer.
 
 ## Limites connues
 
-- Installateur non signé ; testé avec ce fichier exact sur Windows 11 (machine virtuelle à partir d'une image allégée tierce) ; un build antérieur de
-  cette bêta a aussi été essayé sur un Windows 11 Famille de développement.
+- Installateur non signé. Un candidat antérieur de cette bêta (qui embarquait encore le fichier de runtime de Microsoft ; retiré) a été testé sur Windows 11
+  (machine virtuelle à partir d'une image allégée tierce) et essayé sur un Windows 11 Famille de développement ; l'installateur reconstruit aura son propre
+  compte rendu de tests, écrit quand il existera.
   **Non testés** : Windows 11 standard, Windows 10, TeX Live, installation par-dessus une ancienne version, installateur graphique avec la case de
   suppression des données cochée.
 - Les contrôles automatiques de GitHub n'exécutent pas les tests qui exigent LaTeX (PDF, approbation) : ils ont été exécutés en local avec MiKTeX.
@@ -80,8 +76,8 @@ paquet et ce PDF exact. Relisez le PDF vous-même avant de l'envoyer.
 - MiKTeX peut proposer d'installer des paquets à la première compilation.
 - L'application n'envoie rien, ne se met pas à jour seule et n'installe jamais Git ni LaTeX.
 - Licences : le dossier `legal` de l'installation contient `LICENSE` (licence MIT de ModularCV), `THIRD_PARTY_NOTICES.md` (inventaire des composants
-  tiers) et `THIRD_PARTY_LICENSES.txt` (leurs textes de licence et mentions de droits d'auteur). Quelques points ne sont pas tranchés (conditions exactes du fichier
-  de runtime Visual C++ de Microsoft que le moteur embarque) ; ils sont listés à la fin de ce dernier fichier.
+  tiers) et `THIRD_PARTY_LICENSES.txt` (leurs textes de licence et mentions de droits d'auteur). Quelques points ne sont pas tranchés (par exemple le runtime C lié
+  statiquement dans `desktop.exe`) ; ils sont listés à la fin de ce dernier fichier. Le Redistributable Visual C++ n'est pas livré : c'est un prérequis.
 
 Liste complète : [KNOWN_ISSUES.md](KNOWN_ISSUES.md) (en anglais).
 

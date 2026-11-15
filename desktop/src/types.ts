@@ -7,6 +7,7 @@ export type Outcome =
   | "operation_not_allowed"
   | "python_unavailable"
   | "engine_not_found"
+  | "runtime_unavailable"
   | "timeout"
   | "process_failed"
   | "invalid_output";

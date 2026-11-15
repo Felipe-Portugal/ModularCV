@@ -1,4 +1,5 @@
 mod engine;
+mod vcruntime;
 
 use engine::{AdapterOp, DemoWorkspace, EngineLauncher, ValidationResult};
 use std::path::Path;

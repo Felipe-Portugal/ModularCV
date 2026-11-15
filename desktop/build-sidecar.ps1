@@ -9,8 +9,7 @@
 param(
   [ValidateSet("onedir", "onefile")][string]$Mode = "onedir",
   [string]$Python = "python",
-  [string]$Out = "",
-  [string]$RuntimePin = ""   # SHA-256 that the Visual C++ runtime must have (the release build passes the pinned one)
+  [string]$Out = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,20 +45,16 @@ if ($Mode -eq "onefile") {
   Copy-Item (Join-Path $work "mcv-engine.exe") (Join-Path $Out "mcv-engine.exe")
 } else {
   Copy-Item -Recurse (Join-Path $work "mcv-engine\*") $Out
-  # Windows 10 and 11 ship the Universal CRT and always load their own copy, whatever sits next to the program (Microsoft, "Universal CRT
-  # deployment"). PyInstaller copies the UCRT redistributable files it finds on the build computer; they are redundant here and their
-  # redistribution right was not established, so they are removed. The Visual C++ runtime (VCRUNTIME140.dll) is NOT part of Windows and stays.
+  # Microsoft runtime files are NOT shipped. Windows 10 and 11 provide the Universal CRT and always load their own copy (Microsoft,
+  # "Universal CRT deployment"); the Visual C++ runtime (VCRUNTIME140.dll) is Microsoft's Redistributable, which Microsoft distributes
+  # itself and the user installs (the application and its installer check for it and say where to get it). PyInstaller copies these
+  # files from the build computer; they are removed here so that the installer never redistributes them.
   $internal = Join-Path $Out "_internal"
-  $ucrt = @(Get-ChildItem $internal -File | Where-Object { $_.Name -ieq "ucrtbase.dll" -or $_.Name -like "api-ms-win-*.dll" })
-  $ucrt | Remove-Item -Force
-  "Removed $($ucrt.Count) redundant Universal CRT file(s) from the sidecar."
-  # Replace the VCRUNTIME140.dll that PyInstaller copied from the Python installation by the unmodified one from Microsoft's own
-  # Visual C++ Redistributable (see tools\get-vcruntime.ps1 for the checks and for why).
-  $target = Get-ChildItem $internal -File | Where-Object { $_.Name -ieq "vcruntime140.dll" } | Select-Object -First 1
-  if (-not $target) { throw "VCRUNTIME140.dll is missing from the sidecar" }
-  $fresh = Join-Path $work "vcruntime140.dll"
-  & (Join-Path $desktop "tools\get-vcruntime.ps1") -Dest $fresh -Python $Python -ExpectSha256 $RuntimePin
-  Copy-Item $fresh $target.FullName -Force
+  $microsoft = @(Get-ChildItem $internal -File | Where-Object {
+      $_.Name -ieq "ucrtbase.dll" -or $_.Name -like "api-ms-win-*.dll" -or $_.Name -ieq "vcruntime140.dll" -or $_.Name -ieq "vcruntime140_1.dll" -or
+      $_.Name -like "msvcp*.dll" -or $_.Name -like "concrt*.dll" -or $_.Name -like "vccorlib*.dll" -or $_.Name -like "vcomp*.dll" })
+  $microsoft | Remove-Item -Force
+  "Removed $($microsoft.Count) Microsoft runtime file(s) from the sidecar: $(($microsoft.Name | Sort-Object) -join ', ')"
 }
 $size = (Get-ChildItem $Out -Recurse -File | Measure-Object Length -Sum).Sum
 "Sidecar ($Mode) built: $Out ({0:N1} MB)" -f ($size / 1MB)

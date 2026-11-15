@@ -2,7 +2,23 @@
 
 Source of truth for progress. Update it at the end of every session (see `AGENTS.md` §8).
 
-## Current state (BETA-RELEASE-B0-R1-GATE, closed)
+## Current state (B1-B-R1: no embedded Microsoft runtime, in progress)
+
+Superseding decision: the installer no longer ships Microsoft's `VCRUNTIME140.dll`. The licensing review found that the file taken from `vc_redist.x64.exe` is covered by the
+licence of that package, which forbids distributing it, and that the end-user agreement the Visual Studio terms ask for is not demonstrated; so the Visual C++ Redistributable (x64)
+14.44.35229 or newer became a **prerequisite** that Microsoft distributes and the user installs. The earlier candidate (`staging-r2`, 9,605,866 bytes, SHA-256 `88A5196D…EC37F`) stays
+archived as technically validated but **not authorised for publication**. Nothing is pushed or published. This section is updated with the new installer's hash and test results.
+
+- **Done (local branch `fix/desktop-no-embedded-vcruntime`, from `main` at `50fdeaf`)**: `build-sidecar.ps1` removes every Microsoft runtime file PyInstaller copies; `src/vcruntime.rs`
+  checks the registry key of the Redistributable and gives stable codes `RUNTIME_MISSING` and `RUNTIME_TOO_OLD` (plus Windows loader failures of the engine); `windows/hooks.nsh` warns
+  before installing (silent installation only logs); French and English messages; tests (Rust 7 + 1, sidecar, licences, equality of the minimum version across code, installer hook,
+  interface and guide); notices and documents rewritten. Tool `get-vcruntime.ps1` and the pin file were removed; `desktop/licenses/vc-runtime-prerequisite.json` replaces them.
+- **Audit of Microsoft and Windows files** in the sidecar: only `vcruntime140.dll` was a Microsoft redistributable (imported by `python314.dll`, `libcrypto-3.dll`, `libssl-3.dll` and the
+  extension modules); the other imports are Windows system libraries or API sets; `desktop.exe` links the MSVC runtime statically and imports only Windows libraries; the PyInstaller
+  bootloader imports none of the runtime files. No other Microsoft redistributable remains.
+- **Not yet done at this point**: rebuild of the installer, tests on the virtual machine, new provenance.
+
+## Previous state (BETA-RELEASE-B0-R1-GATE, closed), superseded by the section above where they differ
 
 This section is the current status. It supersedes the sections below for the installer and the licence notices. Observed unless stated.
 

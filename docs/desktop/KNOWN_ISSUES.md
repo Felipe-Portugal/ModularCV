@@ -6,14 +6,16 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 
 ## What was tested, and where
 
-- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with this exact installer (built from
-  commit `bd9e3a9`). No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
+- **The rebuilt installer** (no Microsoft runtime file inside; see below) has its own test record, written when it has been tested. Nothing below is claimed
+  for it until then.
+- **Windows 11 64-bit, on a virtual machine built from a third-party, stripped-down Windows 11 image**, with an **earlier candidate** of this beta, withdrawn
+  because it carried Microsoft's runtime file. No Python, Node.js or Rust was installed in it. Hash checked in the machine; fresh silent install; start from the Start-menu
   shortcut; with Git and LaTeX hidden from the application: fictional workspace, profile editing, offers, matrix, plan, `.tex`, diagnostics
   (16 of 16 checks); then, with Git and MiKTeX installed in the machine: PDF, package, review, approval, revocation after a change, refusal,
   stale evidence and the command-line verdict (29 of 29 checks); a package created through the interface; English and light theme kept after a
   restart; a silent uninstall that kept the application data and an external fictional workspace. Both sets passed on the first run. The installed
   `legal` folder was checked: it holds `LICENSE`, `THIRD_PARTY_NOTICES.md` and `THIRD_PARTY_LICENSES.txt`, byte-identical to the files built in. The
-  machine had no Visual C++ Redistributable: the engine used the Microsoft runtime file shipped in its own folder.
+  machine had no Visual C++ Redistributable; that candidate carried the DLL itself.
 - **Windows 11 Home on the development computer:** an **earlier build** of this beta went through the same journeys with the development tools
   hidden from the application. This exact installer was **not** run there.
 - **Automated checks on GitHub** (engine on Python 3.12 and 3.14, and the Desktop suites) pass, but the runner has no LaTeX, so the tests that need
@@ -30,11 +32,11 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
   redistributed, and `legal\THIRD_PARTY_NOTICES.md` is their inventory. This is a best-effort audit, not legal advice.
 - The licence texts of NSIS 3.13 (installer stub, LZMA module) and of its plug-in are reproduced, and the WebView2 SDK loader is identified
   (1.0.3800.47).
-- The engine ships Microsoft's own `VCRUNTIME140.dll` 14.52.37029.0, unmodified, taken from Microsoft's Visual C++ Redistributable; the Universal CRT
-  copies are no longer shipped (Windows provides them).
-- **Not settled:** Microsoft allows redistributing that file to licensed Visual Studio users; the maintainer confirmed holding such a licence, which this
-  project cannot verify, and Microsoft's own licence text is not reproduced; whether the C runtime linked statically into `desktop.exe` needs any further
-  notice; the version of the Unicode data inside Python.
+- The engine does not ship Microsoft's `VCRUNTIME140.dll` nor the Universal CRT files. The Microsoft Visual C++ Redistributable (x64) 14.44.35229 or newer is a
+  prerequisite: Microsoft distributes it (https://aka.ms/vc14/vc_redist.x64.exe), you install it (administrator rights may be needed), and ModularCV only checks for it. Without it, or with an older
+  one, the installer warns and the application explains the problem instead of starting its engine.
+- **Not settled:** whether the C runtime linked statically into `desktop.exe` needs any further notice; the version of the Unicode data inside Python. Microsoft's own terms
+  for the Redistributable are not reproduced here and apply to your installation of it. No legal review was made.
 
 ## Installation
 
@@ -43,6 +45,8 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
   image, a leftover registry entry made the installer believe WebView2 was present; Windows 11 itself ships the runtime. If the window stays
   blank or the application does not start, install the "Evergreen" WebView2 runtime from Microsoft.
 - Antivirus software may scan the program on first run and slow it down.
+- **Visual C++ Redistributable.** Without the Redistributable 14.44.35229 or newer, the engine cannot start: the installer warns before installing (and goes on in
+  a silent installation), and the application shows a message with Microsoft's download address. Installing the Redistributable may need administrator rights.
 
 ## LaTeX and PDF
 

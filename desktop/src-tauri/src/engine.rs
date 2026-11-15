@@ -90,6 +90,8 @@ pub enum Outcome {
     OperationNotAllowed,
     PythonUnavailable,
     EngineNotFound,
+    /// The Microsoft Visual C++ Redistributable that the embedded engine needs is missing or too old.
+    RuntimeUnavailable,
     Timeout,
     ProcessFailed,
     InvalidOutput,
@@ -249,6 +251,10 @@ impl EngineLauncher {
     /// embedded engine is an error: it never silently uses whatever Python is installed.
     fn backend(&self) -> Result<Backend, (&'static str, String)> {
         if let Some(path) = &self.sidecar {
+            // The embedded engine needs Microsoft's Visual C++ Redistributable, which is not shipped with the application.
+            if let Some(problem) = crate::vcruntime::problem() {
+                return Err(problem);
+            }
             return Ok(Backend::Sidecar(path.clone()));
         }
         if !cfg!(debug_assertions) {
@@ -336,7 +342,11 @@ impl EngineLauncher {
                 (python[0].clone(), args, vec![("PYTHONPATH", self.engine_dir.to_string_lossy().into_owned())], self.engine_dir.clone())
             }
             Err((code, message)) => {
-                let outcome = if code == "PYTHON_UNAVAILABLE" { Outcome::PythonUnavailable } else { Outcome::EngineNotFound };
+                let outcome = match code {
+                    "PYTHON_UNAVAILABLE" => Outcome::PythonUnavailable,
+                    "RUNTIME_MISSING" | "RUNTIME_TOO_OLD" => Outcome::RuntimeUnavailable,
+                    _ => Outcome::EngineNotFound,
+                };
                 return ValidationResult::fail(outcome, message, started);
             }
         };
@@ -392,6 +402,9 @@ fn interpret(run: RawRun, started: Instant) -> ValidationResult {
     let Some(code) = run.exit_code else {
         return mk(Outcome::ProcessFailed, Some("The engine was terminated abnormally.".into()), None);
     };
+    if crate::vcruntime::is_loader_failure(Some(code)) {
+        return mk(Outcome::RuntimeUnavailable, Some(crate::vcruntime::load_failure_message()), None);
+    }
     match code {
         0 | 1 => {
             let report: Option<FactsReport> = serde_json::from_str(run.stdout.trim()).ok();
@@ -583,6 +596,9 @@ impl EngineLauncher {
         if run.timed_out {
             return adapter_error("TIMEOUT", "The diagnostics did not answer in time and were stopped.");
         }
+        if crate::vcruntime::is_loader_failure(run.exit_code) {
+            return adapter_error("RUNTIME_MISSING", &crate::vcruntime::load_failure_message());
+        }
         match serde_json::from_str::<serde_json::Value>(run.stdout.trim()) {
             Ok(mut v) if v.is_object() && v.get("ok") == Some(&serde_json::Value::Bool(true)) && run.exit_code == Some(0) => {
                 v["mode"] = mode.into();
@@ -629,6 +645,9 @@ impl EngineLauncher {
         };
         if run.timed_out {
             return adapter_error("TIMEOUT", "The engine did not answer in time and was stopped.");
+        }
+        if crate::vcruntime::is_loader_failure(run.exit_code) {
+            return adapter_error("RUNTIME_MISSING", &crate::vcruntime::load_failure_message());
         }
         match serde_json::from_str::<serde_json::Value>(run.stdout.trim()) {
             Ok(v) if v.is_object() && v.get("ok").is_some() && run.exit_code == Some(0) => v,
@@ -828,6 +847,18 @@ mod tests {
         let r = interpret(raw(Some(2), "", "{\"status\":\"CONFIG_ERROR\",\"detail\":\"bad root\"}", false), s);
         assert_eq!(r.outcome, Outcome::ConfigError);
         assert_eq!(r.detail.as_deref(), Some("bad root"));
+    }
+
+    #[test]
+    fn a_windows_loader_failure_is_reported_as_a_missing_runtime() {
+        for code in [0xC000_0135_u32, 0xC000_0139, 0xC000_007B] {
+            let r = interpret(raw(Some(code as i32), "", "", false), Instant::now());
+            assert_eq!(r.outcome, Outcome::RuntimeUnavailable, "{code:#x}");
+            assert!(r.detail.unwrap().contains("Visual C++ Redistributable"));
+            assert!(r.report.is_none());
+        }
+        // an ordinary unexpected code stays an ordinary process failure
+        assert_eq!(interpret(raw(Some(7), "", "", false), Instant::now()).outcome, Outcome::ProcessFailed);
     }
 
     #[test]

@@ -30,7 +30,7 @@ describe("success is only a real engine verdict", () => {
   it("rejects an INVALID report", () =>
     expect(isSuccess({ ...base, report: { ...base.report!, status: "INVALID" } })).toBe(false));
   it("rejects every non-valid outcome", () => {
-    const others: Outcome[] = ["invalid", "config_error", "workspace_missing", "python_unavailable", "timeout", "process_failed", "invalid_output", "engine_not_found", "operation_not_allowed"];
+    const others: Outcome[] = ["invalid", "config_error", "workspace_missing", "python_unavailable", "timeout", "process_failed", "invalid_output", "engine_not_found", "runtime_unavailable", "operation_not_allowed"];
     for (const outcome of others) expect(isSuccess({ ...base, outcome })).toBe(false);
   });
 });

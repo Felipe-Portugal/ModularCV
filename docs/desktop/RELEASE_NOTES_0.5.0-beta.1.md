@@ -7,17 +7,17 @@ The command-line release `v0.2.0` is unchanged; the engine inside the installer 
 
 ## Download (not available yet)
 
-The installer is built and validated but not published. It will be downloadable from the **Releases** page of the GitHub repository after the
-official publication.
+The installer is not published. It is being rebuilt after a change of how it handles Microsoft's Visual C++ runtime (see below); its size and SHA-256
+fingerprint will be written here once the rebuilt file has been tested, and the release will publish exactly that file. It will be downloadable from the
+**Releases** page of the GitHub repository after the official publication. Check the file before running it ([INSTALL.md](INSTALL.md)). Windows SmartScreen will
+warn because the installer is not signed.
 
-`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9,605,866 bytes (9.16 MiB), unsigned, built from commit `bd9e3a9`. Its SHA-256:
+## Prerequisite: Microsoft Visual C++ Redistributable
 
-```
-88A5196DCD6C7DF047161437122F2A4A3D67DC8FEF41A54096F7C61C985EC37F
-```
-
-This is the fingerprint of the file planned for publication: the release will publish exactly that file. Check the file before running it
-([INSTALL.md](INSTALL.md)). Windows SmartScreen will warn because the installer is not signed.
+The embedded engine needs the **Microsoft Visual C++ Redistributable (x64) 14.44.35229 or newer**. ModularCV does **not** include it: Microsoft distributes it
+itself (https://aka.ms/vc14/vc_redist.x64.exe), you install it, and installing it may need **administrator rights**. ModularCV never downloads or installs it.
+Many Windows 11 computers already have it. If it is missing or too old, the installer warns before installing, and the application explains the problem instead of
+starting its engine. Your workspaces are not affected.
 
 ## What is in this beta
 
@@ -34,8 +34,9 @@ This is the fingerprint of the file planned for publication: the release will pu
   ([STATUSES.md](STATUSES.md)).
 - Git and LaTeX are optional and are never installed for you. The diagnostics only check that they can be found.
 - The installer is unsigned. If WebView2 is missing, the installer downloads Microsoft's bootstrapper.
-- Tested with this exact installer on a Windows 11 virtual machine made from a stripped-down image (not a stock installation); an earlier build of
-  this beta was also exercised on the developer's Windows 11 Home. **Not tested:** a stock Windows 11 installation, Windows 10, TeX Live. The
+- An earlier candidate of this beta (which still carried Microsoft's runtime file; withdrawn) was tested on a Windows 11 virtual machine made from a
+  stripped-down image (not a stock installation) and exercised on the developer's Windows 11 Home. The rebuilt installer has its own test record, written
+  when it exists. **Not tested:** a stock Windows 11 installation, Windows 10, TeX Live. The
   automated checks on GitHub skip the tests that need LaTeX, so PDF and approval tests are not run there (they were run locally with MiKTeX).
   Full list in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
@@ -44,7 +45,7 @@ This is the fingerprint of the file planned for publication: the release will pu
 Tauri 2 (Rust), React and TypeScript front end, the unchanged Python engine packaged with PyInstaller (onedir), pdf.js for the PDF view. Installed
 size about 27 MB. The engine runs from a closed list of operations, without a shell, with time limits. Licences of the components are listed
 in `THIRD_PARTY_NOTICES.md`, and their licence texts and copyright notices are in `THIRD_PARTY_LICENSES.txt`, both installed under `legal\`.
-A licensing point is not fully settled (the exact conditions of Microsoft's Visual C++ runtime file); see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+Some licensing points are not settled; see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Versions
 
