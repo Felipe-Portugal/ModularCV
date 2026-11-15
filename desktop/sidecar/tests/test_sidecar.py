@@ -5,6 +5,7 @@ Python on PATH, no MODULARCV_* variable, the executable copied away from the rep
 temporary folders; approvals here are clearly fictional engine-level ones, never real.
 """
 import base64
+import hashlib
 import json
 import os
 import re
@@ -242,19 +243,35 @@ def _scrub(text):
     return text
 
 
+def _shell():
+    """The PowerShell the project's own scripts run under: PowerShell 7 (pwsh) when present, else Windows PowerShell.
+
+    One executable is chosen and used for the check and for its diagnostics. A failure is never retried under another shell.
+    Windows PowerShell 5.1 started from pwsh inherits PSModulePath entries of PowerShell 7 and can fail to load
+    Microsoft.PowerShell.Security (CouldNotAutoloadMatchingModule), which is what happened on the GitHub Actions runner.
+    """
+    exe = shutil.which("pwsh") or shutil.which("powershell")
+    if exe is None:
+        pytest.fail("no PowerShell found: the Authenticode signature of the shipped runtime cannot be checked")
+    return exe
+
+
 def _powershell(command):
-    """Run Windows PowerShell; on failure raise with the exit code, the error stream and the shell facts needed to find the cause."""
-    done = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", command], capture_output=True, text=True)
+    """Run PowerShell; on failure raise with the exit code, the error stream and the shell facts needed to find the cause."""
+    exe = _shell()
+    base = [exe, "-NoProfile", "-NonInteractive", "-Command"]
+    done = subprocess.run([*base, command], capture_output=True, text=True)
     if done.returncode == 0:
         return done.stdout.strip()
     facts = subprocess.run(
-        ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+        [*base,
+         "'executable=' + [IO.Path]::GetFileName((Get-Process -Id $PID).Path); "
          "'edition=' + $PSVersionTable.PSEdition + ' version=' + $PSVersionTable.PSVersion; "
-         "'modulepath=' + $env:PSModulePath; "
-         "'security_module=' + [bool](Get-Module -ListAvailable Microsoft.PowerShell.Security)"],
+         "'module_path_entries=' + @($env:PSModulePath -split ';' | Where-Object { $_ }).Count; "
+         "'security_module_available=' + [bool](Get-Module -ListAvailable Microsoft.PowerShell.Security)"],
         capture_output=True, text=True)
     raise AssertionError(_scrub(
-        f"powershell exited with {done.returncode}\n--- stderr ---\n{done.stderr.strip()[-2000:]}\n--- stdout ---\n{done.stdout.strip()[-500:]}\n"
+        f"{Path(exe).name} exited with {done.returncode}\n--- stderr ---\n{done.stderr.strip()[-2000:]}\n--- stdout ---\n{done.stdout.strip()[-500:]}\n"
         f"--- shell facts (exit {facts.returncode}) ---\n{facts.stdout.strip()}\n{facts.stderr.strip()[-500:]}"))
 
 
@@ -268,13 +285,14 @@ def test_the_only_microsoft_runtime_file_is_the_documented_visual_cpp_one(engine
     dll = internal / "VCRUNTIME140.dll"
     if not dll.exists():
         dll = internal / "vcruntime140.dll"
+    quoted = str(dll).replace("'", "''")
     info = json.loads(_powershell(
-        f"$f='{dll}'; $s=Get-AuthenticodeSignature $f; "
-        "[pscustomobject]@{status=[string]$s.Status; subject=$s.SignerCertificate.Subject; version=(Get-Item $f).VersionInfo.FileVersion; "
-        "sha=(Get-FileHash $f -Algorithm SHA256).Hash} | ConvertTo-Json"))
+        f"$f='{quoted}'; $s=Get-AuthenticodeSignature -LiteralPath $f; "
+        "[pscustomobject]@{status=[string]$s.Status; subject=$s.SignerCertificate.Subject; "
+        "version=(Get-Item -LiteralPath $f).VersionInfo.FileVersion} | ConvertTo-Json"))
     assert info["status"] == "Valid" and "O=Microsoft Corporation" in info["subject"]
     assert tuple(map(int, info["version"].split("."))) >= tuple(map(int, entry["minimum_version"].split(".")))
     data = dll.read_bytes()
     assert struct.unpack("<H", data[struct.unpack("<I", data[0x3C:0x40])[0] + 4:][:2])[0] == 0x8664  # x64
-    if os.environ.get("MODULARCV_REQUIRE_PINNED_RUNTIME"):
-        assert info["sha"].upper() == entry["sha256"]
+    # the shipped file is the pinned one, whatever the build route: a new Microsoft build must be reviewed, then pinned
+    assert hashlib.sha256(data).hexdigest().upper() == entry["sha256"]
