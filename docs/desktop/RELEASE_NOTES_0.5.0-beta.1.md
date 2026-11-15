@@ -12,6 +12,10 @@ will publish exactly that file. It will be downloadable from the
 **Releases** page of the GitHub repository after the official publication. Check the file before running it ([INSTALL.md](INSTALL.md)). Windows SmartScreen will
 warn because the installer is not signed.
 
+**Provenance.** The file is built by `desktop/build-installer.ps1` from commit `4b04af5e11389585c3feb0d36ef3ee8c9b03b640` (branch `fix/desktop-no-embedded-vcruntime`). The
+commit that merged it into `main` (`4d153dc18755f3b41c276ef5cd62cc15da830f73`) differs from that build commit only by documentation: nothing that the installer embeds changed. The
+installer is built on the maintainer's computer and is not produced by the automated checks.
+
 ## Prerequisite: Microsoft Visual C++ Redistributable
 
 The embedded engine needs the **Microsoft Visual C++ Redistributable (x64) 14.44.35229 or newer**. ModularCV does **not** include it: Microsoft distributes it

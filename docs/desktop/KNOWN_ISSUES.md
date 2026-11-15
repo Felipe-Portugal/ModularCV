@@ -37,8 +37,12 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 - The engine does not ship Microsoft's `VCRUNTIME140.dll` nor the Universal CRT files. The Microsoft Visual C++ Redistributable (x64) 14.44.35229 or newer is a
   prerequisite: Microsoft distributes it (https://aka.ms/vc14/vc_redist.x64.exe), you install it (administrator rights may be needed), and ModularCV only checks for it. Without it, or with an older
   one, the installer warns and the application explains the problem instead of starting its engine.
-- **Not settled:** whether the C runtime linked statically into `desktop.exe` needs any further notice; the version of the Unicode data inside Python. Microsoft's own terms
-  for the Redistributable are not reproduced here and apply to your installation of it. No legal review was made.
+- **Still open:** `desktop.exe` links Microsoft's static C runtime libraries (`libcmt`, `libvcruntime`) and imports the Universal CRT that Windows provides. The Visual
+  Studio terms list files that may be copied next to a program (the "REDIST list"); they do not list these libraries, and no notice requirement for them was found, but this
+  is a reading of the published terms, not a legal opinion, and whether the maintainer's own Visual Studio use qualifies was not checked from here. Microsoft's own terms for the
+  Redistributable are not reproduced here and apply to your installation of it. No legal review was made.
+- The Unicode data inside the engine's Python is version 16.0.0 (checked on the Python 3.14.10 that the engine is built from; the shipped `unicodedata.pyd` is byte-identical to that
+  Python's). The installed notices still list that point as undetermined: they are embedded in the installer and are not changed after the tested build.
 
 ## Installation
 
