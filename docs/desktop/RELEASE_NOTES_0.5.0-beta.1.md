@@ -2,21 +2,22 @@
 
 Français : [LISEZMOI.fr.md](LISEZMOI.fr.md)
 
-First beta of ModularCV Desktop, a Windows application for the ModularCV engine. **Prepared, not yet published: there is no Desktop release yet.**
+First beta of ModularCV Desktop, a Windows application for the ModularCV engine. **Prepared — not yet published: there is no Desktop release yet.**
 The command-line release `v0.2.0` is unchanged; the engine inside the installer is that same `0.2.0` engine.
 
 ## Download (not available yet)
 
-The installer is not published. It will be downloadable from the **Releases** page of the GitHub repository after the official publication.
+The installer is built and validated but not published. It will be downloadable from the **Releases** page of the GitHub repository after the
+official publication.
 
-The installer tested so far is `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9.56 MiB, unsigned. Its SHA-256, for information only:
+`ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9,605,866 bytes (9.16 MiB), unsigned, built from commit `bd9e3a9`. Its SHA-256:
 
 ```
-F1DA86139CDA4125FCCE4E2D171256791F29E7CE29A170CE28BFF4764A1F14B8
+88A5196DCD6C7DF047161437122F2A4A3D67DC8FEF41A54096F7C61C985EC37F
 ```
 
-This value is **not** the final fingerprint of the future release: the final installer will be identified and verified when the release is made,
-and its fingerprint will be published with it. Check the file before running it ([INSTALL.md](INSTALL.md)). Windows SmartScreen will warn because the installer is not signed.
+This is the fingerprint of the file planned for publication: the release will publish exactly that file. Check the file before running it
+([INSTALL.md](INSTALL.md)). Windows SmartScreen will warn because the installer is not signed.
 
 ## What is in this beta
 
@@ -33,14 +34,17 @@ and its fingerprint will be published with it. Check the file before running it 
   ([STATUSES.md](STATUSES.md)).
 - Git and LaTeX are optional and are never installed for you. The diagnostics only check that they can be found.
 - The installer is unsigned. If WebView2 is missing, the installer downloads Microsoft's bootstrapper.
-- Tested on Windows 11 on a virtual machine made from a stripped-down image, and on the developer's Windows 11 Home. **Not tested:** a stock
-  Windows 11 installation, Windows 10, TeX Live. Full list in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+- Tested with this exact installer on a Windows 11 virtual machine made from a stripped-down image (not a stock installation); an earlier build of
+  this beta was also exercised on the developer's Windows 11 Home. **Not tested:** a stock Windows 11 installation, Windows 10, TeX Live. The
+  automated checks on GitHub skip the tests that need LaTeX, so PDF and approval tests are not run there (they were run locally with MiKTeX).
+  Full list in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Under the hood
 
 Tauri 2 (Rust), React and TypeScript front end, the unchanged Python engine packaged with PyInstaller (onedir), pdf.js for the PDF view. Installed
 size about 27 MB. The engine runs from a closed list of operations, without a shell, with time limits. Licences of the components are listed
-in `THIRD_PARTY_NOTICES.md`, installed under `legal\`.
+in `THIRD_PARTY_NOTICES.md`, and their licence texts and copyright notices are in `THIRD_PARTY_LICENSES.txt`, both installed under `legal\`.
+A licensing point is not fully settled (the exact conditions of Microsoft's Visual C++ runtime file); see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Versions
 

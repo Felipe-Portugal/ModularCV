@@ -5,9 +5,12 @@ Python on PATH, no MODULARCV_* variable, the executable copied away from the rep
 temporary folders; approvals here are clearly fictional engine-level ones, never real.
 """
 import base64
+import hashlib
 import json
 import os
+import re
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -215,3 +218,81 @@ def test_pdf_package_review_and_approval_chain(engine, git_ws):
     assert adapter(engine, tools, op="package_status", root=str(git_ws), name="installed-cv")["status"]["status"] != "READY_TO_SEND"
     assert git(git_ws, "rev-parse", "HEAD") == head
     assert not (git_ws / ".modularcv-desktop.lock").exists()
+
+
+def test_redundant_universal_crt_copies_are_not_shipped(engine):
+    """Windows 10 and 11 provide the UCRT; build-sidecar.ps1 removes the copies PyInstaller finds on the build computer."""
+    names = {p.name.lower() for p in (engine.parent / "_internal").iterdir()}
+    assert "ucrtbase.dll" not in names
+    assert not [n for n in names if n.startswith("api-ms-win-")]
+    assert "python314.dll" in names or any(n.startswith("python3") and n.endswith(".dll") for n in names)  # the interpreter is still there
+
+
+def _runtime_manifest():
+    return json.loads((REPO / "desktop" / "licenses" / "microsoft-runtime.json").read_text(encoding="utf-8"))["files"]
+
+
+def _scrub(text):
+    """Keep diagnostics free of the user's profile path and account name, wherever they appear (for example in PSModulePath)."""
+    for home in {os.environ.get("USERPROFILE", ""), os.path.expanduser("~")}:
+        if home:
+            text = text.replace(home, "~")
+    user = os.environ.get("USERNAME", "")
+    if len(user) > 2:
+        text = re.sub(re.escape(user), "<user>", text, flags=re.I)
+    return text
+
+
+def _shell():
+    """The PowerShell the project's own scripts run under: PowerShell 7 (pwsh) when present, else Windows PowerShell.
+
+    One executable is chosen and used for the check and for its diagnostics. A failure is never retried under another shell.
+    Windows PowerShell 5.1 started from pwsh inherits PSModulePath entries of PowerShell 7 and can fail to load
+    Microsoft.PowerShell.Security (CouldNotAutoloadMatchingModule), which is what happened on the GitHub Actions runner.
+    """
+    exe = shutil.which("pwsh") or shutil.which("powershell")
+    if exe is None:
+        pytest.fail("no PowerShell found: the Authenticode signature of the shipped runtime cannot be checked")
+    return exe
+
+
+def _powershell(command):
+    """Run PowerShell; on failure raise with the exit code, the error stream and the shell facts needed to find the cause."""
+    exe = _shell()
+    base = [exe, "-NoProfile", "-NonInteractive", "-Command"]
+    done = subprocess.run([*base, command], capture_output=True, text=True)
+    if done.returncode == 0:
+        return done.stdout.strip()
+    facts = subprocess.run(
+        [*base,
+         "'executable=' + [IO.Path]::GetFileName((Get-Process -Id $PID).Path); "
+         "'edition=' + $PSVersionTable.PSEdition + ' version=' + $PSVersionTable.PSVersion; "
+         "'module_path_entries=' + @($env:PSModulePath -split ';' | Where-Object { $_ }).Count; "
+         "'security_module_available=' + [bool](Get-Module -ListAvailable Microsoft.PowerShell.Security)"],
+        capture_output=True, text=True)
+    raise AssertionError(_scrub(
+        f"{Path(exe).name} exited with {done.returncode}\n--- stderr ---\n{done.stderr.strip()[-2000:]}\n--- stdout ---\n{done.stdout.strip()[-500:]}\n"
+        f"--- shell facts (exit {facts.returncode}) ---\n{facts.stdout.strip()}\n{facts.stderr.strip()[-500:]}"))
+
+
+def test_the_only_microsoft_runtime_file_is_the_documented_visual_cpp_one(engine):
+    """Provenance of what is redistributed: one Microsoft-signed vcruntime140.dll, x64, not older than the toolset that built Python."""
+    internal = engine.parent / "_internal"
+    runtime_like = sorted(p.name.lower() for p in internal.iterdir()
+                          if re.match(r"(vcruntime|msvcp|concrt|vccorlib|vcomp|ucrt)", p.name, re.I))
+    assert runtime_like == ["vcruntime140.dll"]
+    entry = _runtime_manifest()[0]
+    dll = internal / "VCRUNTIME140.dll"
+    if not dll.exists():
+        dll = internal / "vcruntime140.dll"
+    quoted = str(dll).replace("'", "''")
+    info = json.loads(_powershell(
+        f"$f='{quoted}'; $s=Get-AuthenticodeSignature -LiteralPath $f; "
+        "[pscustomobject]@{status=[string]$s.Status; subject=$s.SignerCertificate.Subject; "
+        "version=(Get-Item -LiteralPath $f).VersionInfo.FileVersion} | ConvertTo-Json"))
+    assert info["status"] == "Valid" and "O=Microsoft Corporation" in info["subject"]
+    assert tuple(map(int, info["version"].split("."))) >= tuple(map(int, entry["minimum_version"].split(".")))
+    data = dll.read_bytes()
+    assert struct.unpack("<H", data[struct.unpack("<I", data[0x3C:0x40])[0] + 4:][:2])[0] == 0x8664  # x64
+    # the shipped file is the pinned one, whatever the build route: a new Microsoft build must be reviewed, then pinned
+    assert hashlib.sha256(data).hexdigest().upper() == entry["sha256"]

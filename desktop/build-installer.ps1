@@ -20,7 +20,9 @@ function Step([string]$name, [scriptblock]$body) {
   if ($LASTEXITCODE -ne 0) { throw "failed: $name" }
 }
 
-Step "Embedded engine (PyInstaller onedir)" { & (Join-Path $desktop "build-sidecar.ps1") -Mode onedir -Python $Python }
+# The Microsoft runtime file is pinned: a release build must ship exactly the reviewed one.
+$pin = ((Get-Content (Join-Path $desktop "licenses\microsoft-runtime.json") -Raw | ConvertFrom-Json).files | Where-Object { $_.name -eq "vcruntime140.dll" }).sha256
+Step "Embedded engine (PyInstaller onedir)" { & (Join-Path $desktop "build-sidecar.ps1") -Mode onedir -Python $Python -RuntimePin $pin }
 
 Step "Fictional example workspace (resource)" {
   $target = Join-Path $resources "examples"

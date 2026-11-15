@@ -33,4 +33,4 @@ started without a shell and with time limits. Windows file access is limited to 
 ## Build and licences
 
 The installer carries the unchanged engine (`mcv-engine.exe`, a PyInstaller build), the application (Tauri 2, Rust, React) and the licence texts
-under `legal\` in the installation folder (`LICENSE`, `THIRD_PARTY_NOTICES.md`). ModularCV is released under the MIT licence.
+under `legal\` in the installation folder (`LICENSE`; `THIRD_PARTY_NOTICES.md`, the inventory of third-party components; `THIRD_PARTY_LICENSES.txt`, their licence texts and notices). ModularCV is released under the MIT licence.
