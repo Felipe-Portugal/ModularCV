@@ -2,7 +2,31 @@
 
 Source of truth for progress. Update it at the end of every session (see `AGENTS.md` §8).
 
-## Current state (B1-B-R1: no embedded Microsoft runtime, tested locally, awaiting human validation)
+## Current state (B1-C: last check before publication; nothing published)
+
+Observed on 2026-11-15, unless stated.
+
+- **Repository**: `main` = `4d153dc18755f3b41c276ef5cd62cc15da830f73` (parent `50fdeaf`), tree `d4ca5aaca9f0b8a327fcf30df3e711b46f314d43`, identical to the tree of the PR #3 head
+  `e2039ac`. PR #2 and PR #3 are merged (squash). CI on `main` (run 43683817097): the three jobs (Engine and CLI on Python 3.12 and 3.14, Desktop full verification) succeeded.
+  The branches `docs/desktop-beta-release-prep`, `feat/desktop-public` and `fix/desktop-no-embedded-vcruntime` are kept. Tag `v0.2.0` is unchanged; there is **no Desktop tag and no Desktop release**.
+- **Active candidate**: `staging-r4` (outside the repository), `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe`, 9,544,231 bytes, SHA-256
+  `0763AECE52C9E816767E8BD68B42646428B118FE10A4DD6FB172A0BD08D757F4`, unsigned, built from `4b04af5e11389585c3feb0d36ef3ee8c9b03b640`. Between that commit and `main`, only five
+  documents differ, so nothing the installer embeds changed. `staging`, `staging-r1`, `staging-r2` (not authorised for publication) and `staging-r3` (superseded) must not be published.
+- **Visual C++ runtime**: external prerequisite (Redistributable x64 14.44.35229 or newer, distributed by Microsoft); the installer ships no Microsoft runtime file.
+- **Licence questions (B1-C)**: (1) static MSVC libraries in `desktop.exe`: `libcmt` and `libvcruntime` are linked in (no `vcruntime140.dll` import), the Universal CRT is imported
+  from Windows (`api-ms-win-crt-*`); the Visual Studio 2022 terms list files to copy next to a program (the REDIST list) and these libraries are not among them; no notice requirement was
+  found; whether the maintainer's Visual Studio use qualifies (Individual or Organizational licence) cannot be checked from here: NON_BLOCKING_WITH_DISCLOSURE, no legal review. (2) Unicode:
+  `unicodedata.unidata_version` is 16.0.0 on Python 3.14.10 (the build interpreter); the shipped `unicodedata.pyd` is byte-identical to that Python's; the Unicode licence is reproduced
+  in `THIRD_PARTY_LICENSES.txt` (Python's licence document): RESOLVED as a fact, but the embedded notices still say "not determined" and cannot be edited without a rebuild and new tests.
+  (3) NSIS and CPL-1.0 for the LZMA module: texts and source location are in the notices; whether this fully meets the CPL is a reading, not an opinion: NON_BLOCKING_WITH_DISCLOSURE.
+  (4) zlib copy in the PyInstaller bootloader: version undetermined, licence texts reproduced: NON_BLOCKING_WITH_DISCLOSURE. No point is BLOCKING.
+- **Not done**: stock Windows 11, Windows 10, TeX Live, the graphical uninstaller with the data box ticked, installing over an older version. The release notes and install guide state this.
+- **Next action**: the maintainer decides on publication. Prepared and not executed: tag `desktop-v0.5.0-beta.1` on `main`, a Pre-release (not Latest) with the installer attached. Do not tag, release
+  or upload without an explicit go for that exact action.
+
+## Previous state (B1-B-R1, local, before the merge of PR #3), superseded by the section above where they differ
+
+The statements "nothing is pushed" and "CI on these commits (nothing pushed)" in this section were true when it was written; PR #3 was then pushed, checked and merged (see above).
 
 Superseding decision: the installer no longer ships Microsoft's `VCRUNTIME140.dll`. The licensing review found that the file taken from `vc_redist.x64.exe` is covered by the
 licence of that package, which forbids distributing it, and that the end-user agreement the Visual Studio terms ask for is not demonstrated; so the Visual C++ Redistributable (x64)
