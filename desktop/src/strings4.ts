@@ -133,7 +133,7 @@ const fr = {
     approvalReady: "Une approbation valide existe pour ce PDF exact. Toute modification d'un fichier ou d'une source la révoque au prochain calcul.",
     readyNote: "Rappel : « prêt » prouve le processus, pas que vous remplissez les exigences.",
     proposalTitle: "Pour une approbation depuis l'application",
-    proposalBody: "Une proposition d'évolution minimale du moteur est décrite dans desktop/APPROVAL_PROPOSAL.md. Elle n'est pas implémentée.",
+    proposalBody: "Une proposition d'évolution minimale du moteur est décrite dans docs/design/APPROVAL_PROPOSAL.md. Elle n'est pas implémentée.",
     unreadableTitle: "Paquet illisible",
     reasonText: {
       HUMAN_REVIEW_REQUIRED: "Aucune approbation humaine n'est enregistrée pour ce PDF.",
@@ -438,7 +438,7 @@ const en: Extra4 = {
     approvalReady: "A valid approval exists for this exact PDF. Any change to a file or a source revokes it at the next computation.",
     readyNote: "Reminder: “ready” proves the process, not that you meet the requirements.",
     proposalTitle: "For approval from the application",
-    proposalBody: "A minimal proposal for an engine change is described in desktop/APPROVAL_PROPOSAL.md. It is not implemented.",
+    proposalBody: "A minimal proposal for an engine change is described in docs/design/APPROVAL_PROPOSAL.md. It is not implemented.",
     unreadableTitle: "Unreadable package",
     reasonText: {
       HUMAN_REVIEW_REQUIRED: "No human approval is recorded for this PDF.",

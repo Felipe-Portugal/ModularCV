@@ -114,7 +114,7 @@ the limit of an unsigned JSON file. Tests use clearly fictional approvals in tem
 
 The optional Desktop application (`desktop/`) offers a second human entry point to the same step: a review screen that shows the exact PDF and records the decision through
 `package.record_review()` after the same checks plus a typed hash prefix and explicit confirmations. It does not change this command, the review contract or the states; the verdict is
-still recomputed by `package status`. See `desktop/APPROVAL_PROPOSAL.md`.
+still recomputed by `package status`. See `docs/design/APPROVAL_PROPOSAL.md`.
 
 ## States
 

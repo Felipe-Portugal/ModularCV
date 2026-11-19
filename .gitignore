@@ -40,3 +40,11 @@ dist/
 .claude/
 .codex/
 graphify-out/
+
+# Maintainer working documents, kept locally and never published
+/PROJECT_STATE.md
+/PUBLIC_EXCLUDE.txt
+/docs/design/PREPUBLICATION_AUDIT.md
+/docs/design/PUBLICATION_PROTOCOL.md
+/docs/design/PUBLIC_SNAPSHOT.md
+/docs/design/PUBLIC_INVENTORY.sha256

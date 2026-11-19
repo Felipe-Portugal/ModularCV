@@ -160,7 +160,7 @@ reused as is, never overwritten. All data is fictional.
   hash), refuses anything but a reviewable package and never overwrites a review, then records it through the engine's own
   `package.record_review()` and returns a fresh engine status, which is what the screen shows (`READY_TO_SEND` only if the engine
   says so). The terminal command `package approve` is unchanged and remains available. Design, guarantees and residual risks:
-  `APPROVAL_PROPOSAL.md`. An approval is an unsigned JSON file; this does not prove who clicked.
+  `docs/design/APPROVAL_PROPOSAL.md`. An approval is an unsigned JSON file; this does not prove who clicked.
 - **History**: the packages present in the workspace (name, offer, family, language, PDF present or absent, freshly computed status).
   No date is shown (a package holds no reliable timestamp). An unreadable package is listed as such without hiding the others.
 - **Git demo workspace (tests and demonstrations only)**: the dashboard button "Demo with Git (test)" copies the public example into
