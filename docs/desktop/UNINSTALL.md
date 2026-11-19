@@ -15,7 +15,7 @@ recursively inside the installation.
 
 ## What is kept
 
-- **Your workspaces.** They are never inside the installation folder, and the uninstaller never touches them wherever you keep them.
+- **Your workspaces.** They are never inside the installation folder, and the uninstaller never touches them wherever you keep them. The profiles the application keeps for you are in `Documents\ModularCV\Profiles`: they are workspaces too, and are never removed.
 - **The application's own data**, by default (see the next section).
 - Git, MiKTeX or TeX Live, and WebView2: the installer did not install Git or LaTeX, and WebView2 is shared with Windows.
 

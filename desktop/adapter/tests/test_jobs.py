@@ -240,7 +240,7 @@ def test_plan_refusals(ws):
 
 def test_provenance_is_reported_and_never_committed(ws):
     plain = call(op="provenance", root=str(ws), offer_file="backend-intern.json")["provenance"]
-    assert plain["status"] == "UNVERIFIED" and plain["code"] == "GIT_REPOSITORY_UNAVAILABLE"
+    assert plain == {"status": "FROZEN"}  # no repository: a package will copy the sources
     if shutil.which("git") is None:
         pytest.skip("git not available")
 

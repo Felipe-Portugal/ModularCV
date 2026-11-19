@@ -28,6 +28,7 @@ NEEDS_REVIEW = "NEEDS_REVIEW"
 BLOCKED = "BLOCKED"
 
 SNAPSHOT_RELATIVE = ("provenance", "source-snapshot.json")
+FROZEN_RELATIVE = ("provenance", "sources")  # copies of the sources, in a package made without Git
 PACKAGE_V2 = "ApplicationPackage-v2"  # carries no verdict: its state is always computed
 UNEVALUATED = "UNEVALUATED"
 PDF_ORIGIN_NOT_VERIFIED = "PDF_ORIGIN_NOT_VERIFIED"  # M8-A-R2: only a PDF compiled by the package command can be READY_TO_SEND
@@ -39,6 +40,7 @@ HARD_REASONS = (
     "CV_METADATA_OUT_OF_SCOPE", "CV_REFERENCE_MISMATCH",
     "SNAPSHOT_MISSING", "SNAPSHOT_INVALID", "SNAPSHOT_CONTRADICTORY",
     "SOURCE_COMMIT_MISMATCH", "HUMAN_REVIEW_REJECTED", "CHAIN_INVALID",
+    "FROZEN_SOURCE_MISSING", "FROZEN_SOURCE_MISMATCH",
 )
 
 
@@ -159,6 +161,30 @@ def _source_commit_checks(document, root, paths_to_check, verdict, source_entrie
                         % (entry["path"], value[:12]))
 
 
+def _frozen(document):
+    """True for a version 3 metadata whose sources are frozen in the package (no Git). Older versions never are."""
+    return isinstance(document, dict) and document.get("schema_version") == metadata.CURRENT_VERSION \
+        and document.get("source_provenance") == provenance.FROZEN_IN_PACKAGE
+
+
+def _frozen_source_checks(package_dir, verdict, source_entries):
+    """The copy of every source must be in the package, with the hash the snapshot recorded. The working-tree comparison is
+    the snapshot's own (`SOURCE_CHANGED_SINCE_PACKAGING`); this check is what a commit proves in a Git workspace."""
+    verdict.warnings.append("SOURCES_FROZEN_IN_PACKAGE")
+    base = Path(package_dir).joinpath(*FROZEN_RELATIVE)
+    for entry in source_entries:
+        target = paths.resolve_inside(base, entry["path"])
+        try:
+            data = target.read_bytes() if target is not None and target.is_file() else None
+        except OSError:
+            data = None
+        if data is None:
+            verdict.add("FROZEN_SOURCE_MISSING", "FROZEN_COPY_MISSING", "the package holds no copy of %s" % entry["path"])
+        elif snapshot.hash_for(entry["kind"], data) != entry["sha256"]:
+            verdict.add("FROZEN_SOURCE_MISMATCH", "FROZEN_COPY_DIFFERS",
+                        "the copy of %s in the package is not the file the package was built from" % entry["path"])
+
+
 _SNAPSHOT_STRUCTURE = {
     "SNAPSHOT_DUPLICATE_PATH": ("SNAPSHOT_CONTRADICTORY"),
     "SNAPSHOT_DUPLICATE_ENTRY": ("SNAPSHOT_CONTRADICTORY"),
@@ -242,8 +268,11 @@ def _evidence_checks(package, root, package_dir, files, verdict):
                         "metadata facts_source %r is not the snapshot facts file %r"
                         % (facts_source, facts_entries[0]["path"]))
         sources = [entry for entry in document["entries"] if entry["role"] in snapshot.SOURCE_ROLES]
-        wanted = sorted(set(files) | {entry["path"] for entry in sources})
-        _source_commit_checks(cv_metadata, root, wanted, verdict, sources)
+        if _frozen(cv_metadata):
+            _frozen_source_checks(package_dir, verdict, sources)
+        else:
+            wanted = sorted(set(files) | {entry["path"] for entry in sources})
+            _source_commit_checks(cv_metadata, root, wanted, verdict, sources)
 
     if isinstance(cv_metadata, dict) and cv_metadata.get("schema_version") == metadata.CURRENT_VERSION \
             and not metadata.problems(cv_metadata):
@@ -395,7 +424,9 @@ def assess(package: dict, cv_metadata, registry_path, root=None, package_dir=Non
         else:
             _metadata_checks(cv_metadata, verdict)
             value = cv_metadata.get("source_commit") if isinstance(cv_metadata, dict) else None
-            if value is None or value == "":
+            if _frozen(cv_metadata):
+                pass  # no commit to judge: the copies are checked with the evidence only
+            elif value is None or value == "":
                 verdict.add("CV_METADATA_INVALID", "SOURCE_COMMIT_MISSING", "source_commit is absent")
             elif not isinstance(value, str) or not SHA_PATTERN.match(value):
                 verdict.add("CV_METADATA_INVALID", "SOURCE_COMMIT_MALFORMED",

@@ -91,7 +91,7 @@ def selected_content(plan):
 
 
 def build_metadata(plan, assembly, sources, tex, pdf_bytes, paper, source_commit, facts_path,
-                   engine_version=__version__, pdf_origin=None):
+                   engine_version=__version__, pdf_origin=None, source_provenance=None):
     """The `schema_version` 3 metadata of a CV, derived only from verified objects. `pdf_bytes` may be None.
 
     `pdf_origin` (M8-A-R2) says how the PDF came to be: `ORIGIN_COMPILED` (made by the package command from the verified `.tex`) or
@@ -101,6 +101,8 @@ def build_metadata(plan, assembly, sources, tex, pdf_bytes, paper, source_commit
     document = _metadata_core(plan, assembly, sources, tex, pdf_bytes, paper, source_commit, facts_path, engine_version, offer)
     if pdf_bytes is not None and pdf_origin is not None:
         document["pdf_origin"] = pdf_origin
+    if source_provenance is not None:
+        document["source_provenance"] = source_provenance
     return document
 
 
@@ -224,7 +226,8 @@ def verify(root, document, cv_metadata, settings):
         elif pdf.count_pages(pdf_bytes) is None:
             add("CHAIN_INVALID", "CHAIN_PDF_NO_PAGE", "no page can be read from the page tree of the PDF")
     expected = build_metadata(plan, fresh, sources, tex_bytes, pdf_bytes, paper, cv_metadata.get("source_commit"),
-                              settings["facts"], cv_metadata["engine_version"], cv_metadata.get("pdf_origin"))
+                              settings["facts"], cv_metadata["engine_version"], cv_metadata.get("pdf_origin"),
+                              cv_metadata.get("source_provenance"))
     if canonical.canonical_bytes(expected) != canonical.canonical_bytes(cv_metadata):
         differing = sorted(key for key in expected if canonical.canonical_bytes(expected[key]) != canonical.canonical_bytes(cv_metadata.get(key)))
         add("CV_REFERENCE_MISMATCH", "METADATA_DIFFERS_FROM_CHAIN",

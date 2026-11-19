@@ -72,8 +72,11 @@ V3_FIELDS = ("schema_version", "tailored_cv_id", "job_key", "language", "family"
              "page_target", "paper", "template_id", "engine_version", "inputs", "decision", "unsatisfied_required",
              "pending_directives", "warnings")
 # M8-A-R2: `pdf_origin` is optional and additive. Absent, it means "origin not recorded" and is treated like a supplied PDF.
-V3_OPTIONAL = ("pdf_origin",)
+# `source_provenance` is optional and additive too. Absent, the sources are named by `source_commit` (a Git commit). Present, it
+# says they are copied into the package (a workspace without Git), and `source_commit` is then null.
+V3_OPTIONAL = ("pdf_origin", "source_provenance")
 PDF_ORIGINS = ("COMPILED_FROM_VERIFIED_TEX", "SUPPLIED_PROVENANCE_NOT_VERIFIED")
+SOURCE_PROVENANCES = ("FROZEN_IN_PACKAGE",)
 V3_INPUTS = ("facts_source_sha256", "factbase_sha256", "content_sha256", "profile_sha256", "taxonomy_sha256", "offer_sha256")
 V3_PAPERS = ("a4paper", "letterpaper")
 
@@ -123,6 +126,11 @@ def _problems_v3(document):
             bad("pdf_origin", "must be one of %s" % ", ".join(PDF_ORIGINS))
         elif document["pdf_sha256"] is None:
             bad("pdf_origin", "must be absent when there is no PDF")
+    if "source_provenance" in document:
+        if document["source_provenance"] not in SOURCE_PROVENANCES:
+            bad("source_provenance", "must be one of %s, or absent" % ", ".join(SOURCE_PROVENANCES))
+        elif document["source_commit"] is not None:
+            bad("source_commit", "must be null when the sources are frozen in the package")
     inputs = document["inputs"]
     if not isinstance(inputs, dict) or sorted(inputs) != sorted(V3_INPUTS) or not all(_hex(inputs[k]) for k in inputs):
         bad("inputs", "must hold exactly the six source fingerprints")

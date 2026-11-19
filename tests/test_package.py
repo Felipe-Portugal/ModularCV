@@ -225,8 +225,10 @@ def test_a_workspace_that_is_not_the_committed_state_creates_nothing(ws):
     assert tree_hash(ws) == before
 
 
-def test_without_a_git_repository_nothing_is_created(ws):
+def test_a_broken_git_repository_is_refused_and_never_frozen_instead(ws):
+    # `.git` is there but unusable: the workspace is a repository, so Git decides, and Git refuses. No copy stands in for it.
     shutil.rmtree(str(ws / ".git"), onerror=lambda f, p, e: (os.chmod(p, 0o700), f(p)))
+    (ws / ".git").write_text("not a gitdir\n", encoding="utf-8")
     before = tree_hash(ws)
     with pytest.raises(Exception) as raised:
         package.create(ws, **create_args(ws))
@@ -957,3 +959,106 @@ def test_a_package_that_names_another_identity_than_its_metadata_is_blocked(ws):
     write_json(pkg_path, pkg)
     status, reasons, codes = status_of(ws)
     assert status == readiness.BLOCKED and "IDENTITY_DIFFERS" in codes
+
+
+# --- a workspace without Git: the sources are frozen in the package -------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def frozen_template(tmp_path_factory):
+    """The synthetic workspace with no Git repository at all, holding the package `demo` (not approved)."""
+    root = tmp_path_factory.mktemp("frozen") / "ws"
+    shutil.copytree(str(EXAMPLE_DIR), str(root))
+    assert not (root / ".git").exists()
+    (root / "plans").mkdir()
+    (root / "out").mkdir()
+    offer = str(root / "offers" / "backend-intern.json")
+    assert cli.main(["plan", "--offer", offer, "--root", str(root), "--out", "plans/p.json"]) == 0
+    assert cli.main(["render", "--plan", str(root / "plans/p.json"), "--offer", offer, "--root", str(root), "--out", "out/cv.tex"]) == 0
+    tex = (root / "out" / "cv.tex").read_bytes()
+    pdf_made = make_pdf(tex)
+    with pytest.MonkeyPatch.context() as patch:
+        if not REAL_PDFLATEX:
+            patch.setattr(pdf, "compile_tex", lambda data, timeout=None: pdf.Result(pdf_made, 1, canonical.sha256_bytes(pdf_made), 0, ""))
+        summary = package.create(root, NAME, offer, (root / "plans/p.json").read_bytes(), tex, compile_timeout=120)
+    assert summary["source_provenance"] == "FROZEN_IN_PACKAGE" and summary["source_commit"] is None
+    return root
+
+
+@pytest.fixture
+def frozen(frozen_template, tmp_path):
+    root = tmp_path / "frozen"
+    shutil.copytree(str(frozen_template), str(root))
+    return root
+
+
+def frozen_copy(ws, relative, name=NAME):
+    return ws.joinpath("packages", name, *readiness.FROZEN_RELATIVE, *relative.split("/"))
+
+
+def test_without_git_the_metadata_names_no_commit_and_every_source_is_copied_exactly(frozen_template):
+    document = read_json(app_file(frozen_template, "metadata"))
+    assert document["source_commit"] is None and document["source_provenance"] == "FROZEN_IN_PACKAGE"
+    assert metadata.problems(document) == []
+    entries = read_json(frozen_template / "packages" / NAME / "provenance" / "source-snapshot.json")["entries"]
+    sources = [e["path"] for e in entries if e["role"] in snapshot.SOURCE_ROLES]
+    assert sorted(sources) == ["content/resume.json", "facts.md", "profile.json"]
+    for relative in sources:
+        assert frozen_copy(frozen_template, relative).read_bytes() == (frozen_template / relative).read_bytes(), relative
+    assert not any(e["path"].startswith("packages/") for e in entries)  # the copies are evidence, not sources
+    verdict = package.status(frozen_template, NAME)
+    assert verdict["status"] == readiness.NEEDS_REVIEW and verdict["reasons"] == ["HUMAN_REVIEW_REQUIRED"]
+    assert "SOURCES_FROZEN_IN_PACKAGE" in verdict["warnings"]
+
+
+def test_a_frozen_package_is_ready_after_a_fictional_approval_of_the_exact_pdf(frozen):
+    assert approve(frozen)["state"] == readiness.READY
+    assert status_of(frozen) == (readiness.READY, set(), set())
+
+
+def test_a_source_changed_after_a_frozen_package_voids_its_readiness(frozen):
+    approve(frozen)
+    edit_json(frozen, "content/resume.json", lambda d: d["blocks"][0]["bullets"][0]["text"].update(en="Changed bullet."))
+    status, reasons, _ = status_of(frozen)
+    assert status != readiness.READY and "SOURCE_CHANGED_SINCE_PACKAGING" in reasons
+    assert frozen_copy(frozen, "content/resume.json").read_bytes() != (frozen / "content/resume.json").read_bytes()
+
+
+@pytest.mark.parametrize("damage,reason", [
+    (lambda p: p.unlink(), "FROZEN_SOURCE_MISSING"),
+    (lambda p: p.write_bytes(p.read_bytes() + b"\n- [x.y] CONFIRMED: Invented."), "FROZEN_SOURCE_MISMATCH"),
+])
+def test_a_missing_or_altered_copy_blocks_a_frozen_package_even_when_approved(frozen, damage, reason):
+    approve(frozen)
+    damage(frozen_copy(frozen, "facts.md"))
+    status, reasons, _ = status_of(frozen)
+    assert status == readiness.BLOCKED and reason in reasons
+
+
+def test_turning_a_git_package_into_a_frozen_one_by_hand_is_blocked(ws):
+    approve(ws)
+    meta = app_file(ws, "metadata")
+    write_json(meta, dict(read_json(meta), source_commit=None, source_provenance="FROZEN_IN_PACKAGE"))
+    reseal(ws)
+    status, reasons, _ = status_of(ws)
+    assert status == readiness.BLOCKED and "FROZEN_SOURCE_MISSING" in reasons
+
+
+def test_the_frozen_declaration_is_validated(template):
+    document = read_json(app_file(template, "metadata"))
+    assert metadata.problems(dict(document, source_provenance="FROZEN_IN_PACKAGE"))      # a commit and a frozen declaration
+    assert metadata.problems(dict(document, source_commit=None, source_provenance="COPIED"))
+    assert metadata.problems(dict(document, source_commit=None, source_provenance="FROZEN_IN_PACKAGE")) == []
+    assert not readiness._frozen({"schema_version": "2", "source_commit": None, "source_provenance": "FROZEN_IN_PACKAGE"})
+
+
+def test_without_the_evidence_a_frozen_metadata_is_never_ready_but_not_called_invalid(frozen_template):
+    document = read_json(app_file(frozen_template, "metadata"))
+    pkg = read_json(frozen_template / "packages" / NAME / "package.json")
+    verdict = readiness.assess(pkg, document, None)
+    assert verdict["status"] != readiness.READY and "CV_METADATA_INVALID" not in verdict["reasons"]
+
+
+def test_the_command_line_status_of_a_frozen_package(frozen, capsys):
+    approve(frozen)
+    code, out, _ = run(capsys, "package", "status", "--name", NAME, "--root", str(frozen))
+    assert code == 0 and json.loads(out)["status"] == readiness.READY

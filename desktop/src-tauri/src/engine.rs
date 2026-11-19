@@ -467,6 +467,10 @@ pub enum AdapterOp {
     PackageStatus,
     PdfRead,
     PackageApprove,
+    WorkspaceInit,
+    CvSourceRead,
+    CvParse,
+    CvApply,
 }
 
 impl AdapterOp {
@@ -496,12 +500,16 @@ impl AdapterOp {
             AdapterOp::PackageStatus => "package_status",
             AdapterOp::PdfRead => "pdf_read",
             AdapterOp::PackageApprove => "package_approve",
+            AdapterOp::WorkspaceInit => "workspace_init",
+            AdapterOp::CvSourceRead => "cv_source_read",
+            AdapterOp::CvParse => "cv_parse",
+            AdapterOp::CvApply => "cv_apply",
         }
     }
 
     /// The only way a name coming from the front end becomes an operation.
     pub fn from_name(name: &str) -> Option<AdapterOp> {
-        const ALL: [AdapterOp; 24] = [
+        const ALL: [AdapterOp; 28] = [
             AdapterOp::Read,
             AdapterOp::SaveFact,
             AdapterOp::SaveProfile,
@@ -526,6 +534,10 @@ impl AdapterOp {
             AdapterOp::PackageStatus,
             AdapterOp::PdfRead,
             AdapterOp::PackageApprove,
+            AdapterOp::WorkspaceInit,
+            AdapterOp::CvSourceRead,
+            AdapterOp::CvParse,
+            AdapterOp::CvApply,
         ];
         ALL.iter().copied().find(|op| op.name() == name)
     }
@@ -654,6 +666,68 @@ impl EngineLauncher {
             _ => adapter_error("INVALID_OUTPUT", "The engine adapter returned an unreadable answer; nothing was assumed."),
         }
     }
+}
+
+// ---------------------------------------------------------------- managed profiles
+
+/// A profile kept by the application: one sub-folder of the profiles folder (`Documents\ModularCV\Profiles`).
+#[derive(Debug, Serialize, Clone, PartialEq)]
+pub struct ManagedProfile {
+    pub name: String,
+    pub path: String,
+    /// True when the folder already holds a fact base (`facts.md`).
+    pub ready: bool,
+}
+
+const RESERVED_NAMES: [&str; 22] = [
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3",
+    "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
+
+/// The folder name of a profile, from what the user typed: 1 to 60 letters, digits, spaces, `-`, `_` or `'`.
+/// No dot and no separator, so the name can never leave the profiles folder; no Windows device name.
+pub fn profile_folder_name(name: &str) -> Result<String, String> {
+    let cleaned = name.split_whitespace().collect::<Vec<_>>().join(" ");
+    let count = cleaned.chars().count();
+    let allowed = cleaned.chars().all(|c| c.is_alphanumeric() || matches!(c, ' ' | '-' | '_' | '\''));
+    if count == 0 || count > 60 || !allowed || RESERVED_NAMES.contains(&cleaned.to_uppercase().as_str()) {
+        return Err("PROFILE_NAME_INVALID".into());
+    }
+    Ok(cleaned)
+}
+
+/// The profiles found in `base`, by name. A missing folder is an empty list; links are never followed.
+pub fn list_profiles(base: &Path) -> Vec<ManagedProfile> {
+    let mut found = Vec::new();
+    let Ok(entries) = std::fs::read_dir(base) else {
+        return found;
+    };
+    for entry in entries.flatten() {
+        let Ok(kind) = entry.file_type() else { continue };
+        if !kind.is_dir() || kind.is_symlink() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if profile_folder_name(&name).as_deref() != Ok(name.as_str()) {
+            continue;
+        }
+        let path = entry.path();
+        found.push(ManagedProfile { ready: path.join("facts.md").is_file(), path: path.to_string_lossy().into_owned(), name });
+    }
+    found.sort_by_key(|p| p.name.to_lowercase());
+    found
+}
+
+/// Creates the empty folder of a new profile. An existing folder is never reused or overwritten.
+pub fn create_profile(base: &Path, name: &str) -> Result<ManagedProfile, String> {
+    let folder = profile_folder_name(name)?;
+    std::fs::create_dir_all(base).map_err(|_| "PROFILE_DIR_FAILED".to_string())?;
+    let target = base.join(&folder);
+    if target.exists() || target.symlink_metadata().is_ok() {
+        return Err("PROFILE_EXISTS".into());
+    }
+    std::fs::create_dir(&target).map_err(|_| "PROFILE_DIR_FAILED".to_string())?;
+    Ok(ManagedProfile { name: folder, path: target.to_string_lossy().into_owned(), ready: false })
 }
 
 // ---------------------------------------------------------------- demo workspace
@@ -930,9 +1004,61 @@ mod tests {
     }
 
     #[test]
+    fn profile_names_never_leave_the_profiles_folder() {
+        assert_eq!(profile_folder_name("  Jordan   Example "), Ok("Jordan Example".to_string()));
+        assert_eq!(profile_folder_name("Élodie d'Exemple-2"), Ok("Élodie d'Exemple-2".to_string()));
+        for bad in ["", "   ", "..", "a/b", "a\\b", "a.b", "C:", "con", "LPT1", "a*b", "a\tb:", &"x".repeat(61)] {
+            assert_eq!(profile_folder_name(bad), Err("PROFILE_NAME_INVALID".to_string()), "{bad}");
+        }
+    }
+
+    #[test]
+    fn managed_profiles_are_created_once_and_listed() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = dir.path().join("ModularCV").join("Profiles");
+        assert!(list_profiles(&base).is_empty());
+        let made = create_profile(&base, "Jordan Example").unwrap();
+        assert!(!made.ready && Path::new(&made.path).is_dir());
+        assert_eq!(create_profile(&base, "Jordan Example"), Err("PROFILE_EXISTS".to_string()));
+        assert_eq!(create_profile(&base, "../escape"), Err("PROFILE_NAME_INVALID".to_string()));
+        std::fs::write(Path::new(&made.path).join("facts.md"), "x").unwrap();
+        std::fs::write(base.join("a file"), "x").unwrap();
+        std::fs::create_dir(base.join("not.a.profile")).unwrap();
+        let listed = list_profiles(&base);
+        assert_eq!(listed.len(), 1);
+        assert!(listed[0].ready && listed[0].name == "Jordan Example");
+    }
+
+    #[test]
+    fn a_new_profile_is_initialised_and_filled_through_the_real_engine() {
+        let dir = tempfile::tempdir().unwrap();
+        let made = create_profile(dir.path(), "Fictional").unwrap();
+        let l = launcher();
+        let init = l.adapter(AdapterOp::WorkspaceInit, &made.path, serde_json::json!({"display_name": "Jordan Example", "language": "en"}));
+        assert_eq!(init["ok"], true, "{init}");
+        let again = l.adapter(AdapterOp::WorkspaceInit, &made.path, serde_json::json!({"display_name": "Jordan Example", "language": "en"}));
+        assert_eq!(again["code"], "OUTPUT_EXISTS");
+        let parsed = l.adapter(AdapterOp::CvParse, &made.path, serde_json::json!({"text": "Jordan Example\n\nEXPERIENCE\nJunior developer - Example Company\n2025 - 2026\n- Built REST endpoints in Python.\n\nSKILLS\nPython, Git\n"}));
+        assert_eq!(parsed["blocks"][0]["title"], "Junior developer", "{parsed}");
+        let refused = l.adapter(AdapterOp::CvApply, &made.path, serde_json::json!({"language": "en",
+            "blocks": [{"kind": "experience", "title": "Junior developer", "confirmed": true, "bullets": []}], "skills": []}));
+        assert_eq!(refused["code"], "CONFIRMATION_REQUIRED");
+        let applied = l.adapter(AdapterOp::CvApply, &made.path, serde_json::json!({"language": "en", "confirmed_on": "2026-01-10",
+            "blocks": [{"kind": "experience", "title": "Junior developer", "subtitle": "Example Company", "period": "2025 - 2026", "confirmed": true,
+                        "bullets": [{"text": "Built REST endpoints in Python.", "confirmed": true}]}],
+            "skills": [{"title": "Skills", "items": [{"text": "Python", "confirmed": true}, {"text": "Git"}]}]}));
+        assert_eq!((applied["ok"].clone(), applied["blocks_added"].clone(), applied["parked"].clone()), (true.into(), 1.into(), 1.into()), "{applied}");
+        let read = l.adapter(AdapterOp::Read, &made.path, serde_json::json!({}));
+        assert_eq!((read["facts"]["valid"].clone(), read["profile"]["valid"].clone(), read["content"]["valid"].clone()), (true.into(), true.into(), true.into()), "{read}");
+        assert_eq!(l.validate(OP_FACTS_CHECK, &made.path).outcome, Outcome::Valid);
+    }
+
+    #[test]
     fn only_listed_operations_resolve() {
         assert_eq!(AdapterOp::from_name("render"), Some(AdapterOp::Render));
         assert_eq!(AdapterOp::from_name("offer_delete"), Some(AdapterOp::OfferDelete));
+        assert_eq!(AdapterOp::from_name("workspace_init"), Some(AdapterOp::WorkspaceInit));
+        assert_eq!(AdapterOp::from_name("cv_apply"), Some(AdapterOp::CvApply));
         for bad in ["", "run_shell", "RENDER", "render ", "../render", "python", "cmd /c dir"] {
             assert_eq!(AdapterOp::from_name(bad), None, "{bad}");
         }
@@ -998,7 +1124,8 @@ mod tests {
         assert_eq!(d["engine"]["status"], "OK");
         assert!(["FOUND", "ABSENT"].contains(&d["git"]["status"].as_str().unwrap()));
         assert!(["FOUND", "ABSENT"].contains(&d["latex"]["pdflatex"].as_str().unwrap()));
-        assert!(["VERIFIED", "UNVERIFIABLE", "NOT_CHECKED"].contains(&d["provenance"]["status"].as_str().unwrap()));
+        // the demo workspace holds no `.git`: its packages freeze the sources
+        assert_eq!(d["provenance"]["status"], "FROZEN", "{d}");
         assert_eq!(d["offline"], true);
         let text = d.to_string();
         assert!(!text.contains(&ws), "a workspace path leaked into the diagnostics");

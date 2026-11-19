@@ -104,6 +104,28 @@ def _git_files(settings, sources):
     return names
 
 
+def _freeze_sources(root, package_rel, document):
+    """Copy every source of the snapshot, byte for byte, to `<package>/provenance/sources/<path>`, and prove that each copy has the
+    hash the snapshot recorded (a source changed meanwhile is a refusal). The copies keep the exact sources of the package after the
+    workspace moves on: what a commit does in a Git workspace."""
+    base = "%s/%s" % (package_rel, "/".join(readiness.FROZEN_RELATIVE))
+    for entry in document["entries"]:
+        if entry["role"] not in snapshot.SOURCE_ROLES:
+            continue
+        source = paths.resolve_inside(root, entry["path"])
+        data = source.read_bytes() if source is not None and source.is_file() else None
+        if data is None or snapshot.hash_for(entry["kind"], data) != entry["sha256"]:
+            raise PackageError("SOURCE_CHANGED_WHILE_PACKAGING", "a source changed while the package was being made")
+        target = paths.resolve_inside(root, "%s/%s" % (base, entry["path"]))
+        if target is None:
+            raise PackageError("PACKAGE_PATH_UNSAFE", "a frozen source would leave the package folder")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(str(target), "xb") as handle:
+            handle.write(data)
+        if snapshot.hash_for(entry["kind"], target.read_bytes()) != entry["sha256"]:
+            raise PackageError("PACKAGE_WRITE_FAILED", "a frozen source does not read back as written")
+
+
 def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compile_timeout=None):
     """Create the package `name` from a plan file's bytes, the `.tex` and an optional PDF. Returns a value-free summary.
 
@@ -138,11 +160,16 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
         # M8-A-R1: a file that only carries the PDF markers is not a document: no page can be read from its own page tree,
         # so there would be nothing for a person to approve. (The reader is limited: see `pdf.count_pages`.)
         raise PackageError("PDF_NO_PAGE", "no page can be read from the page tree of the PDF; it cannot be packaged or approved")
-    commit = provenance.resolve_source_commit(root, _git_files(settings, sources))
+    # A Git workspace names its sources by a commit and refuses uncommitted ones; a workspace without Git freezes a copy of them
+    # into the package. The second never stands in for a failure of the first.
+    if provenance.workspace_is_repository(root):
+        commit, source_mode = provenance.resolve_source_commit(root, _git_files(settings, sources)), None
+    else:
+        commit, source_mode = None, provenance.FROZEN_IN_PACKAGE
 
     origin = None if pdf_bytes is None else (PDF_ORIGIN_COMPILED if compile_timeout is not None else PDF_ORIGIN_SUPPLIED)
     metadata_document = chain.build_metadata(plan, assembly, sources, tex_bytes, pdf_bytes, paper, commit, settings["facts"],
-                                             pdf_origin=origin)
+                                             pdf_origin=origin, source_provenance=source_mode)
     files = {"plan": plan_bytes, "assembly": _json_bytes(assembly), "tex": tex_bytes, "metadata": _json_bytes(metadata_document)}
     if pdf_bytes is not None:
         files["pdf"] = pdf_bytes
@@ -167,6 +194,8 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
         created.append(snapshot_target.parent.parent)
         with open(str(snapshot_target), "xb") as handle:
             handle.write(_json_bytes(document))
+        if source_mode is not None:
+            _freeze_sources(root, package_rel, document)
         package = {
             "schema": PACKAGE_SCHEMA,
             "application": {"job_id": sources.offer.job_key},
@@ -193,7 +222,8 @@ def create(root, name, offer_path, plan_bytes, tex_bytes, pdf_bytes=None, compil
                 shutil.rmtree(str(folder), ignore_errors=True)
         raise
     return {"name": name, "tailored_cv_id": metadata_document["tailored_cv_id"], "state": verdict["status"],
-            "reasons": verdict["reasons"], "source_commit": commit, "paper": paper, "application": application_rel,
+            "reasons": verdict["reasons"], "source_commit": commit, "source_provenance": source_mode or "GIT_COMMIT",
+            "paper": paper, "application": application_rel,
             "package": package_rel, "plan_sha256": plan["plan_sha256"], "assembly_sha256": assembly["assembly_sha256"],
             "tex_sha256": metadata_document["tex_sha256"], "pdf_sha256": metadata_document["pdf_sha256"],
             "pdf_origin": origin}

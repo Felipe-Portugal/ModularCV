@@ -2,6 +2,8 @@ import { extra } from "./strings3";
 import type { Extra } from "./strings3";
 import { extra4 } from "./strings4";
 import type { Extra4 } from "./strings4";
+import { onboardStrings } from "./stringsOnboard";
+import type { OnboardStrings } from "./stringsOnboard";
 import type { Lang } from "./types";
 
 const fr = {
@@ -160,7 +162,7 @@ const fr = {
 };
 
 type Base = typeof fr;
-type Strings = Base & Extra & Extra4;
+type Strings = Base & Extra & Extra4 & OnboardStrings;
 
 const en: Base = {
   workspace: {
@@ -317,5 +319,5 @@ const en: Base = {
   },
 };
 
-export const strings: Record<Lang, Strings> = { fr: { ...fr, ...extra.fr, ...extra4.fr }, en: { ...en, ...extra.en, ...extra4.en } };
+export const strings: Record<Lang, Strings> = { fr: { ...fr, ...extra.fr, ...extra4.fr, ...onboardStrings.fr }, en: { ...en, ...extra.en, ...extra4.en, ...onboardStrings.en } };
 export type { Strings };

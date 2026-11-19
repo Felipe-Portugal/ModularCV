@@ -256,15 +256,19 @@ def test_existing_package_is_never_overwritten(copy):
     assert tree_hash(copy) == before
 
 
-def test_provenance_refused_outside_a_git_repository(tmp_path):
+def test_outside_a_git_repository_the_package_freezes_the_sources(tmp_path):
     if PDFLATEX is None:
         pytest.skip("pdflatex is not installed")
     ws = tmp_path / "plain"
     shutil.copytree(EXAMPLE, ws)
     done = create_package(ws)
-    assert not done["ok"] and done["code"] == "PROVENANCE_REFUSED"
-    assert not (ws / "applications").exists() or not any((ws / "applications").iterdir())
-    assert not any((ws / "packages").glob("*")) if (ws / "packages").exists() else True
+    assert done["ok"] is True, done
+    summary = done["package"]
+    assert summary["source_provenance"] == "FROZEN_IN_PACKAGE" and summary["source_commit"] is None
+    assert summary["state"] == "NEEDS_REVIEW" and summary["reasons"] == ["HUMAN_REVIEW_REQUIRED"]
+    frozen = ws / "packages" / summary["name"] / "provenance" / "sources"
+    assert (frozen / "facts.md").read_bytes() == (ws / "facts.md").read_bytes()
+    assert not (ws / ".git").exists()  # the application never creates a repository
 
 
 def test_uncommitted_source_refuses_the_package(tmp_path):

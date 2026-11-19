@@ -50,6 +50,8 @@ describe("fact forms", () => {
   });
   it("slugs ids and groups sections", () => {
     expect(slugId("Édu Master 2!")).toBe("edu-master-2");
+    expect(slugId("Développeur backend Exemple inc. (fictive)")).toBe("developpeur-backend-exemple-inc-fictive");
+    expect(slugId("exp.junior-dev.api")).toBe("exp.junior-dev.api");
     expect(sectionGroup("education")).toBe("education");
     expect(sectionGroup("projects")).toBe("experience");
     expect(sectionGroup(null)).toBe("experience");

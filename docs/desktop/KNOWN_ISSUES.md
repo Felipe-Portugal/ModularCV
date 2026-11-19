@@ -67,9 +67,20 @@ This is a beta. Everything below is stated plainly so you can decide whether it 
 
 ## Packages and Git
 
-- Creating a package requires a Git repository whose sources are committed. Without Git you can still produce a `.tex` file.
+- In a Git repository, creating a package requires the sources to be committed. Without Git (a profile kept by the application, for
+  example), the package keeps an exact copy of the sources instead. Git history is then not there to recover older versions: keep
+  your own backups of the profile folder.
 - The application never commits for you. If you change a source after packaging, the package returns to `NEEDS_REVIEW` and you build a new one.
 - Keep your real workspace **outside** `%LOCALAPPDATA%\org.modularcv.desktop` and `%APPDATA%\org.modularcv.desktop` (see [UNINSTALL.md](UNINSTALL.md)).
+
+## Profiles and CV import
+
+- The import reads headings, bullets and dates; it does not understand a CV. Two-column layouts, tables and unusual section titles give
+  entries to correct in the review screen. A scanned PDF has no text: paste the text instead. A PDF larger than 2.5 MB is refused.
+- French and English section titles are recognised. Other languages are not.
+- An entry saved unconfirmed is kept as a fact to confirm, but it cannot yet be added to the CV text from the application afterwards.
+  Existing experience entries cannot yet be edited or reordered from the application either.
+- Tested through the engine adapter and the Rust bridge with fictional CVs; not yet tested in an installed build.
 
 ## Approval
 

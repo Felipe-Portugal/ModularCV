@@ -11,6 +11,21 @@ and had no tag or release before `v0.2.0`. The differences with that internal st
 
 ## [Unreleased]
 
+### ModularCV Desktop, work after 0.5.0-beta.1
+
+- Added: profiles kept by the application. The dashboard creates a profile folder under `Documents\ModularCV\Profiles` with a valid, empty
+  fact base and a profile, so nothing has to be written by hand before starting. A folder with no profile can be initialised the same way.
+- Added: import of an existing CV (PDF, `.docx`, text or pasted text). The text is read locally, with no network and no model, and split into
+  proposed entries the user corrects. Nothing is confirmed implicitly: an entry is confirmed only by the user's tick and confirmation date,
+  only confirmed entries enter the resume content, and unplaced lines are listed.
+- Added: packages without Git. In a workspace that is not a Git repository, `package create` copies every source into the package
+  (`packages/<name>/provenance/sources/`) and records `source_provenance: FROZEN_IN_PACKAGE` with `source_commit: null` in the version 3
+  metadata, an optional, additive field. Readiness checks each copy against the snapshot (`FROZEN_SOURCE_MISSING`,
+  `FROZEN_SOURCE_MISMATCH`, both BLOCKED) where it checks the commit otherwise. A workspace that holds `.git` keeps the Git contract in full:
+  uncommitted sources are still refused, and a copy never replaces a failing commit check.
+- Fixed: the offer identifier proposed from a title such as "Example inc. (fictional)" was refused by the engine.
+- Fixed: an empty folder was shown as a valid workspace on the dashboard.
+
 ### ModularCV Desktop 0.5.0-beta.1 (prepared, not yet published)
 
 ModularCV Desktop is an optional Windows application with its own version and installer. The engine and the command line stay at `0.2.0`; the tag

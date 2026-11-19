@@ -140,6 +140,8 @@ const fr = {
     provenanceNo:
       "Les sources ne correspondent pas à un commit Git vérifiable de votre espace de travail. Le plan et le fichier LaTeX peuvent être préparés, mais un paquet sera refusé tant que vous n'avez pas commité vous-même les fichiers validés. L'application ne commite jamais pour vous.",
     provenanceReason: { MODIFIED: "Fichier modifié depuis le dernier commit", UNTRACKED: "Fichier non suivi par Git", MISSING: "Fichier absent" } as Record<string, string>,
+    provenanceFrozen:
+      "Cet espace de travail n'est pas un dépôt Git. Un paquet gardera une copie exacte de vos sources, vérifiée par empreinte : elle tient lieu de commit.",
     generate: "Générer le fichier LaTeX",
     generatePdf: "Générer aussi le PDF",
     generating: "Génération…",
@@ -331,6 +333,8 @@ const en: Extra = {
     provenanceNo:
       "The sources do not match a verifiable Git commit of your workspace. The plan and the LaTeX file can be prepared, but a package will be refused until you commit the validated files yourself. The application never commits for you.",
     provenanceReason: { MODIFIED: "File changed since the last commit", UNTRACKED: "File not tracked by Git", MISSING: "File missing" },
+    provenanceFrozen:
+      "This workspace is not a Git repository. A package will keep an exact copy of your sources, checked by fingerprint: it stands in for a commit.",
     generate: "Generate the LaTeX file",
     generatePdf: "Also generate the PDF",
     generating: "Generating…",

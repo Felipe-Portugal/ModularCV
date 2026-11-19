@@ -65,6 +65,7 @@ export function slugId(value: string): string {
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9.\-]+/g, "-")
+    .replace(/[-.]{2,}/g, "-") // "inc. (x)" must not give ".-": the engine wants single separators
     .replace(/^[-.]+|[-.]+$/g, "");
 }
 

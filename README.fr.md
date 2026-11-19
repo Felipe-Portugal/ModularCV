@@ -16,7 +16,7 @@ English: [README.md](README.md)
 
 | Module | Rôle |
 |---|---|
-| `modularcv.provenance` | Un document généré doit citer un **vrai commit Git** contenant les sources exactes utilisées. Un placeholder (des zéros), l'absence de Git, un SHA inconnu ou une source modifiée refusent la génération. |
+| `modularcv.provenance` | Dans un espace de travail Git, un document généré doit citer un **vrai commit Git** contenant les sources exactes utilisées. Un placeholder (des zéros), l'absence de Git, un SHA inconnu ou une source modifiée refusent la génération. Un espace de travail sans Git garde plutôt une copie exacte des sources dans chaque paquet. |
 | `modularcv.readiness` | Promotion **fail-closed** : un paquet n'est « prêt à envoyer » que si ses preuves (sources, snapshot, chaîne plan-PDF, contrôles, registre de péremption, métadonnées du CV et approbation humaine du PDF exact) concordent, recalculées à chaque appel. Un index secondaire ne peut jamais le promouvoir. |
 | `modularcv.profile` | **Profile-v1** : votre identité (chaque champ `public` ou `private`), langues, familles de CV, politique et disponibilités, gardés dans votre espace de travail. Une disponibilité ne compte que si un fait `CONFIRMED` la soutient. |
 | `modularcv.content` | **ResumeContent-v1** : le texte de votre CV comme données validées (sections, blocs, puces, compétences, bases), en français, en anglais ou les deux. Chaque puce, compétence et en-tête de bloc nomme les faits qui le soutiennent ; il ne peut être imprimé que s'ils sont tous `CONFIRMED`. Le LaTeX brut est refusé, et la vérification prouve l'existence et le statut des faits, jamais le sens d'un texte (voir [docs/CONTENT.md](docs/CONTENT.md), en anglais). |
@@ -77,7 +77,7 @@ contient encore le contenu d'une personne ; le porter derrière une base de fait
 | macOS | Non testé. |
 | Systèmes de suivi de candidatures (ATS) | **Non vérifiés, rien n'est certifié.** Seuls l'ordre et les accents du texte extrait ont été regardés sur l'exemple. |
 
-**Garanties.** Tout ce qui est imprimé vient d'un fait `CONFIRMED` ; un document généré cite le vrai commit Git de ses sources ; la chaîne plan,
+**Garanties.** Tout ce qui est imprimé vient d'un fait `CONFIRMED` ; un document généré cite le vrai commit Git de ses sources (ou, sans Git, en porte une copie exacte) ; la chaîne plan,
 assemblage, `.tex` et PDF est recalculée à chaque appel ; `READY_TO_SEND` est calculé, jamais stocké, et se perd dès qu'une source, un fichier du
 paquet ou le PDF change.
 

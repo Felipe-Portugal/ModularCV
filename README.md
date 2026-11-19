@@ -15,7 +15,7 @@ its problems; it never writes one.
 
 | Piece | What it does |
 |---|---|
-| `modularcv.provenance` | A generated document must name a **real Git commit** that holds the exact sources it was built from. Placeholders (all zeros), a missing Git, an unknown SHA or a modified source all refuse the generation. |
+| `modularcv.provenance` | In a Git workspace, a generated document must name a **real Git commit** that holds the exact sources it was built from. Placeholders (all zeros), a missing Git, an unknown SHA or a modified source all refuse the generation. A workspace without Git keeps an exact copy of the sources in each package instead. |
 | `modularcv.readiness` | **Fail-closed** promotion: a package is "ready to send" only if its evidence (sources, snapshot, plan-to-PDF chain, gates, staleness registry, CV metadata and a human approval of the exact PDF) all agree, re-derived on every call. A secondary index can never promote it. |
 | `modularcv.profile` | **Profile-v1**: your identity (each field `public` or `private`), languages, CV families, policy and availability, kept in your workspace. An availability counts only if a `CONFIRMED` fact backs it. |
 | `modularcv.content` | **ResumeContent-v1**: your resume text as validated data (sections, blocks, bullets, skills, baselines), in French, English or both. Each bullet, skill and block heading names the facts that back it; it can be printed only if they are all `CONFIRMED`. Raw LaTeX is refused, and the check proves existence and status of the facts, never the meaning of a text. See [docs/CONTENT.md](docs/CONTENT.md). |
@@ -83,7 +83,7 @@ one person's content; porting it behind a configurable fact base is future work.
 | macOS | Not tested. |
 | Applicant tracking systems | **Not verified, nothing is certified.** Only the order and the accents of the extracted text were looked at on the example. |
 
-**Guarantees.** Everything printed comes from a `CONFIRMED` fact; a generated document names the real Git commit of its sources; the chain
+**Guarantees.** Everything printed comes from a `CONFIRMED` fact; a generated document names the real Git commit of its sources (or, without Git, carries an exact copy of them); the chain
 plan, assembly, `.tex` and PDF is re-derived on every call; `READY_TO_SEND` is computed, never stored, and is lost as soon as a source, a
 file of the package or the PDF changes.
 

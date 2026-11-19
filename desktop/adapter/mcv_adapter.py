@@ -9,6 +9,8 @@ Operations (a closed list, selected by name, never by command line):
   read          read the workspace (facts, profile, resume content) with diagnostics
   save_fact     update or create one fact, editing only that fact's lines in facts.md
   save_profile  update a whitelisted set of Profile-v1 fields
+  (job offers, plans and rendering: `mcv_jobs`; packages and approval: `mcv_packages`;
+   a new workspace and the import of an existing CV: `mcv_onboard`)
 
 Safety rules shared by the writes:
   * `expected_sha256` (the hash returned by `read`) must still match the file: otherwise
@@ -23,18 +25,18 @@ Safety rules shared by the writes:
 """
 import copy
 import json
-import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # `python -I` does not add the script folder
 
-from mcv_core import (BOM, Refusal, atomic_replace, clean, clean_list, fail, locate, problems, read_bytes)  # noqa: F401
+from mcv_core import (BOM, FACT_FIELDS, Refusal, atomic_replace, block_end, clean, clean_list, fail, locate,  # noqa: F401
+                      problems, read_bytes, section_titles, serialise, split_file)
 import mcv_jobs  # noqa: E402
+import mcv_onboard  # noqa: E402
 import mcv_packages  # noqa: E402
 from modularcv import canonical, content, docvalidate, facts, profile  # noqa: E402
 
-FACT_FIELDS = ("lang", "confirmed_on", "technologies", "capabilities", "source", "supersedes", "note")
 SUBSTANTIVE = ("text", "technologies", "capabilities", "source", "supersedes")
 
 
@@ -45,17 +47,6 @@ def fact_dict(fact):
         "capabilities": list(fact.capabilities), "source": fact.source, "supersedes": fact.supersedes,
         "note": fact.note, "extensions": dict(fact.extensions), "line": fact.line,
     }
-
-
-def section_titles(text):
-    result = []
-    for number, line in enumerate(canonical.normalise_text(text).split("\n"), 1):
-        match = facts._SECTION.match(line)
-        if match:
-            title = match.group("title")
-            explicit = match.group("id")
-            result.append({"id": explicit if explicit is not None else facts.slugify(title), "title": title, "line": number})
-    return result
 
 
 # --------------------------------------------------------------------------- read
@@ -141,49 +132,10 @@ def op_read(request):
 
 # --------------------------------------------------------------------------- facts editing
 
-def serialise(record, extensions):
-    parts = []
-    for key in FACT_FIELDS:
-        value = record.get(key)
-        if key in ("technologies", "capabilities"):
-            if value:
-                parts.append("%s: %s" % (key, ", ".join(value)))
-        elif value:
-            parts.append("%s: %s" % (key, value))
-    for key, value in sorted(extensions.items()):
-        parts.append("%s: %s" % (key, value))
-    line = "- [%s] %s: %s" % (record["id"], record["status"], record["text"])
-    return line + (" {%s}" % "; ".join(parts) if parts else "")
-
-
 def comparable(fact):
     data = fact_dict(fact)
     data.pop("line")
     return data
-
-
-def split_file(raw):
-    """(bom, eol, lines) of a facts file; refuses endings that cannot be preserved."""
-    bom = BOM if raw.startswith(BOM) else b""
-    try:
-        text = (raw[len(bom):]).decode("utf-8")
-    except UnicodeDecodeError:
-        raise Refusal("FILE_NOT_EDITABLE", "the file is not valid UTF-8")
-    crlf, lf = text.count("\r\n"), text.count("\n")
-    if text.replace("\r\n", "").count("\r"):
-        raise Refusal("FILE_NOT_EDITABLE", "the file uses lone carriage returns; it cannot be edited without altering it")
-    if crlf and crlf != lf:
-        raise Refusal("FILE_NOT_EDITABLE", "the file mixes CRLF and LF line endings; it cannot be edited without altering it")
-    eol = "\r\n" if crlf else "\n"
-    return bom, eol, text.replace("\r\n", "\n").split("\n")
-
-
-def block_end(lines, start):
-    """Index after the last continuation line of the fact starting at `start`."""
-    end = start + 1
-    while end < len(lines) and re.match(r"^ {4}\S", lines[end]):
-        end += 1
-    return end
 
 
 def op_save_fact(request):
@@ -432,6 +384,7 @@ def op_save_profile(request):
 
 OPERATIONS = {"read": op_read, "save_fact": op_save_fact, "save_profile": op_save_profile}
 OPERATIONS.update(mcv_jobs.OPERATIONS)
+OPERATIONS.update(mcv_onboard.OPERATIONS)
 OPERATIONS.update(mcv_packages.OPERATIONS)
 
 

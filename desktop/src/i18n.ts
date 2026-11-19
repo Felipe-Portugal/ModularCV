@@ -5,6 +5,7 @@ const fr = {
   prototype: "Bêta",
   nav: {
     dashboard: "Tableau de bord",
+    import: "Importer un CV",
     profile: "Profil",
     experiences: "Expériences",
     education: "Formation",
@@ -21,7 +22,7 @@ const fr = {
     "Cette section est prévue dans une prochaine étape. Aucune donnée n'est simulée ici : rien ne s'affiche tant que le moteur ModularCV n'est pas branché.",
   dashboard: {
     title: "Tableau de bord",
-    subtitle: "Vérifiez qu'un espace de travail respecte le contrat de faits, avec le vrai moteur Python.",
+    subtitle: "Créez un profil, importez un CV que vous avez déjà, puis adaptez-le à une offre. Tout reste sur votre ordinateur.",
     workspace: "Espace de travail",
     pathLabel: "Dossier de l'espace de travail",
     pathPlaceholder: "C:\\chemin\\vers\\workspace",
@@ -107,6 +108,7 @@ const en: Dict = {
   prototype: "Beta",
   nav: {
     dashboard: "Dashboard",
+    import: "Import a CV",
     profile: "Profile",
     experiences: "Experience",
     education: "Education",
@@ -123,7 +125,7 @@ const en: Dict = {
     "This section is planned for a later step. Nothing is simulated here: nothing is shown until the ModularCV engine is wired in.",
   dashboard: {
     title: "Dashboard",
-    subtitle: "Check that a workspace honours the facts contract, using the real Python engine.",
+    subtitle: "Create a profile, import a CV you already have, then tailor it to a job offer. Everything stays on your computer.",
     workspace: "Workspace",
     pathLabel: "Workspace folder",
     pathPlaceholder: "C:\\path\\to\\workspace",

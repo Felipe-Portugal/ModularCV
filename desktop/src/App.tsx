@@ -6,10 +6,12 @@ import AdaptPage from "./AdaptPage";
 import FactsPage from "./FactsPage";
 import DiagnosticsCard from "./DiagnosticsCard";
 import HistoryPage from "./HistoryPage";
+import ImportPage from "./ImportPage";
 import JobsPage from "./JobsPage";
 import { dictionaries, resolveLang } from "./i18n";
 import type { Dict } from "./i18n";
 import ProfilePage from "./ProfilePage";
+import { InitFolder, ProfilesCard } from "./ProfilesCard";
 import ReviewPage from "./ReviewPage";
 import SkillsPage from "./SkillsPage";
 import { strings } from "./strings";
@@ -45,6 +47,7 @@ function save(key: string, value: string) {
 
 const PAGES: { id: Page; ready: boolean }[] = [
   { id: "dashboard", ready: true },
+  { id: "import", ready: true },
   { id: "profile", ready: true },
   { id: "experiences", ready: true },
   { id: "education", ready: true },
@@ -58,6 +61,7 @@ const PAGES: { id: Page; ready: boolean }[] = [
 
 const ICONS: Record<Page, string> = {
   dashboard: "M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z",
+  import: "M12 3v12M7 10l5 5 5-5M4 19h16",
   profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6",
   experiences: "M4 7h16v13H4zM9 7V4h6v3M4 13h16",
   education: "M2 9l10-5 10 5-10 5zM6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5",
@@ -154,6 +158,17 @@ export default function App() {
     [guard],
   );
   const reload = useCallback(() => load_(workspace), [load_, workspace]);
+  /** Open a profile kept by the application; a profile just created goes straight to the import of a CV. */
+  const openProfile = useCallback(
+    (path: string, thenImport: boolean) =>
+      guard(() => {
+        dirtyKeys.current.clear();
+        setWorkspaceRaw(path);
+        save("mcv.workspace", path);
+        if (thenImport) setPage("import");
+      }),
+    [guard],
+  );
 
   const ctx: Ctx = useMemo(
     () => ({ t, m, lang, workspace, state, loading, loadError, reload, navigate, setDirty }),
@@ -161,7 +176,7 @@ export default function App() {
   );
 
   const current = PAGES.find((p) => p.id === page)!;
-  const needsWorkspace = ["profile", "experiences", "education", "skills", "offers", "adapt", "history", "review"].includes(page);
+  const needsWorkspace = ["import", "profile", "experiences", "education", "skills", "offers", "adapt", "history", "review"].includes(page);
 
   return (
     <AppCtx.Provider value={ctx}>
@@ -187,7 +202,7 @@ export default function App() {
           </header>
           <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto px-6 py-8 md:px-10">
             <div key={page} className="rise mx-auto max-w-4xl">
-              {page === "dashboard" && <Dashboard t={t} m={m} workspace={workspace} onWorkspace={changeWorkspace} state={state} loading={loading} />}
+              {page === "dashboard" && <Dashboard t={t} m={m} workspace={workspace} onWorkspace={changeWorkspace} onOpenProfile={openProfile} state={state} loading={loading} />}
               {page === "settings" && (
                 <Settings
                   t={t}
@@ -249,9 +264,11 @@ function WorkspaceGate({ page }: { page: Page }) {
       </div>
     );
   }
+  if (!state.facts.present && !state.profile.present) return <InitFolder />;
   return (
     <div className="space-y-4">
       {loading && <p role="status" className="text-xs text-ink2">{m.workspace.loading}</p>}
+      {page === "import" && <ImportPage />}
       {page === "profile" && <ProfilePage />}
       {page === "experiences" && <FactsPage group="experience" />}
       {page === "education" && <FactsPage group="education" />}
@@ -307,7 +324,7 @@ function NotImplemented({ t, title }: { t: Dict; title: string }) {
 
 type Run = { state: "idle" } | { state: "running" } | { state: "done"; result: ValidationResult } | { state: "failed"; message: string };
 
-function Dashboard({ t, m, workspace, onWorkspace, state, loading }: { t: Dict; m: Strings; workspace: string; onWorkspace: (p: string) => void; state: WorkspaceState | null; loading: boolean }) {
+function Dashboard({ t, m, workspace, onWorkspace, onOpenProfile, state, loading }: { t: Dict; m: Strings; workspace: string; onWorkspace: (p: string) => void; onOpenProfile: (path: string, thenImport: boolean) => void; state: WorkspaceState | null; loading: boolean }) {
   const [draft, setDraft] = useState(workspace);
   const [manual, setManual] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -359,8 +376,11 @@ function Dashboard({ t, m, workspace, onWorkspace, state, loading }: { t: Dict; 
     <div className="space-y-8">
       <p className="max-w-2xl text-base leading-relaxed text-ink2">{t.dashboard.subtitle}</p>
 
+      <ProfilesCard onOpen={onOpenProfile} />
+
       <section aria-labelledby="ws-title" className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-        <h2 id="ws-title" className="font-display text-lg font-semibold">{t.dashboard.workspace}</h2>
+        <h2 id="ws-title" className="font-display text-lg font-semibold">{m.onboard.advancedTitle}</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink2">{m.onboard.advancedIntro}</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button variant="primary" onClick={() => void choose()} disabled={!desktop || running}>{m.workspace.choose}</Button>
           <Button onClick={() => void useDemo("valid")} disabled={preparing || running || !desktop}>{t.dashboard.useDemo}</Button>
@@ -370,7 +390,8 @@ function Dashboard({ t, m, workspace, onWorkspace, state, loading }: { t: Dict; 
         <div className="mt-4 rounded-lg border border-line bg-bg px-3 py-2" aria-live="polite">
           <p className="text-xs uppercase tracking-wide text-ink2">{t.dashboard.pathLabel}</p>
           <p className="mt-0.5 break-all font-mono text-sm">{workspace || m.workspace.none}</p>
-          {workspace && state && <p className="mt-1 text-xs text-ink2">{loading ? m.workspace.loading : "✔ " + m.workspace.label}</p>}
+          {workspace && state && (state.facts.present || state.profile.present) && <p className="mt-1 text-xs text-ink2">{loading ? m.workspace.loading : "✔ " + m.workspace.label}</p>}
+          {workspace && state && !state.facts.present && !state.profile.present && <p className="mt-1 text-xs text-warning">{m.onboard.emptyFolderTitle}</p>}
         </div>
         <button type="button" onClick={() => setManual((v) => !v)} aria-expanded={manual} className="mt-3 cursor-pointer text-sm text-ink2 underline-offset-2 hover:underline">
           {manual ? m.workspace.manualHide : m.workspace.manual}

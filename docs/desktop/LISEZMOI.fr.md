@@ -17,7 +17,7 @@ prouve le processus, pas la valeur du candidat ni la qualité du texte.
 
 Il faut Windows 11 64 bits (Windows 10 n'a pas été testé). Python, Node.js et Rust ne sont pas nécessaires : l'application embarque son moteur.
 Il faut en revanche le **Redistributable Microsoft Visual C++ (x64) 14.44.35229 ou plus récent**. ModularCV **ne l'inclut pas** : Microsoft le distribue lui-même (https://aka.ms/vc14/vc_redist.x64.exe), vous l'installez, et son installation peut demander les **droits administrateur**. ModularCV ne le télécharge ni ne l'installe jamais. Beaucoup d'ordinateurs Windows 11 l'ont déjà ; s'il manque ou s'il est trop ancien, l'installateur puis l'application vous le disent et indiquent où le trouver. Vos espaces de travail ne sont pas touchés.
-Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont facultatifs et ne sont jamais installés par l'application.
+Git (pour lier un paquet à un commit) et MiKTeX ou TeX Live (pour produire un PDF) sont facultatifs et ne sont jamais installés par l'application.
 
 1. Une fois la bêta publiée, téléchargez `ModularCV Desktop_0.5.0-beta.1_x64-setup.exe` depuis la page **Releases** du dépôt GitHub, et nulle part ailleurs.
 2. Vérifiez l'empreinte SHA-256 avant de lancer le fichier :
@@ -43,11 +43,19 @@ Git (pour créer des paquets) et MiKTeX ou TeX Live (pour produire un PDF) sont 
 1. **Réglages** > **Diagnostic de l'environnement** : moteur, Git, LaTeX, en lecture seule et hors ligne. « Trouvé » ne veut pas dire « bien configuré ».
 2. Tableau de bord > **Espace de démonstration** : copie un exemple fictif dans `%LOCALAPPDATA%\org.modularcv.desktop\demo-workspace`. Puis **Vérifier les faits**.
 3. Parcourez le profil, les expériences, les offres. **Modifier** ouvre un formulaire.
-4. **Adapter mon CV** : matrice des exigences, plan d'adaptation, fichier `.tex` (sans LaTeX), PDF (avec `pdflatex`), paquet (avec Git).
+4. **Adapter mon CV** : matrice des exigences, plan d'adaptation, fichier `.tex` (sans LaTeX), PDF (avec `pdflatex`), paquet (dans un dépôt Git, sources commitées ; sans Git, copie des sources dans le paquet).
 5. **Vérifier mon CV** : le PDF exact, ses avertissements, le statut calculé par le moteur. Pour approuver : voir chaque page, cocher les deux
    confirmations, saisir votre nom et les 12 premiers caractères de l'empreinte du PDF, choisir Approuver ou Refuser, confirmer.
 
-Pour votre propre CV, choisissez **Choisir un dossier…** et gardez votre espace de travail **en dehors** des dossiers de données de l'application.
+Pour votre propre CV : tableau de bord > **Vos profils** > **Créer le profil**. L'application crée le dossier
+`Documents\ModularCV\Profiles\<nom du profil>` avec une base de faits vide et valide ; vous n'écrivez aucun fichier à la main.
+**Importer un CV** lit ensuite le texte d'un CV existant (PDF, `.docx`, texte ou texte collé), sur votre ordinateur, sans Internet ni IA, et
+propose des entrées à corriger. Vous cochez ce que vous confirmez et indiquez la date de confirmation : seules les entrées confirmées entrent
+dans vos CV, les autres sont gardées comme faits à confirmer. Les lignes non classées sont listées, jamais écartées en silence.
+
+Pour un espace de travail que vous gérez vous-même (un dépôt Git privé, par exemple) : **Dossier existant (avancé)** > **Choisir un dossier…**.
+Gardez tout espace de travail **en dehors** des dossiers de données de l'application. Dans un dépôt Git, un paquet demande des sources
+commitées ; sans Git (un profil géré par l'application, par exemple), le paquet garde une copie exacte des sources.
 
 ## Les statuts
 

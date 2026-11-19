@@ -344,6 +344,9 @@ function ProvenanceCard({ info }: { info: ProvenanceInfo }) {
   if (info.status === "VERIFIED") {
     return <Notice tone="success" title={m.adapt.provenance}>{m.adapt.provenanceOk} <code className="font-mono">{info.commit?.slice(0, 12)}</code></Notice>;
   }
+  if (info.status === "FROZEN") {
+    return <Notice tone="neutral" title={m.adapt.provenance}>{m.adapt.provenanceFrozen}</Notice>;
+  }
   return (
     <Notice tone="warning" title={m.adapt.provenance}>
       {m.adapt.provenanceNo}
@@ -537,7 +540,7 @@ function PackageCard({ offerFile, family, language, planFile, texFile, verified,
     <Card title={t.title}>
       <p className="text-sm leading-relaxed text-ink2">{t.intro}</p>
       <p className="mt-2 text-xs text-ink2">{t.freshPdf}</p>
-      <p className="mt-2 text-xs text-ink2">{t.needGit}</p>
+      <p className="mt-2 text-xs text-ink2">{t.sources}</p>
       {!texFile && <p className="mt-3 text-sm text-warning">{t.needTex}</p>}
       {latex?.pdflatex === "ABSENT" && <p className="mt-3 text-sm text-warning">{m.adapt.latexAbsent}</p>}
       <div className="mt-4">

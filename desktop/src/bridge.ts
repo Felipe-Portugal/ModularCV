@@ -1,10 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AdapterFailure, DemoKind, DemoWorkspace, Result, SaveOk, ValidationResult, WorkspaceState } from "./types";
+import type { AdapterFailure, DemoKind, DemoWorkspace, ManagedProfile, ProfilesList, Result, SaveOk, ValidationResult, WorkspaceState } from "./types";
 
 /**
- * Thin Rust bridge. The front end can only request the allowed `facts_check`
- * operation; it never touches a shell or a process directly. A future packaged
- * sidecar only changes the Rust side.
+ * Thin Rust bridge. The front end can only call the commands listed here, each a closed
+ * operation on the Rust side; it never touches a shell or a process directly.
  */
 export const OPERATION_FACTS_CHECK = "facts_check" as const;
 
@@ -63,9 +62,9 @@ export function adapter<T>(workspace: string, operation: string, request: Record
 }
 
 /** Native file dialog (read-only choice of a file to import). Returns null on cancel. */
-export async function pickFile(extensions: string[]): Promise<string | null> {
+export async function pickFile(extensions: string[], label = "Offer"): Promise<string | null> {
   const { open } = await import("@tauri-apps/plugin-dialog");
-  const picked = await open({ directory: false, multiple: false, filters: [{ name: "Offer", extensions }] });
+  const picked = await open({ directory: false, multiple: false, filters: [{ name: label, extensions }] });
   return typeof picked === "string" ? picked : null;
 }
 
@@ -82,4 +81,14 @@ export function openPdf(workspace: string, target: { package?: string; output?: 
 /** Read-only environment diagnostics (embedded engine, Git, provenance, LaTeX). Works without a workspace. */
 export function diagnostics(workspace?: string) {
   return guarded<import("./types").Diagnostics>(invoke("diagnostics", { workspace: workspace || null }));
+}
+
+/** The profiles the application keeps in Documents\\ModularCV\\Profiles (read-only listing). */
+export function profilesList(): Promise<ProfilesList> {
+  return invoke<ProfilesList>("profiles_list");
+}
+
+/** Creates the empty folder of a new profile; rejects with a code (PROFILE_NAME_INVALID, PROFILE_EXISTS, ...). */
+export function profileCreate(name: string): Promise<ManagedProfile> {
+  return invoke<ManagedProfile>("profile_create", { name });
 }

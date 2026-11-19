@@ -1,8 +1,8 @@
 mod engine;
 mod vcruntime;
 
-use engine::{AdapterOp, DemoWorkspace, EngineLauncher, ValidationResult};
-use std::path::Path;
+use engine::{AdapterOp, DemoWorkspace, EngineLauncher, ManagedProfile, ValidationResult};
+use std::path::{Path, PathBuf};
 use tauri::Manager;
 
 /// Runs the real engine off the UI thread. `operation` must be `facts_check`.
@@ -38,6 +38,32 @@ async fn prepare_git_demo(app: tauri::AppHandle) -> Result<DemoWorkspace, String
     let target = base.join("demo-workspace-git");
     let engine_dir = launcher(&app).engine_dir;
     tauri::async_runtime::spawn_blocking(move || engine::ensure_git_demo_workspace(&engine_dir, &target))
+        .await
+        .map_err(|_| "The task failed unexpectedly.".to_string())?
+}
+
+/// Where the application keeps the profiles it manages: `Documents\ModularCV\Profiles`. It is deliberately outside the
+/// application's own data folders, which the uninstaller may delete.
+fn profiles_base(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path().document_dir().map(|d| d.join("ModularCV").join("Profiles")).map_err(|_| "NO_DOCUMENTS_FOLDER".to_string())
+}
+
+/// The profiles folder and the profiles found in it (read-only).
+#[tauri::command]
+async fn profiles_list(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let base = profiles_base(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        serde_json::json!({"base": base.to_string_lossy(), "profiles": engine::list_profiles(&base)})
+    })
+    .await
+    .map_err(|_| "The task failed unexpectedly.".to_string())
+}
+
+/// Creates the empty folder of a new profile (never an existing one). Its files are then written by the engine adapter.
+#[tauri::command]
+async fn profile_create(app: tauri::AppHandle, name: String) -> Result<ManagedProfile, String> {
+    let base = profiles_base(&app)?;
+    tauri::async_runtime::spawn_blocking(move || engine::create_profile(&base, &name))
         .await
         .map_err(|_| "The task failed unexpectedly.".to_string())?
 }
@@ -148,7 +174,7 @@ async fn open_pdf(app: tauri::AppHandle, workspace: String, package: Option<Stri
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![validate_workspace, prepare_demo_workspace, read_workspace, save_fact, save_profile, adapter_call, reveal_in_explorer, open_pdf, diagnostics])
+        .invoke_handler(tauri::generate_handler![validate_workspace, prepare_demo_workspace, read_workspace, save_fact, save_profile, adapter_call, reveal_in_explorer, open_pdf, diagnostics, profiles_list, profile_create])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

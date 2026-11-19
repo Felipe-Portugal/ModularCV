@@ -472,6 +472,8 @@ and the core never imports one.
 - **Metadata `schema_version` "3".** Exactly the fields listed in PACKAGE.md; strictly validated (`metadata.problems`); no `generated_at`.
   Versions 1 and 2 remain readable and are never repaired; unknown versions are refused. Compatibility rule: a document of version 1 or 2 is
   judged by the M3 rules and a v2 package may not carry version 3 metadata (and the reverse).
+  **`source_provenance` (optional, additive).** `FROZEN_IN_PACKAGE`, with `source_commit: null`, for a package made in a workspace
+  without Git: the sources are copied into the package (`PROVENANCE_READINESS.md` §11). Absent: `source_commit` names a Git commit.
   **`pdf_origin` (M8-A-R2, optional, additive).** `COMPILED_FROM_VERIFIED_TEX` or `SUPPLIED_PROVENANCE_NOT_VERIFIED`; present only with a PDF.
   Absent means "not recorded". Readiness: a version 3 package with a PDF whose origin is not `COMPILED_FROM_VERIFIED_TEX` is `NEEDS_REVIEW` with
   the reason `PDF_ORIGIN_NOT_VERIFIED` (codes `PDF_ORIGIN_SUPPLIED`, `PDF_ORIGIN_NOT_RECORDED`), whatever the review says. A recorded statement

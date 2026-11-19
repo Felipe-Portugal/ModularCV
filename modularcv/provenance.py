@@ -14,6 +14,12 @@ A commit qualifies as the provenance of a generation when
 
 Historical metadata written before this check existed is never touched; see
 `inventory_placeholders` for a read-only report.
+
+A workspace that is not a Git repository has no commit to name. Its packages record
+`source_provenance: FROZEN_IN_PACKAGE` and `source_commit: null` instead, and keep an exact copy
+of every source inside the package (see `package.create` and `readiness`). The choice depends
+only on whether the workspace folder holds a repository (`workspace_is_repository`): inside a
+repository the Git contract above applies in full and is never replaced by a copy.
 """
 import json
 import os
@@ -24,6 +30,16 @@ from pathlib import Path
 from . import canonical, config, paths
 
 SHA_PATTERN = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+#: `source_provenance` of a version 3 CV metadata whose sources are copied into the package instead of named by a commit.
+FROZEN_IN_PACKAGE = "FROZEN_IN_PACKAGE"
+
+
+def workspace_is_repository(root=None) -> bool:
+    """True when the workspace folder itself holds a Git repository (a `.git` folder, or the `.git` file of a linked worktree).
+
+    Git is not run: the answer does not depend on Git being installed, so a repository whose Git is missing is still a repository
+    and its packages are refused (`GIT_UNAVAILABLE`) rather than quietly frozen."""
+    return os.path.lexists(str(config.workspace_root(root) / ".git"))
 
 
 class SourceProvenanceError(RuntimeError):

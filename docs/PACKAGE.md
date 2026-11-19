@@ -40,19 +40,25 @@ applications/<name>/cv/metadata.json         CV metadata, schema_version "3"
 applications/<name>/cv/cv-quality-review.json  written last, by a person (CVQualityReview-v2)
 packages/<name>/package.json                 ApplicationPackage-v2
 packages/<name>/provenance/source-snapshot.json   SourceSnapshot-v1
+packages/<name>/provenance/sources/...       only without Git: an exact copy of every source (facts.md, profile.json, ...)
 ```
 
 `<name>` is lowercase letters, digits, `.` and `-`. A package is never edited: to change anything, create a new one.
 
+**With or without Git.** In a workspace that is a Git repository (it holds `.git`), the sources must be committed and the metadata
+name that commit; nothing is ever committed for you. In a workspace without Git, `package create` copies every source into the package
+instead and records `source_provenance: FROZEN_IN_PACKAGE` (and `source_commit: null`). Both reach `READY_TO_SEND` the same way; see
+`docs/design/PROVENANCE_READINESS.md` §11 for what each mode proves.
+
 ## The dependency graph of the fingerprints (no cycle)
 
 ```
-facts, profile, content, taxonomy, offer      workspace sources, committed in the workspace Git repository
+facts, profile, content, taxonomy, offer      workspace sources: committed in Git, or copied into the package without Git
    └─> plan             plan_sha256, with the canonical fingerprint of every source in `inputs`
         └─> assembly    assembly_sha256
              └─> .tex   tex_sha256 (exact bytes; also depends on the paper size)
                   └─> .pdf   pdf_sha256 (exact bytes; compiled from the .tex, not reproducible)
-                       └─> metadata v3   names all of the above and the workspace commit
+                       └─> metadata v3   names all of the above and the workspace commit (or `source_provenance`)
                             └─> snapshot   path, role, hash and size of the files above
                                  └─> package.json   names the snapshot fingerprint; carries no verdict
                                       └─> review (written by a person, outside the snapshot)
@@ -84,7 +90,8 @@ verdict (for example `READY_TO_SEND`) is `BLOCKED`.
 **`SourceSnapshot-v1`** (M3, extended): two roles added, `taxonomy` (a workspace taxonomy file, when the profile names one) and
 `assembly`. A version 3 package snapshots `facts, profile, resume_content, offer, tailoring_plan, assembly, cv_tex, cv_metadata`,
 plus `taxonomy` and `cv_pdf` when they exist. Guarantees: each listed file is the one packaged (a missing, changed, substituted,
-duplicated or unsafe-path entry is reported) and each source equals its content at the recorded commit. Not guaranteed: that the
+duplicated or unsafe-path entry is reported) and each source equals its content at the recorded commit, or its copy in the package
+when the workspace has no Git. Not guaranteed: that the
 snapshot is genuine (a person who can edit the workspace can rebuild it; Git history and your own backups are the defence) and
 that files it does not list are unchanged. A built-in taxonomy is not a file: it is identified by `taxonomy_sha256`.
 
@@ -118,7 +125,8 @@ PDF, a source or artefact changed since packaging, a commit Git cannot verify). 
 states, 2 when the package cannot be read.
 
 **`READY_TO_SEND` needs all of these, re-derived on every call:** the sources present, valid and equal to the snapshot and to the commit; a
-workspace Git repository with the recorded commit in history; the facts used still `CONFIRMED` (the plan re-verifies against the current
+workspace Git repository with the recorded commit in history (or, for a package made without Git, the copy of every source in the package,
+equal to the snapshot); the facts used still `CONFIRMED` (the plan re-verifies against the current
 sources); the plan, the assembly, the `.tex` and the metadata consistent with each other and with the identity; the snapshot and
 `package.json` intact; **a PDF**, whose hash is the one in the metadata and the snapshot; an approving `CVQualityReview-v2` that names this
 identity and this exact PDF, with the same plan, assembly and `.tex` hashes and the same warnings as now; and no failing gate or
@@ -142,6 +150,7 @@ package whose chain is broken cannot be approved and loses readiness whatever a 
 | the snapshot deleted or altered | `BLOCKED` |
 | the review deleted, malformed, for another CV or another document | `NEEDS_REVIEW` (or `BLOCKED` if rejected) |
 | the workspace Git repository missing, or the commit unknown | `NEEDS_REVIEW` (`SOURCE_COMMIT_UNVERIFIABLE`) |
+| a package made without Git: a copy of a source deleted or altered | `BLOCKED` (`FROZEN_SOURCE_MISSING`, `FROZEN_SOURCE_MISMATCH`) |
 
 ## Limits that are not hidden
 

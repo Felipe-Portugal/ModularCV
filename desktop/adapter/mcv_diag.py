@@ -34,6 +34,8 @@ def _git():
 def _provenance(root, git_found):
     if root is None:
         return {"status": "NOT_CHECKED", "code": None, "reason": None}
+    if not provenance.workspace_is_repository(root):
+        return {"status": "FROZEN", "code": None, "reason": None}
     if not git_found:
         return {"status": "UNVERIFIABLE", "code": "GIT_UNAVAILABLE", "reason": None}
     try:

@@ -4,6 +4,7 @@ Nothing here adds a business rule; it only locates files inside the workspace an
 """
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -13,7 +14,7 @@ ENGINE = os.environ.get("MODULARCV_ENGINE_DIR") or str(Path(__file__).resolve().
 sys.path.insert(0, ENGINE)
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # `python -I` does not add the script folder
 
-from modularcv import canonical, config, paths  # noqa: E402
+from modularcv import canonical, config, facts, paths  # noqa: E402
 
 BOM = b"\xef\xbb\xbf"
 LOCK_NAME = ".modularcv-desktop.lock"
@@ -193,3 +194,58 @@ def ensure_dir(root, name):
 def dumps(document):
     """The JSON form the engine CLI writes (stable, sorted keys)."""
     return (json.dumps(document, indent=2, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+
+
+# --------------------------------------------------------------------------- fact file text (shared by the writers)
+
+FACT_FIELDS = ("lang", "confirmed_on", "technologies", "capabilities", "source", "supersedes", "note")
+
+
+def section_titles(text):
+    result = []
+    for number, line in enumerate(canonical.normalise_text(text).split("\n"), 1):
+        match = facts._SECTION.match(line)
+        if match:
+            title = match.group("title")
+            explicit = match.group("id")
+            result.append({"id": explicit if explicit is not None else facts.slugify(title), "title": title, "line": number})
+    return result
+
+
+def serialise(record, extensions):
+    parts = []
+    for key in FACT_FIELDS:
+        value = record.get(key)
+        if key in ("technologies", "capabilities"):
+            if value:
+                parts.append("%s: %s" % (key, ", ".join(value)))
+        elif value:
+            parts.append("%s: %s" % (key, value))
+    for key, value in sorted(extensions.items()):
+        parts.append("%s: %s" % (key, value))
+    line = "- [%s] %s: %s" % (record["id"], record["status"], record["text"])
+    return line + (" {%s}" % "; ".join(parts) if parts else "")
+
+
+def split_file(raw):
+    """(bom, eol, lines) of a facts file; refuses endings that cannot be preserved."""
+    bom = BOM if raw.startswith(BOM) else b""
+    try:
+        text = (raw[len(bom):]).decode("utf-8")
+    except UnicodeDecodeError:
+        raise Refusal("FILE_NOT_EDITABLE", "the file is not valid UTF-8")
+    crlf, lf = text.count("\r\n"), text.count("\n")
+    if text.replace("\r\n", "").count("\r"):
+        raise Refusal("FILE_NOT_EDITABLE", "the file uses lone carriage returns; it cannot be edited without altering it")
+    if crlf and crlf != lf:
+        raise Refusal("FILE_NOT_EDITABLE", "the file mixes CRLF and LF line endings; it cannot be edited without altering it")
+    eol = "\r\n" if crlf else "\n"
+    return bom, eol, text.replace("\r\n", "\n").split("\n")
+
+
+def block_end(lines, start):
+    """Index after the last continuation line of the fact starting at `start`."""
+    end = start + 1
+    while end < len(lines) and re.match(r"^ {4}\S", lines[end]):
+        end += 1
+    return end

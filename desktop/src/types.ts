@@ -44,11 +44,23 @@ export interface DemoWorkspace {
   created: boolean;
 }
 
+/** A profile kept by the application (a sub-folder of Documents\\ModularCV\\Profiles). */
+export interface ManagedProfile {
+  name: string;
+  path: string;
+  ready: boolean;
+}
+
+export interface ProfilesList {
+  base: string;
+  profiles: ManagedProfile[];
+}
+
 export type DemoKind = "valid" | "invalid" | "git";
 export type Lang = "fr" | "en";
 export type LangPref = Lang | "system";
 export type ThemePref = "system" | "light" | "dark";
-export type Page = "dashboard" | "profile" | "experiences" | "education" | "skills" | "offers" | "adapt" | "history" | "review" | "settings";
+export type Page = "dashboard" | "import" | "profile" | "experiences" | "education" | "skills" | "offers" | "adapt" | "history" | "review" | "settings";
 
 // ---- structured adapter (desktop/adapter/mcv_adapter.py) -------------------------------------
 
@@ -300,7 +312,8 @@ export interface PlanDoc {
 }
 
 export interface ProvenanceInfo {
-  status: "VERIFIED" | "UNVERIFIED";
+  /** FROZEN: no Git repository; a package copies the sources instead of naming a commit. */
+  status: "VERIFIED" | "UNVERIFIED" | "FROZEN";
   commit?: string;
   code?: string;
   reason?: string | null;
@@ -428,7 +441,7 @@ export interface PackageReview {
 export interface PackageCreated {
   ok: true;
   ready_to_send: false;
-  package: { name: string; state: string; reasons: string[]; pdf_origin: string | null; pdf_sha256: string | null; source_commit: string };
+  package: { name: string; state: string; reasons: string[]; pdf_origin: string | null; pdf_sha256: string | null; source_commit: string | null; source_provenance: "GIT_COMMIT" | "FROZEN_IN_PACKAGE" };
   next: string;
 }
 
@@ -455,7 +468,7 @@ export interface Diagnostics {
   mode: "embedded" | "development";
   engine: { status: string; version: string; python: string; embedded: boolean };
   git: { status: "FOUND" | "ABSENT"; version: string | null };
-  provenance: { status: "VERIFIED" | "UNVERIFIABLE" | "NOT_CHECKED"; code: string | null; reason: string | null };
+  provenance: { status: "VERIFIED" | "UNVERIFIABLE" | "NOT_CHECKED" | "FROZEN"; code: string | null; reason: string | null };
   latex: { pdflatex: "FOUND" | "ABSENT"; distribution: string | null; version: string | null; compile: "AVAILABLE" | "UNAVAILABLE" };
   offline: true;
 }

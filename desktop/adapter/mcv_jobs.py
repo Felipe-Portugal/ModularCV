@@ -488,10 +488,13 @@ def op_plan_read(request):
 # --------------------------------------------------------------------------- provenance (information only)
 
 def provenance_info(root, inputs, offer_file):
-    """Whether the sources match a verifiable commit of the workspace repository.
+    """Whether the sources match a verifiable commit of the workspace repository (`FROZEN` when there is no repository).
 
     Plans, assemblies and `.tex` files do not need it. A package (a later step) does: this is why it is shown. Nothing is
     ever committed here."""
+    if not provenance.workspace_is_repository(root):
+        # No Git repository: a package will hold an exact copy of the sources instead of naming a commit.
+        return {"status": "FROZEN"}
     names = [relative_posix(root, p) for p in inputs["files"].values()] + [relative_posix(root, offer_file)]
     try:
         commit = provenance.resolve_source_commit(root, names)

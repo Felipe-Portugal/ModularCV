@@ -18,7 +18,7 @@ A `.tex` file alone is never `READY_TO_SEND`. The document that can be approved 
 ## What `READY_TO_SEND` requires
 
 All of these, re-derived on every check: your source files are present, valid and still equal to what was frozen in the package and to the
-Git commit; the facts used are still confirmed; the plan, the `.tex` and the metadata agree with each other; the PDF is the one the package
+Git commit (or, in a workspace without Git, to the copy kept in the package); the facts used are still confirmed; the plan, the `.tex` and the metadata agree with each other; the PDF is the one the package
 recorded; the PDF was produced by compiling the package's own `.tex` (a PDF supplied from elsewhere can never reach `READY_TO_SEND`); and an
 approval file names this exact PDF.
 

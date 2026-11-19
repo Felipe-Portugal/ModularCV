@@ -61,9 +61,10 @@ export default function DiagnosticsCard() {
           </Row>
           <Row
             label={t.provenance}
-            tone={d.provenance.status === "VERIFIED" ? "success" : d.provenance.status === "NOT_CHECKED" ? "neutral" : "warning"}
-            status={d.provenance.status === "VERIFIED" ? t.provenanceVerified : d.provenance.status === "NOT_CHECKED" ? t.provenanceNone : t.provenanceNo}
+            tone={d.provenance.status === "VERIFIED" ? "success" : d.provenance.status === "NOT_CHECKED" || d.provenance.status === "FROZEN" ? "neutral" : "warning"}
+            status={d.provenance.status === "VERIFIED" ? t.provenanceVerified : d.provenance.status === "NOT_CHECKED" ? t.provenanceNone : d.provenance.status === "FROZEN" ? t.provenanceFrozen : t.provenanceNo}
           >
+            {d.provenance.status === "FROZEN" && t.provenanceFrozenBody}
             {d.provenance.code && (
               <>
                 {t.provenanceText[d.provenance.code] ?? ""} <code className="font-mono text-xs">{d.provenance.code}</code>
