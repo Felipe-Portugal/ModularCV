@@ -5,6 +5,7 @@ import { SELECTED_PACKAGE_KEY, approveCommand, confirmationPrefix, explain, form
 import { Button, Card, ConfirmDialog, FailureNotice, Notice, Pill, inputCls } from "./ui";
 import type { ViewerInfo } from "./PdfViewer";
 import type { AdapterFailure, ApprovalDone, PackageReview, PackagesList } from "./types";
+import { plural } from "./view";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));
 
@@ -119,7 +120,7 @@ export default function ReviewPage() {
 }
 
 function ReviewBody({ review, workspace, refreshKey, outcome, onDecided, onReload }: { review: PackageReview; workspace: string; refreshKey: number; outcome: ApprovalDone | null; onDecided: (o: ApprovalDone) => void; onReload: () => void }) {
-  const { m } = useApp();
+  const { m, lang } = useApp();
   const t = m.review;
   const s = review.summary;
   const state = review.status;
@@ -191,7 +192,7 @@ function ReviewBody({ review, workspace, refreshKey, outcome, onDecided, onReloa
           <dd><Pill>{s.language}</Pill></dd>
           <dt className="text-ink2">{t.pagination}</dt>
           <dd className="flex flex-wrap items-center gap-2">
-            <span className="tabular-nums">{(doc.page_target == null ? t.noTarget : t.pagesOf).replace("{pages}", String(doc.pages ?? "?")).replace("{target}", String(doc.page_target ?? ""))}</span>
+            <span className="tabular-nums">{plural(lang, doc.pages, doc.page_target == null ? t.noTarget : t.pagesOf).replace("{target}", String(doc.page_target ?? ""))}</span>
             <Pill tone={doc.page_verdict === "TARGET_EXCEEDED" ? "warning" : doc.page_verdict === "TARGET_MET" ? "success" : "neutral"}>{t.pageVerdict[doc.page_verdict] ?? doc.page_verdict}</Pill>
           </dd>
           <dt className="text-ink2">{t.origin}</dt>

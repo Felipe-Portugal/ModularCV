@@ -220,11 +220,13 @@ def test_required_unsatisfied_stay_visible_in_plan(ws):
 def test_plan_written_once_and_new_name_on_request(ws):
     first = call(op="plan", root=str(ws), offer_file="backend-intern.json", write=True)
     name = first["written"]["file"]
+    assert first["written"]["renamed"] is False
     content = (ws / "plans" / name).read_bytes()
     clash = call(op="plan", root=str(ws), offer_file="backend-intern.json", write=True)
     assert clash["code"] == "OUTPUT_EXISTS" and (ws / "plans" / name).read_bytes() == content
     second = call(op="plan", root=str(ws), offer_file="backend-intern.json", write=True, on_exists="new_name")
     assert second["written"]["file"] != name and (ws / "plans" / name).read_bytes() == content
+    assert second["written"]["renamed"] is True
     assert {p["file"] for p in call(op="plans_list", root=str(ws))["plans"]} == {name, second["written"]["file"]}
 
 

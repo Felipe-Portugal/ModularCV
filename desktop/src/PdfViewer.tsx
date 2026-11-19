@@ -6,6 +6,7 @@ import { useApp } from "./ctx";
 import { base64ToBytes, clampPage, clampZoom, formatBytes, sha256Hex } from "./packages";
 import { Button, FailureNotice, Notice } from "./ui";
 import type { AdapterFailure, PdfRead } from "./types";
+import { plural } from "./view";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -27,7 +28,7 @@ export interface ViewerInfo {
 }
 
 export default function PdfViewer({ target, exact, refreshKey = 0, onLoaded, onPageShown }: { target: PdfTarget; exact: "package" | "output"; refreshKey?: number; onLoaded?: (info: ViewerInfo | null) => void; onPageShown?: (page: number) => void }) {
-  const { m, workspace } = useApp();
+  const { m, workspace, lang } = useApp();
   const t = m.preview;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [failure, setFailure] = useState<AdapterFailure | null>(null);
@@ -230,7 +231,7 @@ export default function PdfViewer({ target, exact, refreshKey = 0, onLoaded, onP
           <Button variant="ghost" onClick={() => void copyHash()}>{copied ? t.copied : t.copy}</Button>
         </dd>
         <dt className="text-ink2">{t.size}</dt>
-        <dd className="tabular-nums">{formatBytes(loaded.info.bytes)} · {pages} {t.pages}</dd>
+        <dd className="tabular-nums">{formatBytes(loaded.info.bytes)} · {plural(lang, pages, t.pages)}</dd>
       </dl>
       {match ? (
         <p className="text-xs text-ink2">✔ {t.hashMatch}</p>

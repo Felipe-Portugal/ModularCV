@@ -146,7 +146,7 @@ const fr = {
     confirmNeeded: "Cochez la case et saisissez la date pour enregistrer un fait confirmé.",
     newTitle: "Nouveau fait",
     createdStatus: "Un nouveau fait est créé comme non confirmé tant que vous n'avez pas pris la décision de confirmation.",
-    countOf: "faits",
+    countOf: "{n} fait|{n} faits",
   },
   skills: {
     fromContent: "Compétences du CV (ResumeContent)",
@@ -304,7 +304,7 @@ const en: Base = {
     confirmNeeded: "Tick the box and enter the date to save a confirmed fact.",
     newTitle: "New fact",
     createdStatus: "A new fact is created as not confirmed until you take the confirmation decision.",
-    countOf: "facts",
+    countOf: "{n} fact|{n} facts",
   },
   skills: {
     fromContent: "CV skills (ResumeContent)",

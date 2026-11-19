@@ -16,10 +16,6 @@ const fr = {
     review: "Vérifier mon CV",
     settings: "Réglages",
   },
-  soon: "Bientôt",
-  notImplemented: "Pas encore implémenté",
-  notImplementedBody:
-    "Cette section est prévue dans une prochaine étape. Aucune donnée n'est simulée ici : rien ne s'affiche tant que le moteur ModularCV n'est pas branché.",
   dashboard: {
     title: "Tableau de bord",
     subtitle: "Créez un profil, importez un CV que vous avez déjà, puis adaptez-le à une offre. Tout reste sur votre ordinateur.",
@@ -119,10 +115,6 @@ const en: Dict = {
     review: "Review my CV",
     settings: "Settings",
   },
-  soon: "Soon",
-  notImplemented: "Not implemented yet",
-  notImplementedBody:
-    "This section is planned for a later step. Nothing is simulated here: nothing is shown until the ModularCV engine is wired in.",
   dashboard: {
     title: "Dashboard",
     subtitle: "Create a profile, import a CV you already have, then tailor it to a job offer. Everything stays on your computer.",

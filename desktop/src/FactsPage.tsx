@@ -5,6 +5,7 @@ import { emptyFactForm, factFormChanged, factRequest, factToForm, needsConfirmat
 import type { FactForm } from "./forms";
 import { Button, Card, FailureNotice, Field, Notice, Pill, ProblemList, StatusPill, inputCls } from "./ui";
 import type { AdapterFailure, FactRec, FactStatus, Problem, SectionRec } from "./types";
+import { plural } from "./view";
 
 type Group = "experience" | "education" | "skills";
 const STATUSES: FactStatus[] = ["NOT_CONFIRMED", "DERIVED", "CONFIRMED", "WITHDRAWN"];
@@ -30,7 +31,7 @@ export default function FactsPage({ group }: { group: Group }) {
 }
 
 export function FactList({ group }: { group: Group }) {
-  const { m, state, setDirty } = useApp();
+  const { m, state, setDirty, lang } = useApp();
   const facts = state!.facts;
   const [editing, setEditing] = useState<string | null>(null); // fact id, or "+new"
   const [flash, setFlash] = useState<Problem[] | null>(null);
@@ -52,7 +53,7 @@ export function FactList({ group }: { group: Group }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-ink2">
-          {mine.length} {m.facts.countOf}
+          {plural(lang, mine.length, m.facts.countOf)}
         </p>
         {editing === null && (
           <Button variant="primary" onClick={() => setEditing("+new")} disabled={!candidates.length}>

@@ -45,18 +45,18 @@ function save(key: string, value: string) {
   }
 }
 
-const PAGES: { id: Page; ready: boolean }[] = [
-  { id: "dashboard", ready: true },
-  { id: "import", ready: true },
-  { id: "profile", ready: true },
-  { id: "experiences", ready: true },
-  { id: "education", ready: true },
-  { id: "skills", ready: true },
-  { id: "offers", ready: true },
-  { id: "adapt", ready: true },
-  { id: "history", ready: true },
-  { id: "review", ready: true },
-  { id: "settings", ready: true },
+const PAGES: Page[] = [
+  "dashboard",
+  "import",
+  "profile",
+  "experiences",
+  "education",
+  "skills",
+  "offers",
+  "adapt",
+  "history",
+  "review",
+  "settings",
 ];
 
 const ICONS: Record<Page, string> = {
@@ -175,7 +175,6 @@ export default function App() {
     [t, m, lang, workspace, state, loading, loadError, reload, navigate, setDirty],
   );
 
-  const current = PAGES.find((p) => p.id === page)!;
   const needsWorkspace = ["import", "profile", "experiences", "education", "skills", "offers", "adapt", "history", "review"].includes(page);
 
   return (
@@ -213,7 +212,6 @@ export default function App() {
                 />
               )}
               {needsWorkspace && <WorkspaceGate page={page} />}
-              {!current.ready && <NotImplemented t={t} title={t.nav[page]} />}
             </div>
           </main>
         </div>
@@ -289,36 +287,25 @@ function Sidebar({ t, page, onNavigate }: { t: Dict; page: Page; onNavigate: (p:
         <span aria-hidden="true" className="grid size-8 place-items-center rounded-lg bg-accent font-display text-sm font-bold text-accentink">M</span>
         <span className="font-display text-base font-semibold tracking-tight">ModularCV</span>
       </div>
-      {PAGES.map((p) => (
+      {PAGES.map((id) => (
         <button
-          key={p.id}
+          key={id}
           type="button"
-          aria-current={page === p.id ? "page" : undefined}
-          onClick={() => onNavigate(p.id)}
+          aria-current={page === id ? "page" : undefined}
+          onClick={() => onNavigate(id)}
           className={
             "flex shrink-0 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors " +
-            (page === p.id ? "bg-surface2 font-medium text-ink" : "text-ink2 hover:bg-surface2 hover:text-ink") +
-            (p.id === "settings" ? " md:mt-auto" : "") +
-            (p.id === "offers" ? " md:mt-3" : "") +
-            (p.id === "history" ? " md:mt-3" : "")
+            (page === id ? "bg-surface2 font-medium text-ink" : "text-ink2 hover:bg-surface2 hover:text-ink") +
+            (id === "settings" ? " md:mt-auto" : "") +
+            (id === "offers" ? " md:mt-3" : "") +
+            (id === "history" ? " md:mt-3" : "")
           }
         >
-          <Icon page={p.id} />
-          <span className="whitespace-nowrap">{t.nav[p.id]}</span>
-          {!p.ready && <span className="ml-auto hidden rounded bg-surface2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink2 md:inline">{t.soon}</span>}
+          <Icon page={id} />
+          <span className="whitespace-nowrap">{t.nav[id]}</span>
         </button>
       ))}
     </nav>
-  );
-}
-
-function NotImplemented({ t, title }: { t: Dict; title: string }) {
-  return (
-    <section className="rounded-2xl border border-dashed border-line p-10 text-center">
-      <h2 className="font-display text-xl font-semibold">{title}</h2>
-      <p className="mt-1 text-sm font-medium text-warning">{t.notImplemented}</p>
-      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink2">{t.notImplementedBody}</p>
-    </section>
   );
 }
 

@@ -25,6 +25,16 @@ and had no tag or release before `v0.2.0`. The differences with that internal st
   uncommitted sources are still refused, and a copy never replaces a failing commit check.
 - Fixed: the offer identifier proposed from a title such as "Example inc. (fictional)" was refused by the engine.
 - Fixed: an empty folder was shown as a valid workspace on the dashboard.
+- Fixed: the requirement matrix, the plan and the skills page showed the `**bold**` and `_italic_` markers of the user's lines instead
+  of rendering them.
+- Fixed: saving a plan could say that a plan with this name already existed when it did not; the adapter now reports whether it renamed
+  the file.
+- Fixed: engine codes (selection and omission reasons, plan and render warnings, `NOT_REVIEWED`, requirement identifiers) were shown raw;
+  they are now sentences in French and English, with the code kept on hover. A requirement forbidden by a fact no longer shows
+  `[object Object]`, and the internal English limit line under the plan is gone.
+- Fixed: counts are pluralised ("1 fait", "2 pages") instead of "1 faits" or "page(s)".
+- Fixed: the history page said "no PDF generated" while it was still loading.
+- Removed: the unused "not implemented" placeholder and its strings.
 
 ### ModularCV Desktop 0.5.0-beta.1 (prepared, not yet published)
 

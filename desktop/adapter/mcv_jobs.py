@@ -439,11 +439,11 @@ def op_plan(request):
            "provenance": provenance_info(root, inputs, offer_file), "written": None}
     if request.get("write") is True:
         folder = ensure_dir(root, PLANS_DIR)
-        base = _base_name(request, "%s.%s.%s" % (offer.job_key, result["family"], language))
-        base = _free_name(folder, base, (".json",), request.get("on_exists"))
+        wanted = _base_name(request, "%s.%s.%s" % (offer.job_key, result["family"], language))
+        base = _free_name(folder, wanted, (".json",), request.get("on_exists"))
         data = dumps(result)
         create_new(folder / (base + ".json"), data, root)
-        out["written"] = {"file": base + ".json", "sha256": canonical.sha256_text(data)}
+        out["written"] = {"file": base + ".json", "sha256": canonical.sha256_text(data), "renamed": base != wanted}
     return out
 
 

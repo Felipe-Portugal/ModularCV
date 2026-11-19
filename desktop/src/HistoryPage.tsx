@@ -4,14 +4,15 @@ import { useApp } from "./ctx";
 import { SELECTED_PACKAGE_KEY, explain, verdictTone } from "./packages";
 import { Button, Card, FailureNotice, Notice, Pill } from "./ui";
 import type { AdapterFailure, OutputsList, PackageRow, PackagesList } from "./types";
+import { plural } from "./view";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));
 
 export default function HistoryPage() {
-  const { m, workspace, navigate } = useApp();
+  const { m, workspace, navigate, lang } = useApp();
   const t = m.history;
   const [list, setList] = useState<PackagesList | null>(null);
-  const [outputs, setOutputs] = useState<OutputsList["files"]>([]);
+  const [outputs, setOutputs] = useState<OutputsList["files"] | null>(null);
   const [failure, setFailure] = useState<AdapterFailure | null>(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export default function HistoryPage() {
     setBusy(false);
     if (!res.ok) return setFailure(res);
     setList(res);
-    if (out.ok) setOutputs(out.files.filter((f) => f.kind === "pdf"));
+    setOutputs(out.ok ? out.files.filter((f) => f.kind === "pdf") : []);
   }, [workspace]);
 
   // statuses are recomputed by the engine each time the page opens
@@ -45,7 +46,7 @@ export default function HistoryPage() {
       <p className="max-w-2xl text-base leading-relaxed text-ink2">{t.intro}</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={() => void load()} disabled={busy}>{busy ? t.refreshing : t.refresh}</Button>
-        {list && <span className="text-sm text-ink2">{t.count.replace("{n}", String(list.total))}</span>}
+        {list && <span className="text-sm text-ink2">{plural(lang, list.total, t.count)}</span>}
       </div>
       {failure && <FailureNotice failure={failure} />}
       {!list && !failure && <p role="status" className="text-sm text-ink2">{m.workspace.loading}</p>}
@@ -68,7 +69,9 @@ export default function HistoryPage() {
 
       <Card title={t.outputsTitle}>
         <p className="text-sm text-ink2">{t.outputsBody}</p>
-        {outputs.length === 0 ? (
+        {outputs === null ? (
+          <p role="status" className="mt-3 text-sm text-ink2">{m.workspace.loading}</p>
+        ) : outputs.length === 0 ? (
           <p className="mt-3 text-sm text-ink2">{t.outputsNone}</p>
         ) : (
           <ul className="mt-3 space-y-3">
@@ -102,7 +105,7 @@ export default function HistoryPage() {
 }
 
 function PackageCard({ row, onOpen }: { row: PackageRow; onOpen: () => void }) {
-  const { m, workspace } = useApp();
+  const { m, workspace, lang } = useApp();
   const t = m.history;
   const [openError, setOpenError] = useState<string | null>(null);
   if (!row.readable) {
@@ -127,7 +130,7 @@ function PackageCard({ row, onOpen }: { row: PackageRow; onOpen: () => void }) {
           <Pill>{row.family}</Pill>
           <Pill>{row.language}</Pill>
           {row.document?.available ? (
-            <Pill tone="success">{t.pdfAvailable}{row.document.pages != null ? ` · ${row.document.pages} ${t.pagesLabel}` : ""}</Pill>
+            <Pill tone="success">{t.pdfAvailable}{row.document.pages != null ? ` · ${plural(lang, row.document.pages, t.pagesLabel)}` : ""}</Pill>
           ) : (
             <Pill tone="warning">{t.pdfAbsent}</Pill>
           )}
@@ -137,7 +140,7 @@ function PackageCard({ row, onOpen }: { row: PackageRow; onOpen: () => void }) {
       {reasons.length > 0 && (
         <p className="mt-2 text-sm text-ink2">
           {explain(m.review.reasonText, reasons[0], reasons[0])}
-          {reasons.length > 1 && <span className="text-xs"> {t.reasonMore.replace("{n}", String(reasons.length - 1))}</span>}
+          {reasons.length > 1 && <span className="text-xs"> {plural(lang, reasons.length - 1, t.reasonMore)}</span>}
         </p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">

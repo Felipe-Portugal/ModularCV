@@ -277,7 +277,7 @@ export interface MatrixRow {
   priority: Priority;
   state: MatrixState;
   reasons: string[];
-  forbidden_by: string[];
+  forbidden_by: ({ kind: "profile_term" } | { kind: "fact"; id: string; status: string })[];
   evidence: Evidence[];
   sources: string[];
   weight: number;
@@ -327,7 +327,7 @@ export interface PlanResult {
   matrix: Matrix;
   texts: Record<string, string | null>;
   provenance: ProvenanceInfo;
-  written: { file: string; sha256: string } | null;
+  written: { file: string; sha256: string; renamed: boolean } | null;
 }
 
 export interface MatrixResult {

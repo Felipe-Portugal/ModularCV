@@ -5,8 +5,9 @@ import { useApp } from "./ctx";
 import { SELECTED_OFFER_KEY } from "./JobsPage";
 import { countByState, requiredGaps, rowLabel, sortRows } from "./offers";
 import { SELECTED_PACKAGE_KEY, looksLikePackageName, suggestPackageName } from "./packages";
-import { Button, Card, FailureNotice, Field, Notice, Pill, ProblemList, inputCls } from "./ui";
+import { Button, Card, FailureNotice, Field, InlineText, Notice, Pill, ProblemList, inputCls } from "./ui";
 import type { AdaptOptions, AdapterFailure, AssembleResult, LatexStatus, MatrixResult, MatrixRow, MatrixState, OffersList, PackageCreated, PlanResult, ProvenanceInfo, RenderReport } from "./types";
+import { plural } from "./view";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));
 
@@ -106,8 +107,7 @@ export default function AdaptPage() {
     if (!res.ok) return setFailure(res);
     setPlan(res);
     if (write && res.written) {
-      const expected = `${offerFile.replace(/\.json$/, "")}.${family}.${language}.json`;
-      setSaved({ file: res.written.file, renamed: res.written.file !== expected });
+      setSaved({ file: res.written.file, renamed: res.written.renamed });
       setStep(3);
     } else {
       setStep(2);
@@ -263,14 +263,14 @@ function RequirementCard({ row, texts }: { row: MatrixRow; texts: Record<string,
           {row.reasons.map((r) => <li key={r} className="text-ink2">• {m.adapt.reasons[r] ?? r}</li>)}
         </ul>
       )}
-      {row.forbidden_by.length > 0 && <p className="mt-2 text-sm text-danger">{m.adapt.forbiddenBy}: {row.forbidden_by.join(", ")}</p>}
+      {row.forbidden_by.length > 0 && <p className="mt-2 text-sm text-danger">{m.adapt.forbiddenBy} {row.forbidden_by.map((b) => (b.kind === "fact" ? m.adapt.forbiddenByFact.replace("{id}", b.id) : m.adapt.forbiddenByProfile)).join(", ")}</p>}
       {row.evidence.length > 0 && (
         <div className="mt-3 border-t border-line pt-3">
           <p className="text-xs uppercase tracking-wide text-ink2">{m.adapt.evidence}</p>
           <ul className="mt-1.5 space-y-1.5">
             {row.evidence.map((e) => (
               <li key={e.type + e.id} className="text-sm">
-                <span className={e.relation === "ADJACENT" ? "text-warning" : ""}>{texts[`${e.type}:${e.id}`] ?? e.id}</span>
+                <span className={e.relation === "ADJACENT" ? "text-warning" : ""}><CvText text={texts[`${e.type}:${e.id}`]} fallback={e.id} /></span>
                 {e.via && <span className="text-xs text-ink2"> · {m.adapt.via} {e.via}</span>}
                 <code className="ml-2 font-mono text-xs text-ink2">{e.facts.join(", ")}</code>
               </li>
@@ -282,12 +282,21 @@ function RequirementCard({ row, texts }: { row: MatrixRow; texts: Record<string,
   );
 }
 
+/** The user's own line with its emphasis rendered; the identifier when the line has no text in this language. */
+function CvText({ text, fallback }: { text: string | null | undefined; fallback: string }) {
+  return text ? <InlineText text={text} /> : <>{fallback}</>;
+}
+
 // ---------------------------------------------------------------- plan
 
 function PlanView({ plan }: { plan: PlanResult }) {
   const { m } = useApp();
   const p = plan.plan;
-  const label = (type: string, id: string) => plan.texts[`${type}:${id}`] ?? id;
+  const requirementLabel = (id: string) => {
+    const row = plan.matrix.requirements.find((r) => r.id === id);
+    return row ? rowLabel(row) : id;
+  };
+  const warningCodes = [...new Set(p.warnings.map((w) => w.code))];
   const selected = [
     ...p.selected.blocks.map((b) => ({ type: "block", id: b.id, reason: b.reason })),
     ...p.selected.bullets.map((b) => ({ type: "bullet", id: b.id, reason: b.reason ?? "SELECTED" })),
@@ -301,7 +310,7 @@ function PlanView({ plan }: { plan: PlanResult }) {
         <Notice tone="warning" title={`${m.adapt.gapsTitle} (${p.unsatisfied_required.length})`}>
           {m.adapt.gapsBody}
           <ul className="mt-2 flex flex-wrap gap-1.5">
-            {p.unsatisfied_required.map((u) => <li key={u.id}><Pill tone={STATE_TONE[u.state]}>{u.id} · {m.adapt.states[u.state]}</Pill></li>)}
+            {p.unsatisfied_required.map((u) => <li key={u.id}><Pill tone={STATE_TONE[u.state]}>{requirementLabel(u.id)} · {m.adapt.states[u.state]}</Pill></li>)}
           </ul>
         </Notice>
       )}
@@ -311,8 +320,8 @@ function PlanView({ plan }: { plan: PlanResult }) {
           <ul className="space-y-2.5">
             {selected.map((s) => (
               <li key={s.type + s.id} className="text-sm">
-                <p>{label(s.type, s.id)}</p>
-                <p className="text-xs text-ink2"><code className="font-mono">{s.type}:{s.id}</code> · {m.adapt.selectionReasons[s.reason] ?? s.reason}</p>
+                <p><CvText text={plan.texts[`${s.type}:${s.id}`]} fallback={s.id} /></p>
+                <p className="text-xs text-ink2" title={`${s.type}:${s.id}`}>{m.adapt.itemType[s.type] ?? s.type} · {m.adapt.selectionReasons[s.reason] ?? s.reason}</p>
               </li>
             ))}
           </ul>
@@ -322,20 +331,27 @@ function PlanView({ plan }: { plan: PlanResult }) {
           <ul className="space-y-2.5">
             {p.omitted.map((o) => (
               <li key={o.type + o.id} className="text-sm">
-                <p className="text-ink2">{label(o.type, o.id)}</p>
-                <p className="text-xs text-ink2"><code className="font-mono">{o.type}:{o.id}</code> · {m.adapt.omitReasons[o.reason] ?? o.reason}</p>
+                <p className="text-ink2"><CvText text={plan.texts[`${o.type}:${o.id}`]} fallback={o.id} /></p>
+                <p className="text-xs text-ink2" title={`${o.type}:${o.id}`}>{m.adapt.itemType[o.type] ?? o.type} · {m.adapt.omitReasons[o.reason] ?? o.reason}</p>
               </li>
             ))}
           </ul>
         </Card>
       </div>
-      {p.warnings.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5">
-          {p.warnings.map((w) => <li key={w.code}><Pill tone="warning">{w.code}</Pill></li>)}
-        </ul>
-      )}
-      <p className="text-xs text-ink2">{p.limits[p.limits.length - 2]}</p>
+      {warningCodes.length > 0 && <WarningList codes={warningCodes} />}
     </div>
+  );
+}
+
+/** Engine warnings as sentences; the code stays available on hover. */
+function WarningList({ codes }: { codes: string[] }) {
+  const { m } = useApp();
+  return (
+    <ul className="space-y-1 text-sm">
+      {codes.map((code) => (
+        <li key={code} className="text-warning" title={code}>• {m.review.warningText[code] ?? code}</li>
+      ))}
+    </ul>
   );
 }
 
@@ -458,7 +474,7 @@ function OutputsFolder() {
 }
 
 function ReportCard({ report }: { report: RenderReport }) {
-  const { m, workspace } = useApp();
+  const { m, workspace, lang } = useApp();
   const pdf = report.pdf;
   const [showPreview, setShowPreview] = useState(false);
   const outputBase = pdf.file ? pdf.file.replace(/^out\//, "").replace(/\.pdf$/, "") : null;
@@ -475,7 +491,7 @@ function ReportCard({ report }: { report: RenderReport }) {
         <li className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm font-medium">{m.adapt.pdfLabel}</p>
-            {pdf.status === "COMPILED" && <code className="font-mono text-xs text-ink2">{pdf.file} · {pdf.pages} {m.adapt.pages}</code>}
+            {pdf.status === "COMPILED" && <code className="font-mono text-xs text-ink2">{pdf.file} · {plural(lang, pdf.pages, m.adapt.pages)}</code>}
             {pdf.status === "UNAVAILABLE" && <p className="text-sm text-warning">{m.adapt.latexAbsent}</p>}
             {pdf.status === "FAILED" && <p className="text-sm text-danger">{m.adapt.pdfFailed} {pdf.message}</p>}
             {pdf.status === "NOT_REQUESTED" && <p className="text-xs text-ink2">—</p>}
@@ -497,9 +513,9 @@ function ReportCard({ report }: { report: RenderReport }) {
       )}
       <div className="mt-4 flex flex-wrap gap-1.5">
         {report.layout.pages != null && <Pill tone={report.layout.page_verdict === "TARGET_EXCEEDED" ? "warning" : "success"}>{m.adapt.pageVerdict[report.layout.page_verdict] ?? report.layout.page_verdict}</Pill>}
-        <Pill>NOT_REVIEWED</Pill>
-        {report.warnings.map((w) => <Pill key={w} tone="warning">{w}</Pill>)}
+        <Pill>{m.adapt.notReviewed}</Pill>
       </div>
+      {report.warnings.length > 0 && <div className="mt-3"><WarningList codes={[...new Set(report.warnings)]} /></div>}
       <p className="mt-3 text-sm text-ink2">{m.adapt.notReady}</p>
       {report.pending_directives > 0 && <ProblemList items={[]} />}
     </Card>

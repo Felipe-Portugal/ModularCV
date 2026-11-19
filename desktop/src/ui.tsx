@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { failureText, useApp } from "./ctx";
 import type { AdapterFailure, FactStatus, Problem, Visibility } from "./types";
+import { inlineSpans } from "./view";
 
 const TONES = {
   success: "border-success/40 bg-successbg text-success",
@@ -148,5 +149,19 @@ export function ConfirmDialog({ title, body, confirmLabel, cancelLabel, onConfir
         </div>
       </div>
     </div>
+  );
+}
+
+/** A user's own CV text with its `**bold**` and `_italic_` markup rendered, never shown as raw markers. */
+export function InlineText({ text }: { text: string }) {
+  const spans = inlineSpans(text);
+  if (!spans) return <>{text}</>;
+  return (
+    <>
+      {spans.map((s, i) => {
+        const inner = s.italic ? <em>{s.text}</em> : s.text;
+        return s.bold ? <strong key={i} className="font-semibold">{inner}</strong> : <span key={i}>{inner}</span>;
+      })}
+    </>
   );
 }

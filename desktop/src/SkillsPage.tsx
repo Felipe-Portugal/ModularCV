@@ -1,6 +1,6 @@
 import { pickText, useApp } from "./ctx";
 import { FactList } from "./FactsPage";
-import { Card, Notice, Pill, ProblemList, StatusPill } from "./ui";
+import { Card, InlineText, Notice, Pill, ProblemList, StatusPill } from "./ui";
 
 export default function SkillsPage() {
   const { m, lang, state } = useApp();
@@ -38,7 +38,7 @@ export default function SkillsPage() {
                   return (
                     <li key={item.id} className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium">{pickText(item.text, lang)}</p>
+                        <p className="font-medium"><InlineText text={pickText(item.text, lang)} /></p>
                         <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-ink2">
                           {m.skills.supports}:
                           {item.supports.length === 0 && <span>{m.skills.unsupported}</span>}

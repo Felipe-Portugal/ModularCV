@@ -5,6 +5,7 @@ import { EMPLOYMENT, emptyOfferForm, missingRequired, offerChanged, offerCreateR
 import type { OfferForm } from "./offers";
 import { Button, Card, ConfirmDialog, FailureNotice, Field, Notice, Pill, ProblemList, inputCls } from "./ui";
 import type { AdapterFailure, OfferImported, OfferRead, OfferSaved, OfferSummary, OffersList } from "./types";
+import { plural } from "./view";
 
 type View =
   | { mode: "list" }
@@ -126,7 +127,7 @@ export default function JobsPage() {
 }
 
 function OfferCard({ offer, onOpen, onAnalyse }: { offer: OfferSummary; onOpen: () => void; onAnalyse: () => void }) {
-  const { m } = useApp();
+  const { m, lang } = useApp();
   return (
     <li className="rise flex flex-col rounded-2xl border border-line bg-surface p-5">
       <div className="min-w-0 flex-1">
@@ -137,7 +138,7 @@ function OfferCard({ offer, onOpen, onAnalyse }: { offer: OfferSummary; onOpen: 
           {offer.language && <Pill>{m.jobs.languages[offer.language] ?? offer.language}</Pill>}
           {offer.employment_type && offer.employment_type !== "UNSPECIFIED" && <Pill>{m.jobs.employment[offer.employment_type] ?? offer.employment_type}</Pill>}
           {offer.description_chars != null && <Pill>{offer.description_chars} {m.jobs.chars}</Pill>}
-          {!!offer.requirements && <Pill>{offer.requirements} {m.jobs.requirementsCount}</Pill>}
+          {!!offer.requirements && <Pill>{plural(lang, offer.requirements, m.jobs.requirementsCount)}</Pill>}
         </div>
         {!offer.valid && <ProblemList items={offer.errors} />}
       </div>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dictionaries, resolveLang } from "./i18n";
 import type { Outcome, ValidationResult } from "./types";
-import { isSuccess, shortHash, toneOf } from "./view";
+import { inlineSpans, isSuccess, plural, shortHash, toneOf } from "./view";
 
 const base: ValidationResult = {
   outcome: "valid",
@@ -57,5 +57,36 @@ describe("i18n", () => {
   it("shortens hashes", () => {
     expect(shortHash(null)).toBe("—");
     expect(shortHash("a".repeat(64))).toBe("aaaaaaaa…aaaaaa");
+  });
+});
+
+describe("inlineSpans", () => {
+  it("renders bold and italic like the engine", () => {
+    expect(inlineSpans("Built REST endpoints in **Python** for an _internal_ tool.")).toEqual([
+      { text: "Built REST endpoints in ", bold: false, italic: false },
+      { text: "Python", bold: true, italic: false },
+      { text: " for an ", bold: false, italic: false },
+      { text: "internal", bold: false, italic: true },
+      { text: " tool.", bold: false, italic: false },
+    ]);
+  });
+  it("keeps an underscore inside a word as text", () => {
+    expect(inlineSpans("used snake_case names")).toEqual([{ text: "used snake_case names", bold: false, italic: false }]);
+  });
+  it("refuses an open marker so the raw text is shown", () => {
+    expect(inlineSpans("**Python is open")).toBeNull();
+  });
+});
+
+describe("plural", () => {
+  it("uses the singular for 0 and 1 in French and only for 1 in English", () => {
+    expect(plural("fr", 0, "{n} fait|{n} faits")).toBe("0 fait");
+    expect(plural("fr", 1, "{n} fait|{n} faits")).toBe("1 fait");
+    expect(plural("fr", 2, "{n} fait|{n} faits")).toBe("2 faits");
+    expect(plural("en", 0, "{n} fact|{n} facts")).toBe("0 facts");
+    expect(plural("en", 1, "{n} fact|{n} facts")).toBe("1 fact");
+  });
+  it("shows an unknown count with the plural form", () => {
+    expect(plural("fr", null, "{n} page|{n} pages")).toBe("? pages");
   });
 });
