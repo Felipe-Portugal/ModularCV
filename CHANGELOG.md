@@ -34,6 +34,10 @@ and had no tag or release before `v0.2.0`. The differences with that internal st
   `[object Object]`, and the internal English limit line under the plan is gone.
 - Fixed: counts are pluralised ("1 fait", "2 pages") instead of "1 faits" or "page(s)".
 - Fixed: the history page said "no PDF generated" while it was still loading.
+- Fixed: importing a CV showed no sign of work in progress; reading the file, extracting each PDF page, analysing and saving now show
+  a visible status. An engine older than the application is explained instead of "unknown operation".
+- Fixed: a development build (`tauri dev`) ran the engine last built into `src-tauri/resources/engine/` instead of the repository's
+  Python, so new adapter operations were refused; it now runs the repository's Python unless `MODULARCV_SIDECAR` is set.
 - Removed: the unused "not implemented" placeholder and its strings.
 
 ### ModularCV Desktop 0.5.0-beta.1 (prepared, not yet published)

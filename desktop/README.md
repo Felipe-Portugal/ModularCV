@@ -47,13 +47,15 @@ prerequisite download that can happen; the application itself never downloads an
 never installed or downloaded by the
 application, and reported in Settings > Environment diagnostics:
 
-- **Git** (Git for Windows): needed to create verifiable packages (the engine checks a commit of your sources).
+- **Git** (Git for Windows): recommended. In a Git workspace a package names a verified commit of your sources; without Git, the package
+  keeps a checked copy of them instead.
 - **pdflatex** (MiKTeX or TeX Live): needed to produce PDFs and packages. Without it you can still browse, edit, analyse offers and
   produce `.tex` files.
 
 **To develop or build:** Python 3.12 to 3.14, Rust (stable, MSVC) with the Visual Studio C++ build tools, Node.js and npm, Git. In
 development the engine is the repository's Python (`MODULARCV_PYTHON` to choose the interpreter, `MODULARCV_ENGINE_DIR` for the engine
-folder); a release build never falls back to a system Python.
+folder), even when an engine built earlier sits in `src-tauri/resources/engine/`; set `MODULARCV_SIDECAR` to run a built engine instead. A
+release build never falls back to a system Python.
 
 ## Third-party licence texts
 

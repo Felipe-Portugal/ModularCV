@@ -11,12 +11,14 @@ const MAX_PAGES = 12;
  * The text of a PDF the user picked, read locally with pdf.js: no rendering, no network, nothing executed.
  * A scanned document (images only) has no text: the result is then empty and the caller says so.
  */
-export async function pdfToText(bytes: Uint8Array): Promise<string> {
+export async function pdfToText(bytes: Uint8Array, onPage?: (page: number, total: number) => void): Promise<string> {
   const task = pdfjs.getDocument({ data: bytes.slice() });
   try {
     const doc = await task.promise;
     const pages: string[] = [];
-    for (let number = 1; number <= Math.min(doc.numPages, MAX_PAGES); number += 1) {
+    const total = Math.min(doc.numPages, MAX_PAGES);
+    for (let number = 1; number <= total; number += 1) {
+      onPage?.(number, total);
       const page = await doc.getPage(number);
       const content = await page.getTextContent();
       const fragments: TextFragment[] = [];

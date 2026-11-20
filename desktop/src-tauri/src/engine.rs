@@ -45,7 +45,11 @@ enum Backend {
 }
 
 /// The embedded engine inside the application's resource folder, if it is there.
+///
+/// A development build ignores that folder: `tauri dev` copies whatever engine was last built into it, which can be older
+/// than the repository's adapter. It runs the repository's Python instead, unless `MODULARCV_SIDECAR` names an engine.
 pub fn find_sidecar(resource_dir: Option<&Path>) -> Option<PathBuf> {
+    let resource_dir = if cfg!(debug_assertions) { None } else { resource_dir };
     find_sidecar_with(std::env::var_os("MODULARCV_SIDECAR").map(PathBuf::from), resource_dir)
 }
 

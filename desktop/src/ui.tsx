@@ -165,3 +165,16 @@ export function InlineText({ text }: { text: string }) {
     </>
   );
 }
+
+/** A visible, announced "work in progress" line: a spinner (still when motion is reduced) and what is happening. */
+export function BusyStatus({ label, hint }: { label: string; hint?: string }) {
+  return (
+    <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-line bg-surface2 px-4 py-3">
+      <span aria-hidden="true" className="mt-0.5 size-4 shrink-0 rounded-full border-2 border-line border-t-[var(--color-accent)] animate-spin motion-reduce:animate-none" />
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        {hint && <p className="mt-0.5 text-xs text-ink2">{hint}</p>}
+      </div>
+    </div>
+  );
+}

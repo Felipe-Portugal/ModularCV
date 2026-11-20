@@ -55,6 +55,7 @@ const fr = {
     downstream: "Le moteur signale, dans les autres fichiers, après cet enregistrement :",
   },
   errors: {
+    OPERATION_NOT_ALLOWED: "Le moteur ne reconnaît pas cette opération : il est plus ancien que l'application. Réinstallez ModularCV Desktop ; en développement, voir desktop/README.md.",
     CONFLICT: "Le fichier a été modifié ailleurs depuis sa lecture. Rien n'a été écrit. Rechargez puis recommencez.",
     VALIDATION_FAILED: "Le moteur refuse ces données. Rien n'a été écrit.",
     CONFIRMATION_REQUIRED: "Confirmer un fait demande une décision explicite avec la date de confirmation.",
@@ -213,6 +214,7 @@ const en: Base = {
     downstream: "After this save, the engine reports in other files:",
   },
   errors: {
+    OPERATION_NOT_ALLOWED: "The engine does not know this operation: it is older than the application. Reinstall ModularCV Desktop; in development, see desktop/README.md.",
     CONFLICT: "The file was changed elsewhere since it was read. Nothing was written. Reload and try again.",
     VALIDATION_FAILED: "The engine refuses this data. Nothing was written.",
     CONFIRMATION_REQUIRED: "Confirming a fact needs an explicit decision with the confirmation date.",

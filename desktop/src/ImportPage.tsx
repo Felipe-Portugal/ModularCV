@@ -6,7 +6,7 @@ import type { BlockKind, CvApplied, CvProposal, CvSource, Draft, DraftBlock, Dra
 import { today } from "./forms";
 import { base64ToBytes } from "./packages";
 import type { AdapterFailure } from "./types";
-import { Button, Card, FailureNotice, Field, Notice, inputCls } from "./ui";
+import { BusyStatus, Button, Card, FailureNotice, Field, Notice, inputCls } from "./ui";
 
 type Step = "source" | "review" | "done";
 const KINDS: BlockKind[] = ["experience", "project", "education", "other"];
@@ -197,6 +197,7 @@ export default function ImportPage() {
   const [text, setText] = useState("");
   const [sourceName, setSourceName] = useState<string | null>(null);
   const [busy, setBusy] = useState<null | "read" | "parse" | "save">(null);
+  const [pdfPage, setPdfPage] = useState<{ n: number; total: number } | null>(null);
   const [failure, setFailure] = useState<AdapterFailure | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -239,7 +240,7 @@ export default function ImportPage() {
     if (res.kind === "pdf") {
       try {
         const { pdfToText } = await import("./pdfText");
-        const found = await pdfToText(base64ToBytes(res.base64 ?? ""));
+        const found = await pdfToText(base64ToBytes(res.base64 ?? ""), (n, total) => setPdfPage({ n, total }));
         setText(found);
         if (!found.trim()) setNote(t.noText);
       } catch {
@@ -249,6 +250,7 @@ export default function ImportPage() {
     } else {
       setText(res.text ?? "");
     }
+    setPdfPage(null);
     setBusy(null);
   }
 
@@ -318,9 +320,17 @@ export default function ImportPage() {
           {note && <p role="status" className="mt-3 text-sm text-warning">{note}</p>}
           <div className="mt-4">
             <Field id="imp-text" label={t.textLabel} hint={t.textHint}>
-              <textarea id="imp-text" rows={14} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} className={inputCls + " resize-y font-mono text-xs leading-relaxed"} />
+              <textarea id="imp-text" rows={14} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} readOnly={!!busy} aria-busy={!!busy} className={inputCls + " resize-y font-mono text-xs leading-relaxed"} />
             </Field>
           </div>
+          {(busy === "read" || busy === "parse") && (
+            <div className="mt-3">
+              <BusyStatus
+                label={busy === "parse" ? t.analysing : pdfPage ? t.extracting.replace("{n}", String(pdfPage.n)).replace("{total}", String(pdfPage.total)) : t.reading}
+                hint={t.waitHint}
+              />
+            </div>
+          )}
           {failure && <div className="mt-3"><FailureNotice failure={failure} /></div>}
           <div className="mt-5 flex flex-wrap justify-end gap-3">
             <Button onClick={manual} disabled={!!busy}>{t.manual}</Button>
@@ -411,6 +421,7 @@ export default function ImportPage() {
             <p className="text-sm font-medium">{t.summary(counts.entries, counts.confirmed, counts.placed)}</p>
             {parked > 0 && <p className="text-xs text-ink2">{t.parkedNote(parked)}</p>}
             {counts.untitled > 0 && <p className="text-xs text-warning">{t.untitled(counts.untitled)}</p>}
+            {busy === "save" && <div className="mt-3"><BusyStatus label={t.saving} hint={t.waitHint} /></div>}
             <div className="mt-3 flex flex-wrap justify-end gap-3">
               <Button onClick={() => setStep("source")} disabled={!!busy}>{t.back}</Button>
               <Button variant="primary" onClick={() => void save()} disabled={!canSave}>{busy === "save" ? t.saving : t.save}</Button>
